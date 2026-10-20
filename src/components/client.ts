@@ -60,7 +60,7 @@ export const client = defineComponent<ClientConfig, ClientState>({
         { value: 'event', label: 'Evento' },
       ],
     },
-    rate: { type: 'number', label: 'Tasa', default: 2, min: 0, max: 50, step: 1, unit: 'req/s' },
+    rate: { type: 'number', label: 'Tasa', default: 0, min: 0, max: 50, step: 1, unit: 'req/s' },
     mix: { type: 'mix', label: 'Mix (path / evento)', default: [{ value: '/', weight: 1 }] },
     burstSize: { type: 'number', label: 'Tamaño de ráfaga', default: 20, min: 1, max: 200, step: 1 },
   },

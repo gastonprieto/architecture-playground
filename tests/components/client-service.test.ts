@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { client } from '../../src/components/client'
 import { defaultRegistry } from '../../src/components/index'
+import { defaultConfig } from '../../src/engine/registry'
 import { HOP_MS, Simulation, type SimEvents } from '../../src/engine/simulation'
 import type { Graph, GraphEdge, GraphNode, Message } from '../../src/engine/types'
 
@@ -69,6 +70,14 @@ describe('client', () => {
     }
   })
 
+  it('starts idle: rate defaults to 0, so a default client sends nothing on its own', () => {
+    expect(client.config.rate).toMatchObject({ type: 'number', default: 0 })
+    const s = sim(graph([node('C', 'client', defaultConfig(client)), node('D', 'database')], [edge('C', 'D')]))
+    const sent = sentFrom(s, 'C')
+    s.advance(10_000)
+    expect(sent).toHaveLength(0)
+  })
+
   it('has an IP text field that defaults to empty', () => {
     expect(client.config.ip).toMatchObject({ type: 'text', label: 'IP', default: '' })
   })
@@ -95,7 +104,7 @@ describe('client', () => {
 
   it('rate field max is 50 and burstSize max is 200', () => {
     const { rate, burstSize } = client.config
-    expect(rate).toMatchObject({ type: 'number', min: 0, max: 50, default: 2 })
+    expect(rate).toMatchObject({ type: 'number', min: 0, max: 50, default: 0 })
     expect(burstSize).toMatchObject({ type: 'number', min: 1, max: 200, default: 20 })
   })
 

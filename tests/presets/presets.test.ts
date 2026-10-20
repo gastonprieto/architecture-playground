@@ -81,6 +81,11 @@ describe('presets', () => {
     expect(paths['web'].every((x) => x === '/static')).toBe(true)
   })
 
+  it('every preset client sets its rate explicitly (the default is 0)', () => {
+    for (const p of getPresets('es'))
+      for (const n of p.graph.nodes.filter((x) => x.type === 'client')) expect(n.config.rate, `${p.id}/${n.id}`).toBeGreaterThan(0)
+  })
+
   it('every preset client has an explicit, unique IP', () => {
     for (const p of presets) {
       const ips = p.graph.nodes.filter((n) => n.type === 'client').map((n) => n.config.ip)
