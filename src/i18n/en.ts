@@ -98,6 +98,15 @@ export const en: Dict = {
     capacity: 'Capacity',
     queueMax: 'Max queue',
   },
+  /** Names of the Cliente palette colors (swatch labels). */
+  colorNames: {
+    '38bdf8': 'Sky blue',
+    f472b6: 'Pink',
+    facc15: 'Yellow',
+    fb923c: 'Orange',
+    a78bfa: 'Violet',
+    e2e8f0: 'Light gray',
+  },
   /** Info panel: one-line help for the shared fields, and the panel's own texts. */
   fieldInfo: {
     name: 'What it is called on the canvas.',
@@ -119,6 +128,7 @@ export const en: Dict = {
       label: 'Client',
       fields: {
         ip: 'IP',
+        color: 'Color',
         kind: 'Type',
         rate: 'Rate',
         mix: 'Mix (path / event)',
@@ -137,11 +147,13 @@ export const en: Dict = {
           'With Rate at 0 (the default) it sends nothing on its own: use "Send 1" or "Burst".',
           'Each message takes a path or event type from the mix, by weight.',
           'Carries its IP, which the Load Balancer uses with IP Hash.',
+          'Its packets and responses wear its color; responses get a green (ok) or red (error) outline.',
           'Receives the responses, which feed the latency and error metrics.',
           'With no output connected, the message is dropped.',
         ],
         fields: {
           ip: 'Address the Load Balancer\'s IP Hash hashes; empty, it uses the client id.',
+          color: 'Color of its packets and of everything derived from them (calls, messages, events), so you can follow them on the canvas.',
           kind: 'Request waits for a response; Event waits for nothing.',
           rate: 'Messages per second it sends on its own.',
           mix: 'Paths or event types to send, each with its weight.',

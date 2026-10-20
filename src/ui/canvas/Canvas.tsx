@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } fro
 import { defaultRegistry } from '../../components/index'
 import { useLang, useT } from '../../i18n'
 import { componentLabel } from '../../i18n/componentText'
+import { nextClientColor } from '../clientColor'
 import { nextClientIp } from '../clientIp'
 import { C } from '../colors'
 import { weightedEdgeShares } from '../lbWeights'
@@ -167,7 +168,8 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
       // New nodes are named after their type in the current language (then they are user data).
       const name = componentLabel(useLang.getState().lang, type, def)
       // A new Cliente gets the next free IP, so ip-hash can tell clients apart from the start.
-      const config = type === 'client' ? { ip: nextClientIp(useEditor.getState().graph) } : undefined
+      const g = useEditor.getState().graph
+      const config = type === 'client' ? { ip: nextClientIp(g), color: nextClientColor(g) } : undefined
       const id = addNode(type, { x: Math.round(p.x - DROP_OFFSET.x), y: Math.round(p.y - DROP_OFFSET.y) }, name, config)
       select({ kind: 'node', id })
     },

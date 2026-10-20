@@ -31,7 +31,7 @@ export type MessageKind = 'request' | 'message' | 'event' | 'response'
 export interface Message {
   id: string
   kind: MessageKind
-  meta: { path?: string; eventType?: string; clientId?: string; clientIp?: string; clientName?: string; [k: string]: unknown }
+  meta: { path?: string; eventType?: string; clientId?: string; clientIp?: string; clientName?: string; clientColor?: string; [k: string]: unknown }
   /** Path travelled so far; responses walk it in reverse. */
   trail: NodeId[]
   /** simTime at creation. */

@@ -1,3 +1,4 @@
+import { CLIENT_COLORS } from '../components/client'
 import type { Lang } from '../i18n'
 import { edge, node, presetText, ROW, type PresetShape } from './helpers'
 
@@ -11,8 +12,8 @@ export function reverseProxyPreset(lang: Lang): PresetShape {
     description,
     graph: {
       nodes: [
-        node('web-client', 'client', 0, ROW, text('nodes.web'), { rate: 3, mix, ip: '10.0.0.1' }),
-        node('mobile', 'client', 0, 2 * ROW, text('nodes.mobile'), { rate: 3, mix, ip: '10.0.0.2' }),
+        node('web-client', 'client', 0, ROW, text('nodes.web'), { rate: 3, mix, ip: '10.0.0.1', color: CLIENT_COLORS[0] }),
+        node('mobile', 'client', 0, 2 * ROW, text('nodes.mobile'), { rate: 3, mix, ip: '10.0.0.2', color: CLIENT_COLORS[1] }),
         node('proxy', 'reverse-proxy', 1, 1.5 * ROW, text('nodes.proxy')),
         node('usuarios', 'service', 2, 0, text('nodes.users')),
         node('ordenes', 'service', 2, ROW, text('nodes.orders')),

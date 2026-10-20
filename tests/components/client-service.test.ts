@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { client } from '../../src/components/client'
+import { CLIENT_COLORS, client } from '../../src/components/client'
 import { defaultRegistry } from '../../src/components/index'
 import { defaultConfig } from '../../src/engine/registry'
 import { HOP_MS, Simulation, type SimEvents } from '../../src/engine/simulation'
@@ -81,6 +81,44 @@ describe('client', () => {
   it('is the only source-only component (no input port)', () => {
     expect(client.inputs).toBe(false)
     for (const d of defaultRegistry.list()) if (d.type !== 'client') expect(d.inputs, d.type).not.toBe(false)
+  })
+
+  it('puts its color in meta, and derived messages keep it (service child, queue message, broker event, subscriber emit)', () => {
+    const color = '#fb923c'
+    const s = sim(
+      graph(
+        [
+          node('C', 'client', { rate: 0, color }),
+          node('S', 'service'),
+          node('Q', 'queue'),
+          node('W', 'worker'),
+          node('E', 'client', { rate: 0, color, kind: 'event', mix: [{ value: 'order', weight: 1 }] }),
+          node('B', 'broker'),
+          node('Sub', 'subscriber', { emits: 'next' }),
+          node('Sub2', 'subscriber'),
+        ],
+        [edge('C', 'S'), edge('S', 'Q'), edge('Q', 'W'), edge('E', 'B'), edge('B', 'Sub'), edge('Sub', 'Sub2')],
+      ),
+    )
+    const seen: Record<string, unknown> = {}
+    s.on('message:sent', (p: SimEvents['message:sent']) => {
+      seen[`${p.from}:${p.msg.kind}`] ??= p.msg.meta.clientColor
+    })
+    s.runAction('C', 'send1')
+    s.runAction('E', 'send1')
+    s.advance(10_000)
+    expect(seen).toMatchObject({
+      'C:request': color,
+      'S:request': color,
+      'Q:message': color,
+      'E:event': color,
+      'B:event': color,
+      'Sub:event': color,
+    })
+  })
+
+  it('has a color field with the 6-color palette', () => {
+    expect(client.config.color).toMatchObject({ type: 'color', label: 'Color', default: CLIENT_COLORS[0], options: [...CLIENT_COLORS] })
   })
 
   it('has an IP text field that defaults to empty', () => {

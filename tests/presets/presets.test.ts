@@ -4,6 +4,7 @@ import { Simulation } from '../../src/engine/simulation'
 import type { Message } from '../../src/engine/types'
 import { parseGraph, serializeGraph } from '../../src/persistence/serialize'
 import { getPresets } from '../../src/presets'
+import { CLIENT_COLORS } from '../../src/ui/colors'
 
 // Behavior is checked on the Spanish presets; the English ones only differ in texts.
 const presets = getPresets('es')
@@ -84,6 +85,14 @@ describe('presets', () => {
   it('every preset client sets its rate explicitly (the default is 0)', () => {
     for (const p of getPresets('es'))
       for (const n of p.graph.nodes.filter((x) => x.type === 'client')) expect(n.config.rate, `${p.id}/${n.id}`).toBeGreaterThan(0)
+  })
+
+  it('every preset client has a distinct palette color', () => {
+    for (const p of presets) {
+      const colors = p.graph.nodes.filter((n) => n.type === 'client').map((n) => n.config.color)
+      for (const c of colors) expect(CLIENT_COLORS).toContain(c)
+      expect(new Set(colors).size).toBe(colors.length)
+    }
   })
 
   it('every preset client has an explicit, unique IP', () => {

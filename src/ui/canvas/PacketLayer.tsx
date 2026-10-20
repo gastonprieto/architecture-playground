@@ -77,6 +77,22 @@ export function colorFor(msg: Pick<Message, 'kind' | 'status' | 'meta'>): string
   }
 }
 
+export interface PacketStyle {
+  fill: string
+  /** Outline: ok/error status on a response wearing its client's color. */
+  stroke?: string
+}
+
+/**
+ * How a packet is painted: in its client's color when the message carries one (requests,
+ * messages, events and responses alike; responses add an ok/error outline), otherwise by kind.
+ */
+export function packetStyle(msg: Pick<Message, 'kind' | 'status' | 'meta'>): PacketStyle {
+  const own = msg.meta.clientColor
+  if (typeof own !== 'string' || own === '') return { fill: colorFor(msg) }
+  return msg.kind === 'response' ? { fill: own, stroke: msg.status === 'ok' ? C.ok : C.err } : { fill: own }
+}
+
 /** Cubic ease-in-out on 0..1 (clamped). */
 export function easeInOut(t: number): number {
   const x = Math.min(1, Math.max(0, t))
@@ -91,7 +107,7 @@ const DIAMOND = 7
 
 function createPacketEl(msg: Message): SVGGElement {
   const g = document.createElementNS(SVG_NS, 'g')
-  const color = colorFor(msg)
+  const { fill, stroke } = packetStyle(msg)
   let shape: SVGElement
   switch (shapeFor(msg.kind)) {
     case 'square':
@@ -110,7 +126,11 @@ function createPacketEl(msg: Message): SVGGElement {
       shape = document.createElementNS(SVG_NS, 'circle')
       shape.setAttribute('r', String(msg.kind === 'response' ? RESPONSE_R : REQUEST_R))
   }
-  shape.setAttribute('fill', color)
+  shape.setAttribute('fill', fill)
+  if (stroke) {
+    shape.setAttribute('stroke', stroke)
+    shape.setAttribute('stroke-width', '2')
+  }
   g.appendChild(shape)
   g.setAttribute('class', `packet packet-${msg.kind}`)
   return g

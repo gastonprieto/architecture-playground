@@ -6,6 +6,8 @@ export interface ClientConfig {
   name: string
   /** Source IP the load balancer's ip-hash uses; empty → it hashes the client id. */
   ip: string
+  /** Color of this client's packets (and of everything derived from them). */
+  color: string
   kind: 'request' | 'event'
   rate: number
   mix: MixEntry[]
@@ -16,6 +18,12 @@ export interface ClientState {
   /** Fractional messages owed by onTick (rate * elapsed), sent once they reach whole units. */
   acc: number
 }
+
+/**
+ * Per-client colors, from the decks' sim.js, minus the two green-family ones (lime #a3e635 and
+ * teal #2dd4bf, too close to the ok green), replaced by yellow and light gray.
+ */
+export const CLIENT_COLORS = ['#38bdf8', '#f472b6', '#facc15', '#fb923c', '#a78bfa', '#e2e8f0'] as const
 
 /** Burst messages are spread evenly over this many sim-ms. */
 export const BURST_WINDOW_MS = 1000
@@ -36,7 +44,12 @@ function pick(mix: MixEntry[], r: number): string {
 function sendOne(ctx: Ctx<ClientConfig, ClientState>): void {
   const value = pick(ctx.config.mix, ctx.random())
   const isEvent = ctx.config.kind === 'event'
-  const who = { clientId: ctx.nodeId, clientIp: ctx.config.ip ?? '', clientName: ctx.config.name ?? '' }
+  const who = {
+    clientId: ctx.nodeId,
+    clientIp: ctx.config.ip ?? '',
+    clientName: ctx.config.name ?? '',
+    ...(ctx.config.color ? { clientColor: ctx.config.color } : {}),
+  }
   const msg = ctx.newMessage(isEvent ? 'event' : 'request', isEvent ? { eventType: value, ...who } : { path: value, ...who })
   const out = ctx.outputs()[0]
   if (out) ctx.send(out.target, msg)
@@ -52,6 +65,7 @@ export const client = defineComponent<ClientConfig, ClientState>({
   inputs: false,
   config: {
     ip: { type: 'text', label: 'IP', default: '' },
+    color: { type: 'color', label: 'Color', default: CLIENT_COLORS[0], options: CLIENT_COLORS },
     kind: {
       type: 'select',
       label: 'Tipo',

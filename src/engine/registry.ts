@@ -6,6 +6,8 @@ export type Field =
   | { type: 'select'; label: string; default: string; options: { value: string; label: string }[] }
   | { type: 'text'; label: string; default: string }
   | { type: 'mix'; label: string; default: { value: string; weight: number }[] }
+  /** One of a fixed set of `#rrggbb` colors (the inspector shows swatches). */
+  | { type: 'color'; label: string; default: string; options: readonly string[] }
 
 export type Tone = 'req' | 'ok' | 'slow' | 'err' | 'hc' | 'redis' | 'db'
 

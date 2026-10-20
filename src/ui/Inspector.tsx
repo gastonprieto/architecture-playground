@@ -4,8 +4,9 @@ import { defaultRegistry } from '../components/index'
 import type { ComponentDef, Field } from '../engine/registry'
 import type { EdgeRule } from '../engine/types'
 import { useLang, useT } from '../i18n'
-import { actionLabel, componentLabel, fieldLabel, optionLabel, unknownTypeTitle } from '../i18n/componentText'
+import { actionLabel, colorName, componentLabel, fieldLabel, optionLabel, unknownTypeTitle } from '../i18n/componentText'
 import { BooleanField } from './fields/BooleanField'
+import { ColorField } from './fields/ColorField'
 import { MixField, type MixRow } from './fields/MixField'
 import { NumberField } from './fields/NumberField'
 import { SelectField } from './fields/SelectField'
@@ -40,6 +41,16 @@ function FieldControl({ def, fieldKey, field, value, onChange }: FieldControlPro
     }
     case 'text':
       return <TextField label={label} value={typeof value === 'string' ? value : field.default} onChange={onChange} />
+    case 'color':
+      return (
+        <ColorField
+          label={label}
+          options={field.options}
+          value={typeof value === 'string' ? value : field.default}
+          nameOf={(c) => colorName(lang, c)}
+          onChange={onChange}
+        />
+      )
     case 'mix':
       return <MixField label={label} value={Array.isArray(value) ? (value as MixRow[]) : field.default} onChange={onChange} />
   }

@@ -13,8 +13,8 @@ export const C = {
   muted: '#94a3b8',
 } as const
 
-/** Per-client colors, as in the decks' sim.js. */
-export const CLIENT_COLORS = ['#38bdf8', '#f472b6', '#a3e635', '#fb923c', '#a78bfa', '#2dd4bf'] as const
+/** Per-client colors (defined with the Cliente, which offers them as its color options). */
+export { CLIENT_COLORS } from '../components/client'
 
 export function toneColor(tone: Tone): string {
   return C[tone]

@@ -7,7 +7,7 @@ import { C, toneColor } from '../colors'
 import { ZERO_STATS, useRuntime } from '../runtime/runtimeStore'
 import { UI_CELLS, type CellsView, type UiState } from '../runtime/useSimulation'
 import { useEditor } from '../store/editor'
-import { colorFor } from './PacketLayer'
+import { packetStyle } from './PacketLayer'
 
 export type ArchNodeData = { kind: string; config: Record<string, unknown> }
 export type ArchFlowNode = Node<ArchNodeData, 'arch'>
@@ -24,7 +24,7 @@ function compact(n: number): string {
 function cellColor(kind: string, msg: Message): string {
   if (kind === 'dlq') return C.err
   if ((msg.attempt ?? 0) > 0) return C.slow
-  return colorFor(msg)
+  return packetStyle(msg).fill
 }
 
 /** Up to UI_CELLS cells plus "+N" for the rest. */
@@ -80,7 +80,9 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
   const def = defaultRegistry.get(data.kind)
   const lang = useLang((s) => s.lang)
   const typeLabel = componentLabel(lang, data.kind, def)
-  const color = def ? toneColor(def.color) : C.err
+  // A Cliente wears its own color (the one its packets carry).
+  const own = data.kind === 'client' && typeof data.config.color === 'string' && data.config.color ? data.config.color : undefined
+  const color = own ?? (def ? toneColor(def.color) : C.err)
   const configName = typeof data.config.name === 'string' ? data.config.name.trim() : ''
   const name = configName || (def ? typeLabel : data.kind)
   const hasIncoming = useEditor((s) => def?.inputs === false && s.graph.edges.some((e) => e.target === id))

@@ -4,6 +4,7 @@ import { CLIENT_COLORS, C } from '../../src/ui/colors'
 import {
   MAX_PACKETS,
   colorFor,
+  packetStyle,
   easeInOut,
   packetsReducer,
   shapeFor,
@@ -90,5 +91,29 @@ describe('easeInOut', () => {
     expect(easeInOut(0.5)).toBeCloseTo(0.5)
     expect(easeInOut(-1)).toBe(0)
     expect(easeInOut(2)).toBe(1)
+  })
+})
+
+describe('packetStyle', () => {
+  const pink = '#f472b6'
+  it('fills every kind with the client color when the message carries one', () => {
+    for (const kind of ['request', 'message', 'event'] as const)
+      expect(packetStyle(msg('a', kind, { meta: { clientColor: pink, eventType: 'x' } }))).toEqual({ fill: pink })
+  })
+
+  it('responses keep the client fill with an ok/error stroke', () => {
+    expect(packetStyle(msg('a', 'response', { status: 'ok', code: 200, meta: { clientColor: pink } }))).toEqual({ fill: pink, stroke: C.ok })
+    expect(packetStyle(msg('a', 'response', { status: 'error', code: 503, meta: { clientColor: pink } }))).toEqual({ fill: pink, stroke: C.err })
+  })
+
+  it('without a client color everything is as before', () => {
+    for (const m of [
+      msg('a', 'request'),
+      msg('a', 'message'),
+      msg('a', 'event', { meta: { eventType: 'order.created' } }),
+      msg('a', 'response', { status: 'ok', code: 200 }),
+      msg('a', 'response', { status: 'error', code: 503, meta: { clientColor: '' } }),
+    ])
+      expect(packetStyle(m)).toEqual({ fill: colorFor(m) })
   })
 })

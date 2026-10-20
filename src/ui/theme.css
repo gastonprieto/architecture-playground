@@ -492,3 +492,19 @@ body {
   color: var(--purple);
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- color swatches (Cliente color) ---------- */
+
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px; }
+.inspector .swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid var(--panel-2);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: pointer;
+}
+.inspector .swatch:hover:not(:disabled) { border-color: var(--panel-2); box-shadow: 0 0 0 1px var(--muted); }
+.inspector .swatch.selected { box-shadow: 0 0 0 2px var(--text); }
+.inspector .swatch:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }

@@ -53,3 +53,6 @@ export function componentInfo(lang: Lang, def: ComponentDef): ComponentInfo | un
   }))
   return { summary, behavior: lookupList(lang, `${base}.behavior`) ?? [], fields, tip: lookup(lang, `${base}.tip`) ?? '' }
 }
+
+/** A palette color's name (`colorNames.<hex without #>`), or the hex itself. */
+export const colorName = (lang: Lang, hex: string): string => lookup(lang, `colorNames.${hex.replace(/^#/, '').toLowerCase()}`) ?? hex

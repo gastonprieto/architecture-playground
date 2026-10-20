@@ -101,6 +101,15 @@ export const es = {
     capacity: 'Capacidad',
     queueMax: 'Cola máx.',
   },
+  /** Names of the Cliente palette colors (swatch labels). */
+  colorNames: {
+    '38bdf8': 'Celeste',
+    f472b6: 'Rosa',
+    facc15: 'Amarillo',
+    fb923c: 'Naranja',
+    a78bfa: 'Violeta',
+    e2e8f0: 'Gris claro',
+  },
   /** Info panel: one-line help for the shared fields, and the panel's own texts. */
   fieldInfo: {
     name: 'Cómo se llama en el canvas.',
@@ -122,6 +131,7 @@ export const es = {
       label: 'Cliente',
       fields: {
         ip: 'IP',
+        color: 'Color',
         kind: 'Tipo',
         rate: 'Tasa',
         mix: 'Mix (path / evento)',
@@ -140,11 +150,13 @@ export const es = {
           'Con Tasa en 0 (el default) no manda nada solo: usá "Enviar 1" o "Ráfaga".',
           'Cada mensaje toma un path o tipo de evento del mix, según los pesos.',
           'Lleva su IP, que el Load Balancer usa con IP Hash.',
+          'Sus paquetes y respuestas van con su color; las respuestas tienen borde verde (ok) o rojo (error).',
           'Recibe las respuestas y con ellas se calculan la latencia y los errores.',
           'Sin salida conectada, el mensaje se descarta.',
         ],
         fields: {
           ip: 'Dirección que hashea el IP Hash del Load Balancer; vacía, usa el id del cliente.',
+          color: 'Color de sus paquetes y de todo lo que derivan (llamadas, mensajes, eventos), para seguirlos en el canvas.',
           kind: 'Request espera respuesta; Evento no espera nada.',
           rate: 'Mensajes por segundo que manda solo.',
           mix: 'Paths o tipos de evento a mandar, cada uno con su peso.',
