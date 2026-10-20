@@ -36,7 +36,7 @@ export const cache = defineComponent<CacheConfig, CacheState>({
       ctx.label('MISS', 'slow')
       const next = ctx.outputs()[0]
       if (!next) {
-        ctx.drop(msg, 'sin salida', 503)
+        ctx.drop(msg, 'no-output', 503)
         return
       }
       ctx.send(next.target, msg)

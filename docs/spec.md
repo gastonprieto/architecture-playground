@@ -20,7 +20,7 @@ Una app web para **armar una arquitectura arrastrando componentes a un canvas** 
 | Backend | Ninguno |
 | Persistencia | `localStorage` + export/import JSON + link compartible (estado comprimido en el hash de la URL) |
 | Hosting | GitHub Pages, deploy con GitHub Actions en cada push a `main` (`base: '/architecture-playground/'`) |
-| Idioma | UI en español; código, tipos y commits en inglés |
+| Idiomas | Español e inglés, con selector en la toolbar (`ES \| EN`; inicial: `?lang=`, la elección guardada o el idioma del navegador). Código, tipos y commits en inglés |
 | Estética | Paleta y estilo SVG de los decks (ver §8) |
 | Plataforma | Desktop-first; en mobile solo visualizar y correr presets (sin edición) |
 
@@ -115,7 +115,7 @@ defineComponent({
 | `ctx.outputs(filter?)` | aristas salientes (con su regla) |
 | `ctx.send(edgeOrNode, msg, { delay? })` | enviar a un vecino |
 | `ctx.reply(msg, { status, code, delay? })` | responder un request por su `trail` |
-| `ctx.drop(msg, reason)` | descartar con error visible |
+| `ctx.drop(msg, reason)` | descartar con error visible (`reason` es un código estable en inglés, ver §4.5) |
 | `ctx.process(msg, fn)` | ocupar un slot de `capacity` durante `processingTime` y luego `fn` (encola si no hay slot) |
 | `ctx.schedule(ms, fn)` | acciones diferidas |
 | `ctx.now`, `ctx.random()` | tiempo y RNG con seed (reproducible en tests) |
@@ -128,6 +128,8 @@ defineComponent({
 
 `message:sent { msg, from, to, edgeId, duration }`, `message:arrived`, `message:dropped { msg, at, reason, code? }`, `node:stats { nodeId, stats }`, `node:label { nodeId, text, tone }`, `metrics:tick`. Reiniciar es crear una `Simulation` nueva (no hay evento de reset).
 
+`reason` y el `text` de `node:label` son **códigos estables en inglés**, no texto de UI: `down` (caído), `queue-full` (cola llena), `loop`, `removed`, `unknown-type`, `no-output` (sin salida), `no-dlq`, `no-subscribers`, `no-targets` (sin destinos disponibles), `no-origin-queue`, `client-rejects-requests`, `dlq-rejects-requests`; labels `retry`, `no-subscribers` y los literales `HIT`, `MISS`, `202`, `DLQ`. La UI los traduce (`reasons.<code>`, `labels.<code>`) y muestra crudo un código desconocido. `engine/` y `components/` no importan nada de `i18n/`.
+
 El grafo se puede editar **con la simulación corriendo** (`sim.setGraph(graph)`): los nodos que siguen conservan su estado, los nuevos arrancan vacíos y los mensajes hacia nodos o aristas borrados se descartan. Así se puede "agregar un server" en vivo como en los decks.
 La capa visual anima a partir de estos eventos; el motor no sabe nada de SVG.
 
@@ -137,7 +139,7 @@ Componentes que procesan (Service, Database, Worker, Subscriber) tienen:
 
 - `processingTime` (ms)
 - `capacity` (slots concurrentes) — excedente va a cola interna con `queueMax`; si se llena → `503`
-- toggle **up/down** — caído: rechaza con `503`
+- toggle **up/down** — caído: rechaza con `503` (razón `down`)
 
 Fuera del MVP: latencia por arista, jitter, timeouts, retries con backoff en el cliente.
 
@@ -165,7 +167,8 @@ Fuera del MVP (se agregan después como config): TLS, compresión, sticky sessio
 - **Canvas** (React Flow): mover, conectar, seleccionar, borrar nodos y aristas, zoom/pan. Sin auto-layout.
 - **Inspector**: panel generado desde `config` del tipo; para aristas, editor de regla.
 - **Undo/redo** de cambios estructurales y de config.
-- **Toolbar**: play/pause, step, velocidad, reset, presets, export/import, copiar link.
+- **Toolbar**: play/pause, step, velocidad, reset, presets, export/import, copiar link, selector de idioma `ES | EN`. Un import inválido muestra el error traducido (`parseGraph` devuelve códigos: `invalid-json`, `unknown-format`, `dangling-edge` + `edgeId`).
+- **Idiomas**: los textos viven en `src/i18n/` (`es.ts`, `en.ts` con las mismas claves). Los presets se cargan en el idioma actual; los nombres de los nodos que ya armó el usuario no se traducen.
 - **Overlay de animación**: paquetes viajando por las aristas (círculos para requests, cuadrados para messages, rombos para events), coloreados por estado; labels flotantes (`503`, `401`, `✔`, `202`).
 - **Por nodo**: contadores en vivo (en proceso, en cola, ok, errores) y badge up/down.
 - **Barra global de métricas**: throughput, latencia p50/p95, tasa de error. (Gráficos tipo `widgets.js` en una segunda iteración.)

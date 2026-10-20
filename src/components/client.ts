@@ -30,7 +30,7 @@ function pick(mix: MixEntry[], r: number): string {
   return mix[mix.length - 1].value
 }
 
-/** Sends one request (or event) to the first output, or drops it with 'sin salida'. */
+/** Sends one request (or event) to the first output, or drops it with 'no-output'. */
 function sendOne(ctx: Ctx<ClientConfig, ClientState>): void {
   const value = pick(ctx.config.mix, ctx.random())
   const isEvent = ctx.config.kind === 'event'
@@ -40,7 +40,7 @@ function sendOne(ctx: Ctx<ClientConfig, ClientState>): void {
   )
   const out = ctx.outputs()[0]
   if (out) ctx.send(out.target, msg)
-  else ctx.drop(msg, 'sin salida')
+  else ctx.drop(msg, 'no-output')
 }
 
 export const client = defineComponent<ClientConfig, ClientState>({
@@ -67,7 +67,7 @@ export const client = defineComponent<ClientConfig, ClientState>({
   // A client has no inputs: anything but a response that reaches it fails visibly (requests get a
   // 503 back). Responses never get here; they end at the client (empty trail).
   onMessage(msg, ctx) {
-    ctx.drop(msg, 'el cliente no recibe requests', 503)
+    ctx.drop(msg, 'client-rejects-requests', 503)
   },
   onTick(ctx, dtMs) {
     ctx.state.acc += (ctx.config.rate * dtMs) / 1000

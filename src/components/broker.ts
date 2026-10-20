@@ -32,14 +32,14 @@ function pump(ctx: BrokerCtx): void {
 /**
  * Fans `ev` out to every output whose rule matches its eventType, one fresh copy per output (so ids
  * are distinct). Queues get theirs immediately (they never ack events); subscribers get theirs
- * through their lane. No match → 'sin suscriptores'.
+ * through their lane. No match → 'no-subscribers'.
  */
 function publish(ctx: BrokerCtx, ev: Message): void {
   const eventType = ev.meta.eventType ?? ''
   const matching = ctx.outputs().filter((o) => matchesEvent(o.rule, eventType))
   if (matching.length === 0) {
-    ctx.label('sin suscriptores', 'slow')
-    ctx.drop(ev, 'sin suscriptores')
+    ctx.label('no-subscribers', 'slow')
+    ctx.drop(ev, 'no-subscribers')
     return
   }
   for (const out of matching) {

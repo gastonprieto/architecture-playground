@@ -102,15 +102,15 @@ describe('broker', () => {
     expect(s.nodeStats('S2').ok).toBe(0)
   })
 
-  it("with no matching subscriber it labels 'sin suscriptores' and drops", () => {
+  it("with no matching subscriber it labels 'no-subscribers' and drops", () => {
     const s = sim(brokerGraph({ subs: [{ rule: ev('B') }] }))
     const labels = labelsOf(s, 'B')
     const drops: SimEvents['message:dropped'][] = []
     s.on('message:dropped', (p) => drops.push(p))
     s.runAction('C', 'send1')
     s.advance(5000)
-    expect(labels).toContain('sin suscriptores:slow')
-    expect(drops.map((d) => [d.at, d.reason, d.msg.kind])).toEqual([['B', 'sin suscriptores', 'event']])
+    expect(labels).toContain('no-subscribers:slow')
+    expect(drops.map((d) => [d.at, d.reason, d.msg.kind])).toEqual([['B', 'no-subscribers', 'event']])
   })
 
   it('a request gets 202 and is published as an event typed by its path', () => {
@@ -189,7 +189,7 @@ describe('broker', () => {
     s.setGraph({ ...g, nodes: g.nodes.map((n) => (n.id === 'S1' ? { ...n, config: { up: false } } : n)) })
     s.advance(5000)
     expect(atB.map((r) => [r.status, r.code])).toEqual([['error', 503]])
-    expect(drops.map((d) => [d.at, d.reason, d.code])).toEqual([['S1', 'caído', 503]])
+    expect(drops.map((d) => [d.at, d.reason, d.code])).toEqual([['S1', 'down', 503]])
     const st = s.nodeState<BrokerState>('B')
     expect(st.inFlight.S1).toBe(0)
     expect(st.pending).toEqual({})

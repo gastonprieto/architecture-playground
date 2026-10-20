@@ -38,7 +38,7 @@ interface Job {
 
 /**
  * Per-node processing: `capacity` concurrent slots, a FIFO queue bounded by `queueMax`, and up/down.
- * A down node rejects arrivals with 503 'caído'; work already in flight still finishes.
+ * A down node rejects arrivals with 503 'down'; work already in flight still finishes.
  */
 export class Processor {
   private queue: Job[] = []
@@ -52,14 +52,14 @@ export class Processor {
     const s = readProcessing(this.host.config())
     const stats = this.host.stats
     if (!s.up) {
-      this.host.drop(msg, 'caído', 503)
+      this.host.drop(msg, 'down', 503)
     } else if (stats.inFlight < s.capacity) {
       this.start({ msg, done })
     } else if (this.queue.length < s.queueMax) {
       this.queue.push({ msg, done })
       this.syncQueued()
     } else {
-      this.host.drop(msg, 'cola llena', 503)
+      this.host.drop(msg, 'queue-full', 503)
     }
   }
 
@@ -70,7 +70,7 @@ export class Processor {
       const rejected = this.queue
       this.queue = []
       if (rejected.length > 0) this.syncQueued()
-      for (const job of rejected) this.host.drop(job.msg, 'caído', 503)
+      for (const job of rejected) this.host.drop(job.msg, 'down', 503)
       return
     }
     this.pump()

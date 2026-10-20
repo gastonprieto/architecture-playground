@@ -24,10 +24,10 @@ describe('serialize/parse', () => {
     expect(parseGraph(serializeGraph(g))).toEqual({ ok: true, graph: g })
   })
   it('reports invalid JSON', () => {
-    expect(parseGraph('{nope')).toEqual({ ok: false, error: 'JSON inválido' })
+    expect(parseGraph('{nope')).toEqual({ ok: false, error: 'invalid-json' })
   })
   it('reports unrecognized format', () => {
-    const bad = (x: unknown) => expect(parseGraph(JSON.stringify(x))).toEqual({ ok: false, error: 'Formato no reconocido' })
+    const bad = (x: unknown) => expect(parseGraph(JSON.stringify(x))).toEqual({ ok: false, error: 'unknown-format' })
     bad({ version: 2, graph: g })
     bad({ version: 1, graph: { nodes: 'x', edges: [] } })
     bad({ version: 1, graph: { nodes: [{ id: 'a' }], edges: [] } })
@@ -36,7 +36,7 @@ describe('serialize/parse', () => {
   })
   it('reports edges pointing at missing nodes', () => {
     const r = parseGraph(JSON.stringify({ version: 1, graph: { nodes: g.nodes, edges: [{ id: 'e9', source: 'a', target: 'zzz' }] } }))
-    expect(r).toEqual({ ok: false, error: 'La arista e9 apunta a un nodo inexistente' })
+    expect(r).toEqual({ ok: false, error: 'dangling-edge', edgeId: 'e9' })
   })
   it('every preset survives parseGraph(serializeGraph(g))', () => {
     for (const p of presets) expect(parseGraph(serializeGraph(p.graph))).toEqual({ ok: true, graph: p.graph })

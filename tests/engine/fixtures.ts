@@ -25,7 +25,7 @@ export const fwd = defineComponent({
   onMessage(msg, ctx) {
     const out = ctx.outputs()[0]
     if (out) ctx.send(out.target, msg)
-    else ctx.drop(msg, 'sin salida')
+    else ctx.drop(msg, 'no-output')
   },
 })
 

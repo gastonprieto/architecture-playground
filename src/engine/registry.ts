@@ -31,9 +31,11 @@ export interface Ctx<C = any, S = any> {
   reply(msg: Message, r: { status: 'ok' | 'error'; code: number }): void
   /** Pass a response one hop further back. */
   forwardResponse(res: Message): void
+  /** `reason` is a stable English code ('down', 'queue-full', 'no-output'…); the UI translates it. */
   drop(msg: Message, reason: string, code?: number): void
   process(msg: Message, done: () => void): void
   schedule(ms: number, fn: () => void): void
+  /** `text` is a code too ('retry', 'no-subscribers') or a literal token ('HIT', '202'). */
   label(text: string, tone: Tone): void
   random(): number
 }

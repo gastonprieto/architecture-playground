@@ -170,7 +170,7 @@ export class Simulation {
       if (def?.onResponse) def.onResponse(msg, this.ctx(rec))
       else this.forwardResponse(rec.id, msg)
     } else if (!def) {
-      this.drop(rec.id, msg, 'tipo desconocido')
+      this.drop(rec.id, msg, 'unknown-type')
     } else {
       def.onMessage(msg, this.ctx(rec))
     }

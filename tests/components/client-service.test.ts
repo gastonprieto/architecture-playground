@@ -116,26 +116,26 @@ describe('client', () => {
     expect(created).toBeGreaterThan(paid * 2)
   })
 
-  it("client without outputs drops 'sin salida'", () => {
+  it("client without outputs drops 'no-output'", () => {
     const s = sim(graph([node('C', 'client', { rate: 0 })]))
     const drops: SimEvents['message:dropped'][] = []
     s.on('message:dropped', (p) => drops.push(p))
     s.runAction('C', 'send1')
     s.advance(1000)
-    expect(drops.map((d) => [d.at, d.reason])).toEqual([['C', 'sin salida']])
+    expect(drops.map((d) => [d.at, d.reason])).toEqual([['C', 'no-output']])
     expect(s.nodeStats('C').errors).toBe(1)
   })
 })
 
 describe('client receiving traffic', () => {
-  it("drops a request sent to it with 'el cliente no recibe requests' and answers 503", () => {
+  it("drops a request sent to it with 'client-rejects-requests' and answers 503", () => {
     const s = sim(graph([node('C1', 'client', { rate: 0 }), node('C2', 'client', { rate: 0 })], [edge('C1', 'C2')]))
     const drops: SimEvents['message:dropped'][] = []
     s.on('message:dropped', (p) => drops.push(p))
     const res = responsesAt(s, 'C1')
     s.runAction('C1', 'send1')
     s.advance(3 * HOP_MS)
-    expect(drops.map((d) => [d.at, d.reason, d.code])).toEqual([['C2', 'el cliente no recibe requests', 503]])
+    expect(drops.map((d) => [d.at, d.reason, d.code])).toEqual([['C2', 'client-rejects-requests', 503]])
     expect(res.map((r) => [r.status, r.code])).toEqual([['error', 503]])
   })
 
@@ -145,7 +145,7 @@ describe('client receiving traffic', () => {
     s.on('message:dropped', (p) => drops.push(p))
     s.runAction('C1', 'send1')
     s.advance(3 * HOP_MS)
-    expect(drops.map((d) => [d.at, d.reason, d.msg.kind])).toEqual([['C2', 'el cliente no recibe requests', 'event']])
+    expect(drops.map((d) => [d.at, d.reason, d.msg.kind])).toEqual([['C2', 'client-rejects-requests', 'event']])
   })
 })
 

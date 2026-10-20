@@ -45,7 +45,7 @@ describe('ctx.process', () => {
     sim.inject('P', req())
     expect(sim.nodeStats('P')).toMatchObject({ inFlight: 1, queued: 1, errors: 1 })
     expect(drops).toHaveLength(1)
-    expect(drops[0]).toMatchObject({ at: 'P', reason: 'cola llena', code: 503 })
+    expect(drops[0]).toMatchObject({ at: 'P', reason: 'queue-full', code: 503 })
     sim.advance(2 * PT)
     expect(sim.nodeStats('P')).toMatchObject({ inFlight: 0, queued: 0, ok: 2, errors: 1 })
   })
@@ -54,14 +54,14 @@ describe('ctx.process', () => {
     const { sim, drops } = setup({ capacity: 1, queueMax: 0 })
     sim.inject('P', req())
     sim.inject('P', req())
-    expect(drops.map((d) => d.reason)).toEqual(['cola llena'])
+    expect(drops.map((d) => d.reason)).toEqual(['queue-full'])
   })
 
   it('down node rejects new arrivals with 503', () => {
     const { sim, drops } = setup({ up: false })
     sim.inject('P', req())
     expect(drops).toHaveLength(1)
-    expect(drops[0]).toMatchObject({ at: 'P', reason: 'caído', code: 503 })
+    expect(drops[0]).toMatchObject({ at: 'P', reason: 'down', code: 503 })
     sim.advance(2 * PT)
     expect(sim.nodeStats('P')).toMatchObject({ inFlight: 0, queued: 0, ok: 0, errors: 1 })
   })
@@ -76,8 +76,8 @@ describe('ctx.process', () => {
     sim.advance(PT / 2)
     sim.setGraph(procGraph({ capacity: 1, up: false }))
     expect(drops.map((d) => [d.reason, d.code])).toEqual([
-      ['caído', 503],
-      ['caído', 503],
+      ['down', 503],
+      ['down', 503],
     ])
     expect(sim.nodeStats('P')).toMatchObject({ inFlight: 1, queued: 0, errors: 2 })
 

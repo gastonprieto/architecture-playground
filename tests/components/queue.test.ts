@@ -174,12 +174,12 @@ describe('queue', () => {
     expect(s.nodeStats('W1').errors).toBe(3)
   })
 
-  it("without a DLQ the message is dropped 'sin DLQ'", () => {
+  it("without a DLQ the message is dropped 'no-dlq'", () => {
     const s = sim(queueGraph({ queue: { maxRetries: 1 }, workers: [{ failRate: 1 }] }))
     const d = drops(s)
     s.runAction('C', 'send1')
     s.advance(20_000)
-    expect(d.map((e) => [e.at, e.reason, e.msg.kind])).toEqual([['Q', 'sin DLQ', 'message']])
+    expect(d.map((e) => [e.at, e.reason, e.msg.kind])).toEqual([['Q', 'no-dlq', 'message']])
   })
 
   it('a Servicio consumer that goes down mid-hop nacks: the queue retries, then dead-letters', () => {
@@ -194,7 +194,7 @@ describe('queue', () => {
     s.advance(HOP_MS + 100) // the queue pushed attempt 0 to S
     expect(fromQ.map((e) => [e.to, e.msg.attempt])).toEqual([['S', 0]])
     s.setGraph(down)
-    s.advance(2 * HOP_MS) // S drops 'caído' and nacks; the retry waits for S to be up
+    s.advance(2 * HOP_MS) // S drops 'down' and nacks; the retry waits for S to be up
     expect(s.nodeState<QueueState>('Q').items.map((m) => m.attempt)).toEqual([1])
     s.setGraph(g)
     s.advance(200) // next tick pushes attempt 1
@@ -213,7 +213,7 @@ describe('queue', () => {
     s.runAction('C', 'burst')
     s.advance(5000)
     expect(res.map((r) => r.code)).toEqual([202, 202, 503, 503, 503])
-    expect(d.map((e) => [e.at, e.reason, e.code])).toEqual(Array(3).fill(['Q', 'cola llena', 503]))
+    expect(d.map((e) => [e.at, e.reason, e.code])).toEqual(Array(3).fill(['Q', 'queue-full', 503]))
     expect(s.nodeState<QueueState>('Q').items).toHaveLength(2)
   })
 
@@ -255,13 +255,13 @@ describe('worker', () => {
 })
 
 describe('dlq', () => {
-  it("rejects a request with 'DLQ no acepta requests' (503)", () => {
+  it("rejects a request with 'dlq-rejects-requests' (503)", () => {
     const s = sim({ nodes: [node('C', 'client', { rate: 0 }), node('DLQ', 'dlq')], edges: [edge('C', 'DLQ')] })
     const d = drops(s)
     const res = responsesAt(s, 'C')
     s.runAction('C', 'send1')
     s.advance(3 * HOP_MS)
-    expect(d.map((e) => [e.at, e.reason, e.code])).toEqual([['DLQ', 'DLQ no acepta requests', 503]])
+    expect(d.map((e) => [e.at, e.reason, e.code])).toEqual([['DLQ', 'dlq-rejects-requests', 503]])
     expect(res.map((r) => [r.status, r.code])).toEqual([['error', 503]])
     expect(s.nodeState<QueueState>('DLQ').items).toEqual([])
   })

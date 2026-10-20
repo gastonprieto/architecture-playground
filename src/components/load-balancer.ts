@@ -51,7 +51,7 @@ export const loadBalancer = defineComponent<LoadBalancerConfig, LoadBalancerStat
     let targets = ctx.outputs()
     if (ctx.config.healthChecks) targets = targets.filter((o) => ctx.peer(o.target)?.config.up !== false)
     if (targets.length === 0) {
-      ctx.drop(msg, 'sin destinos disponibles', 503)
+      ctx.drop(msg, 'no-targets', 503)
       return
     }
     const st = ctx.state

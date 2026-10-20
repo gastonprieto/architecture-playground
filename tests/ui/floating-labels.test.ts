@@ -23,7 +23,7 @@ describe('LabelBook', () => {
   it('stacks different concurrent texts on a node in distinct slots and reuses freed ones', () => {
     const book = new LabelBook()
     const a = book.add('S', '503', 0)
-    const b = book.add('S', 'caído', 0)
+    const b = book.add('S', 'down', 0)
     const c = book.add('S', 'loop', 0)
     expect([a, b, c].map((x) => (x.type === 'new' ? x.slot : -1))).toEqual([0, 1, 2])
     // Other nodes have their own slots.

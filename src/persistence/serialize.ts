@@ -1,6 +1,10 @@
 import type { Graph } from '../engine/types'
 
-export type ParseResult = { ok: true; graph: Graph } | { ok: false; error: string }
+/** Why a graph could not be loaded: a stable code (the UI translates `errors.<code>`) plus params. */
+export type ParseError = { error: 'invalid-json' } | { error: 'unknown-format' } | { error: 'dangling-edge'; edgeId: string }
+export type ParseErrorCode = ParseError['error']
+
+export type ParseResult = { ok: true; graph: Graph } | ({ ok: false } & ParseError)
 
 export const serializeGraph = (g: Graph): string => JSON.stringify({ version: 1, graph: g }, null, 2)
 
@@ -24,13 +28,13 @@ const validEdge = (e: unknown): boolean => {
 
 /** Validate an already-parsed JSON value. */
 export function validateGraphData(data: unknown): ParseResult {
-  const bad: ParseResult = { ok: false, error: 'Formato no reconocido' }
+  const bad: ParseResult = { ok: false, error: 'unknown-format' }
   if (!isObj(data) || data.version !== 1 || !isObj(data.graph)) return bad
   const { nodes, edges } = data.graph
   if (!Array.isArray(nodes) || !Array.isArray(edges) || !nodes.every(validNode) || !edges.every(validEdge)) return bad
   const ids = new Set((nodes as { id: string }[]).map((n) => n.id))
   for (const e of edges as { id: string; source: string; target: string }[]) {
-    if (!ids.has(e.source) || !ids.has(e.target)) return { ok: false, error: `La arista ${e.id} apunta a un nodo inexistente` }
+    if (!ids.has(e.source) || !ids.has(e.target)) return { ok: false, error: 'dangling-edge', edgeId: e.id }
   }
   return { ok: true, graph: data.graph as unknown as Graph }
 }
@@ -40,7 +44,7 @@ export function parseGraph(text: string): ParseResult {
   try {
     data = JSON.parse(text)
   } catch {
-    return { ok: false, error: 'JSON inválido' }
+    return { ok: false, error: 'invalid-json' }
   }
   return validateGraphData(data)
 }

@@ -113,7 +113,7 @@ describe('Simulation', () => {
     sim.advance(3 * HOP_MS)
     const dropped = of(log, 'message:dropped')
     expect(dropped).toHaveLength(1)
-    expect(dropped[0].p).toMatchObject({ at: 'N', reason: 'tipo desconocido' })
+    expect(dropped[0].p).toMatchObject({ at: 'N', reason: 'unknown-type' })
     expect(sim.nodeStats('N').errors).toBe(1)
   })
 
@@ -192,7 +192,7 @@ describe('Simulation', () => {
     const log = record(sim)
     sim.inject('A', { ...req(), kind: 'message', trail: ['Q'] })
     sim.advance(2 * HOP_MS)
-    expect(of(log, 'message:dropped').map((e) => [e.p.at, e.p.reason, e.p.code])).toEqual([['N', 'tipo desconocido', 503]])
+    expect(of(log, 'message:dropped').map((e) => [e.p.at, e.p.reason, e.p.code])).toEqual([['N', 'unknown-type', 503]])
     const nack = of(log, 'message:sent').find((e) => e.p.msg.kind === 'response')!
     expect([nack.p.from, nack.p.to, nack.p.msg.status, nack.p.msg.code]).toEqual(['N', 'A', 'error', 503])
   })

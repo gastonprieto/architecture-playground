@@ -2,6 +2,7 @@ import { useReactFlow } from '@xyflow/react'
 import { useCallback, useEffect, useRef, useState, type ButtonHTMLAttributes, type ChangeEvent } from 'react'
 import type { Graph } from '../engine/types'
 import { encodeHash } from '../persistence/hash'
+import { t } from '../i18n'
 import { parseGraph, serializeGraph } from '../persistence/serialize'
 import { presets } from '../presets'
 import { cycleSpeed, stepSpeed, useRuntime } from './runtime/runtimeStore'
@@ -115,7 +116,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     if (!file) return
     const r = parseGraph(await file.text())
     if (!r.ok) {
-      show(r.error)
+      show(t(`errors.${r.error}`, r.error === 'dangling-edge' ? { edgeId: r.edgeId } : undefined))
       return
     }
     load(r.graph)
@@ -125,7 +126,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     const url = location.origin + location.pathname + encodeHash(useEditor.getState().graph)
     const fail = () => show(url)
     try {
-      navigator.clipboard.writeText(url).then(() => show('Link copiado'), fail)
+      navigator.clipboard.writeText(url).then(() => show(t('toolbar.linkCopied')), fail)
     } catch {
       fail()
     }

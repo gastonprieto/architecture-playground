@@ -46,7 +46,7 @@ function deadLetter(ctx: QueueCtx, msg: Message): void {
     ctx.label('DLQ', 'err')
     ctx.send(dlq.target, msg)
   } else {
-    ctx.drop(msg, 'sin DLQ')
+    ctx.drop(msg, 'no-dlq')
   }
 }
 
@@ -63,7 +63,7 @@ export const queue = defineComponent<QueueConfig, QueueState>({
   onMessage(msg, ctx) {
     if (ctx.state.items.length >= ctx.config.queueMax) {
       // Requests get a 503 back; messages and events are just dropped.
-      ctx.drop(msg, 'cola llena', 503)
+      ctx.drop(msg, 'queue-full', 503)
       return
     }
     if (msg.kind === 'request') {
@@ -85,7 +85,7 @@ export const queue = defineComponent<QueueConfig, QueueState>({
     if (res.status !== 'ok') {
       const attempt = entry.msg.attempt ?? 0
       if (attempt < ctx.config.maxRetries) {
-        ctx.label('reintento', 'slow')
+        ctx.label('retry', 'slow')
         ctx.state.items.push({ ...entry.msg, trail: [], attempt: attempt + 1 })
       } else {
         deadLetter(ctx, { ...entry.msg, trail: [] })

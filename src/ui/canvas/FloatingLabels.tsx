@@ -1,6 +1,7 @@
 import { ViewportPortal, useStoreApi } from '@xyflow/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { NodeId } from '../../engine/types'
+import { codeText, useLang } from '../../i18n'
 import { C, toneColor } from '../colors'
 import { useSim } from '../runtime/useSimulation'
 import { LabelBook } from './labelBook'
@@ -30,9 +31,9 @@ function slotOffset(slot: number): { dx: number; dy: number } {
 }
 
 /**
- * Short texts that float up and fade over 1 s above a node: drops (code or reason, red) and the
- * components' own node:label texts (e.g. the 202 at a queue or broker). Repeats of a text on a node
- * within REPEAT_MS bump a "×N" counter instead of stacking up; different texts get their own slot.
+ * Short texts that float up and fade over 1 s above a node: drops (status code, or the translated
+ * reason code, red) and the components' own node:label codes, translated (e.g. the 202 at a queue
+ * or broker). Repeats of a text on a node within REPEAT_MS bump a "×N" counter instead of stacking up; different texts get their own slot.
  */
 export function FloatingLabels() {
   const api = useSim()
@@ -65,8 +66,11 @@ export function FloatingLabels() {
     }
 
     const offs = [
-      sim.on('message:dropped', ({ at, reason, code }) => add(at, String(code ?? reason), C.err)),
-      sim.on('node:label', ({ nodeId, text, tone }) => add(nodeId, text, toneColor(tone))),
+      // Labels are translated when they appear; ones already floating keep their language.
+      sim.on('message:dropped', ({ at, reason, code }) =>
+        add(at, code !== undefined ? String(code) : codeText(useLang.getState().lang, 'reasons', reason), C.err),
+      ),
+      sim.on('node:label', ({ nodeId, text, tone }) => add(nodeId, codeText(useLang.getState().lang, 'labels', text), toneColor(tone))),
       onFrame(() => {
         if (buffer.length === 0 && bumps.size === 0) return
         const batch = buffer
