@@ -25,6 +25,7 @@ export interface EditorState {
 }
 
 const HISTORY_LIMIT = 100
+const COALESCE_MS = 1000
 
 const randomSuffix = () => {
   let s = ''
@@ -39,6 +40,9 @@ export const useEditor = create<EditorState>((set, get) => {
   /** Apply a committing mutation: push `prev` to history, clear redo. */
   const commit = (next: Graph, prev: Graph = get().graph, extra: Partial<EditorState> = {}) =>
     set((st) => ({ graph: next, past: [...st.past, prev].slice(-HISTORY_LIMIT), future: [], dragBase: null, ...extra }))
+
+  /** The last updateNodeConfig write, used to coalesce rapid edits of the same field into one undo step. */
+  let lastEdit: { id: NodeId; key: string; at: number; graph: Graph } | null = null
 
   return {
     graph: { nodes: [], edges: [] },
@@ -91,7 +95,16 @@ export const useEditor = create<EditorState>((set, get) => {
     updateNodeConfig(id, patch) {
       const { graph } = get()
       if (!graph.nodes.some((n) => n.id === id)) return
-      commit({ ...graph, nodes: graph.nodes.map((n) => (n.id === id ? { ...n, config: { ...n.config, ...patch } } : n)) })
+      const next = { ...graph, nodes: graph.nodes.map((n) => (n.id === id ? { ...n, config: { ...n.config, ...patch } } : n)) }
+      const keys = Object.keys(patch)
+      const now = Date.now()
+      const key = keys.length === 1 ? keys[0] : null
+      if (key !== null && lastEdit && lastEdit.graph === graph && lastEdit.id === id && lastEdit.key === key && now - lastEdit.at < COALESCE_MS) {
+        set({ graph: next, future: [], dragBase: null })
+      } else {
+        commit(next)
+      }
+      lastEdit = key === null ? null : { id, key, at: now, graph: next }
     },
 
     setEdgeRule(id, rule) {

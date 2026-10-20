@@ -73,7 +73,7 @@ describe('editor store', () => {
 
   it('caps history at 100', () => {
     const a = s().addNode('client', { x: 0, y: 0 })
-    for (let i = 0; i < 150; i++) s().updateNodeConfig(a, { i })
+    for (let i = 0; i < 150; i++) s().updateNodeConfig(a, { [`k${i}`]: i }) // distinct keys: no coalescing
     expect(s().past).toHaveLength(100)
   })
 
@@ -143,5 +143,25 @@ describe('editor store', () => {
     s().select({ kind: 'node', id: a })
     s().undo()
     expect(s().selection).toBeNull()
+  })
+})
+
+describe('updateNodeConfig coalescing', () => {
+  const start = () => {
+    useEditor.getState().loadGraph({ nodes: [{ id: 'n', type: 'service', position: { x: 0, y: 0 }, config: { a: 1, b: 1 } }], edges: [] })
+  }
+  it('coalesces quick edits of the same key into one undo step', () => {
+    start()
+    useEditor.getState().updateNodeConfig('n', { a: 2 })
+    useEditor.getState().updateNodeConfig('n', { a: 3 })
+    expect(useEditor.getState().past).toHaveLength(1)
+    useEditor.getState().undo()
+    expect(useEditor.getState().graph.nodes[0].config.a).toBe(1)
+  })
+  it('keeps separate entries for different keys', () => {
+    start()
+    useEditor.getState().updateNodeConfig('n', { a: 2 })
+    useEditor.getState().updateNodeConfig('n', { b: 2 })
+    expect(useEditor.getState().past).toHaveLength(2)
   })
 })

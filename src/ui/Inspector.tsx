@@ -126,8 +126,8 @@ export function Inspector({ runAction }: InspectorProps) {
     )
   }
   return selection.kind === 'edge' ? (
-    <EdgeInspector id={selection.id} />
+    <EdgeInspector key={`edge:${selection.id}`} id={selection.id} />
   ) : (
-    <NodeInspector id={selection.id} runAction={runAction} />
+    <NodeInspector key={`node:${selection.id}`} id={selection.id} runAction={runAction} />
   )
 }

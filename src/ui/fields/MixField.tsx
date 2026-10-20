@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useEffect, useId, useState } from 'react'
 
 export type MixRow = { value: string; weight: number }
 
@@ -13,13 +13,7 @@ export function MixField({ label, value, onChange }: { label: string; value: Mix
       {value.map((row, i) => (
         <div className="field-row mix-row" key={i}>
           <input type="text" aria-label={`Valor ${i + 1}`} value={row.value} onChange={(e) => patch(i, { value: e.target.value })} />
-          <input
-            type="number"
-            aria-label={`Peso ${i + 1}`}
-            min={0}
-            value={row.weight}
-            onChange={(e) => patch(i, { weight: Math.max(0, Number(e.target.value) || 0) })}
-          />
+          <WeightInput label={`Peso ${i + 1}`} value={row.weight} onChange={(weight) => patch(i, { weight })} />
           <button type="button" onClick={() => onChange(value.filter((_, j) => j !== i))}>
             Quitar
           </button>
@@ -29,5 +23,30 @@ export function MixField({ label, value, onChange }: { label: string; value: Mix
         Agregar
       </button>
     </div>
+  )
+}
+
+/** Number input that buffers its text so clearing it does not snap to 0 until blur. */
+function WeightInput({ label, value, onChange }: { label: string; value: number; onChange(v: number): void }) {
+  const [text, setText] = useState(String(value))
+  useEffect(() => setText((t) => (Number(t) === value && t.trim() !== '' ? t : String(value))), [value])
+  return (
+    <input
+      type="number"
+      aria-label={label}
+      min={0}
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value)
+        const n = Number(e.target.value)
+        if (e.target.value.trim() !== '' && !Number.isNaN(n)) onChange(Math.max(0, n))
+      }}
+      onBlur={() => {
+        const n = Number(text)
+        const w = text.trim() === '' || Number.isNaN(n) ? 0 : Math.max(0, n)
+        setText(String(w))
+        onChange(w)
+      }}
+    />
   )
 }

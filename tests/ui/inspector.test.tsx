@@ -39,6 +39,7 @@ describe('Inspector', () => {
     select({ kind: 'node', id: 's1' })
     const input = screen.getByLabelText('Capacidad', { selector: 'input[type=number]' })
     fireEvent.change(input, { target: { value: '99' } })
+    fireEvent.blur(input)
     expect(useEditor.getState().graph.nodes[2].config.capacity).toBe(50)
   })
 
@@ -91,5 +92,48 @@ describe('Inspector', () => {
     expect(screen.getByText('Tipo desconocido: nope')).toBeTruthy()
     fireEvent.click(screen.getByText('Borrar'))
     expect(useEditor.getState().graph.nodes.map((n) => n.id)).toEqual(['c1', 'lb1', 's1'])
+  })
+})
+
+describe('NumberField typing', () => {
+  const setup = () => {
+    act(() => useEditor.getState().loadGraph({ nodes: [{ id: 'c1', type: 'client', position: { x: 0, y: 0 }, config: { name: 'C', burstSize: 20 } }], edges: [] }))
+    render(<Inspector />)
+    select({ kind: 'node', id: 'c1' })
+    // burstSize: min 1, max 200; use rate? rate min 0. Use a min>1 field via processingTime below.
+  }
+  it('multi-digit typing with min > 1 does not clamp mid-way', () => {
+    act(() => useEditor.getState().loadGraph({ nodes: [{ id: 's1', type: 'service', position: { x: 0, y: 0 }, config: { name: 'S', processingTime: 400 } }], edges: [] }))
+    render(<Inspector />)
+    select({ kind: 'node', id: 's1' })
+    const writes: unknown[] = []
+    const unsub = useEditor.subscribe((s) => writes.push(s.graph.nodes[0].config.processingTime))
+    const input = screen.getByLabelText('Tiempo de proceso', { selector: 'input[type=number]' }) as HTMLInputElement
+    fireEvent.change(input, { target: { value: '1' } })
+    fireEvent.change(input, { target: { value: '15' } })
+    fireEvent.change(input, { target: { value: '150' } })
+    unsub()
+    expect(writes).not.toContain(50)
+    expect(useEditor.getState().graph.nodes[0].config.processingTime).toBe(150)
+  })
+  it('clamps on blur and Enter', () => {
+    setup()
+    const input = screen.getByLabelText('Tamaño de ráfaga', { selector: 'input[type=number]' }) as HTMLInputElement
+    fireEvent.change(input, { target: { value: '999' } })
+    expect(useEditor.getState().graph.nodes[0].config.burstSize).toBe(20)
+    fireEvent.blur(input)
+    expect(useEditor.getState().graph.nodes[0].config.burstSize).toBe(200)
+    fireEvent.change(input, { target: { value: '0' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(useEditor.getState().graph.nodes[0].config.burstSize).toBe(1)
+  })
+  it('mix weight can be cleared without snapping, empty on blur is 0', () => {
+    render(<Inspector />)
+    select({ kind: 'node', id: 'c1' })
+    const w = screen.getByLabelText('Peso 1') as HTMLInputElement
+    fireEvent.change(w, { target: { value: '' } })
+    expect(w.value).toBe('')
+    fireEvent.blur(w)
+    expect(useEditor.getState().graph.nodes[0].config.mix).toEqual([{ value: '/', weight: 0 }])
   })
 })
