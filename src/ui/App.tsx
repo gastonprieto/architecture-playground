@@ -23,7 +23,7 @@ function usePersistence() {
     if (!loaded.current) {
       loaded.current = true
       // A shared link is loaded once; after that the local copy is the source of truth.
-      useEditor.getState().loadGraph(initialGraph(undefined, clearLocationHash, useLang.getState().lang))
+      useEditor.getState().loadGraph(initialGraph(useLang.getState().lang, undefined, clearLocationHash))
     }
     let timer: ReturnType<typeof setTimeout> | undefined
     const flush = () => {

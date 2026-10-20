@@ -6,10 +6,10 @@ A playground to build architectures on a canvas (clients, services, databases, l
 
 It comes with 4 presets:
 
-- **Load balancer**: two clients spread their traffic across three servers with round robin.
+- **Load Balancer**: two clients spread their traffic across three servers with round robin.
 - **Sync vs queue**: the same traffic against a synchronous service (it saturates with 503s) and against a queue with workers (it answers 202).
 - **Pub/sub**: an event is published to the broker and reaches four subscribers; one is slow and falls behind.
-- **Reverse proxy**: the proxy routes each path prefix to its service.
+- **Reverse Proxy**: the proxy routes each path prefix to its service.
 
 A Client sends to its first output (the first edge connected from it).
 

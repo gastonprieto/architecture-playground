@@ -181,7 +181,11 @@ body {
 .field-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .field-row > * { min-width: 0; }
 .field-row input[type='range'] { flex: 1; min-width: 0; accent-color: var(--cyan); }
-.field-row input[type='number'] { width: 56px; flex: none; }
+.field-row input[type='number'] { width: calc(5ch + 18px); flex: none; }
+/* Room for 4-digit values: aligned digits and no native spinners (the slider and keys step). */
+.field input[type='number'] { font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+.field input[type='number']::-webkit-inner-spin-button,
+.field input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .mix-row { display: grid; grid-template-columns: minmax(0, 1fr) 56px auto; }
 .mix-row input[type='number'] { width: 100%; }
 .inspector .mix-row button { padding: 5px 8px; }

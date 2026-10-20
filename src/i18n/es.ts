@@ -72,6 +72,21 @@ export const es = {
     throughput: 'Throughput',
     errors: 'Errores',
   },
+  /** React Flow's built-in aria labels and screen-reader descriptions. */
+  reactflow: {
+    nodeDescription: 'Presioná Enter o Espacio para seleccionar un nodo. Presioná Suprimir para borrarlo y Escape para cancelar.',
+    nodeDescriptionKeyboard:
+      'Presioná Enter o Espacio para seleccionar un nodo. Después podés moverlo con las flechas. Presioná Suprimir para borrarlo y Escape para cancelar.',
+    nodeMoved: 'Nodo seleccionado movido hacia {direction}. Nueva posición, x: {x}, y: {y}',
+    edgeDescription: 'Presioná Enter o Espacio para seleccionar una conexión. Después podés presionar Suprimir para borrarla o Escape para cancelar.',
+    controls: 'Panel de control',
+    zoomIn: 'Acercar',
+    zoomOut: 'Alejar',
+    fitView: 'Ajustar a la vista',
+    interactive: 'Activar/desactivar interacción',
+    minimap: 'Minimapa',
+    handle: 'Conector',
+  },
   /** Fields shared by many components: the injected `name` and processingFields. */
   fields: {
     name: 'Nombre',
@@ -160,7 +175,7 @@ export const es = {
     'no-subscribers': 'sin suscriptores',
     'no-targets': 'sin destinos disponibles',
     'no-origin-queue': 'sin cola de origen',
-    'client-rejects-requests': 'el cliente no recibe requests',
+    'client-rejects-requests': 'el cliente no acepta requests',
     'dlq-rejects-requests': 'DLQ no acepta requests',
   },
   /** Node labels (`node:label.text`). */
@@ -174,12 +189,12 @@ export const es = {
   },
   presets: {
     'load-balancer': {
-      name: 'Load balancer',
+      name: 'Load Balancer',
       description: 'Dos clientes reparten su tráfico entre tres servidores con round robin.',
       nodes: {
         web: 'Navegador',
         mobile: 'App móvil',
-        lb: 'Load balancer',
+        lb: 'Load Balancer',
         server: 'Servidor {n}',
         db: 'Base de datos',
       },
@@ -210,7 +225,7 @@ export const es = {
       },
     },
     'reverse-proxy': {
-      name: 'Proxy reverso',
+      name: 'Reverse Proxy',
       description: 'El proxy enruta por prefijo de path a cada servicio; lo que no coincide con ninguna regla va a Web.',
       paths: {
         users: '/usuarios',
@@ -221,7 +236,7 @@ export const es = {
       nodes: {
         web: 'Navegador',
         mobile: 'App móvil',
-        proxy: 'Proxy reverso',
+        proxy: 'Reverse Proxy',
         users: 'Usuarios',
         orders: 'Órdenes',
         payments: 'Pagos',

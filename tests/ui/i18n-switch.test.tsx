@@ -74,7 +74,15 @@ describe('language switch', () => {
     fireEvent.change(screen.getByLabelText('Presets'), { target: { value: 'pubsub' } })
     const names = useEditor.getState().graph.nodes.map((n) => n.config.name)
     expect(names).toEqual(['Orders', 'Broker', 'Billing', 'Inventory', 'Emails', 'Analytics'])
-    expect(screen.getByRole('option', { name: 'Reverse proxy' })).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'Reverse Proxy' })).toBeTruthy()
+  })
+
+  it("React Flow's built-in aria labels follow the language", () => {
+    render(<App />)
+    expect(screen.getByRole('button', { name: 'Acercar' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'EN' }))
+    expect(screen.getByRole('button', { name: 'Zoom in' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Fit view' })).toBeTruthy()
   })
 
   it('the toggle stays visible in mobile mode', () => {

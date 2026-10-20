@@ -12,10 +12,11 @@ import {
   type NodeTypes,
   type EdgeTypes,
   type OnDelete,
+  type AriaLabelConfig,
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { defaultRegistry } from '../../components/index'
-import { useLang } from '../../i18n'
+import { useLang, useT } from '../../i18n'
 import { componentLabel } from '../../i18n/componentText'
 import { C } from '../colors'
 import { ARCH_TYPE_MIME } from '../Palette'
@@ -55,6 +56,23 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
   const graph = useEditor((s) => s.graph)
   const selection = useEditor((s) => s.selection)
   const { screenToFlowPosition, fitView } = useReactFlow()
+  const t = useT()
+  const ariaLabelConfig = useMemo<Partial<AriaLabelConfig>>(
+    () => ({
+      'node.a11yDescription.default': t('reactflow.nodeDescription'),
+      'node.a11yDescription.keyboardDisabled': t('reactflow.nodeDescriptionKeyboard'),
+      'node.a11yDescription.ariaLiveMessage': ({ direction, x, y }) => t('reactflow.nodeMoved', { direction, x, y }),
+      'edge.a11yDescription.default': t('reactflow.edgeDescription'),
+      'controls.ariaLabel': t('reactflow.controls'),
+      'controls.zoomIn.ariaLabel': t('reactflow.zoomIn'),
+      'controls.zoomOut.ariaLabel': t('reactflow.zoomOut'),
+      'controls.fitView.ariaLabel': t('reactflow.fitView'),
+      'controls.interactive.ariaLabel': t('reactflow.interactive'),
+      'minimap.ariaLabel': t('reactflow.minimap'),
+      'handle.ariaLabel': t('reactflow.handle'),
+    }),
+    [t],
+  )
   // React Flow only knows a node's size through `node.measured`, so measurements are cached here
   // (the graph itself is never copied; nodes/edges are derived from the store).
   const [sizes, setSizes] = useState<Record<string, Size>>({})
@@ -172,6 +190,7 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
       nodesConnectable={!readOnly}
       elementsSelectable={!readOnly}
       colorMode="dark"
+      ariaLabelConfig={ariaLabelConfig}
       minZoom={MIN_ZOOM}
       fitView
       fitViewOptions={FIT_VIEW_OPTIONS}

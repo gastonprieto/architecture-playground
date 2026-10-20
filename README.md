@@ -6,10 +6,10 @@ Un playground para armar arquitecturas en un canvas (clientes, servicios, bases 
 
 Incluye 4 presets para empezar:
 
-- **Load balancer**: dos clientes reparten su tráfico entre tres servidores con round robin.
+- **Load Balancer**: dos clientes reparten su tráfico entre tres servidores con round robin.
 - **Sync vs cola**: el mismo tráfico contra un servicio síncrono (se satura con 503) y contra una cola con workers (responde 202).
 - **Pub/sub**: un evento se publica en el broker y llega a cuatro suscriptores; uno es lento y se atrasa.
-- **Proxy reverso**: el proxy enruta por prefijo de path a cada servicio.
+- **Reverse Proxy**: el proxy enruta por prefijo de path a cada servicio.
 
 Un Cliente envía a su primera salida (la primera arista que se conectó desde él).
 

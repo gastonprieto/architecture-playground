@@ -111,8 +111,8 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   }, [mobile, toggle, setSpeed])
 
   const onPreset = (e: ChangeEvent<HTMLSelectElement>) => {
-    // Built on demand so the preset comes in the current language.
-    const preset = getPresets(useLang.getState().lang).find((p) => p.id === e.target.value)
+    // Reusing the memoized graphs is safe: the editor and the engine never mutate a graph in place.
+    const preset = presets.find((p) => p.id === e.target.value)
     e.target.blur()
     if (preset) load(preset.graph)
   }

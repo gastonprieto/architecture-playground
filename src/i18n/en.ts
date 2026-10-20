@@ -71,6 +71,20 @@ export const en: Dict = {
     throughput: 'Throughput',
     errors: 'Errors',
   },
+  reactflow: {
+    nodeDescription: 'Press Enter or Space to select a node. Press Delete to remove it and Escape to cancel.',
+    nodeDescriptionKeyboard:
+      'Press Enter or Space to select a node. You can then use the arrow keys to move it. Press Delete to remove it and Escape to cancel.',
+    nodeMoved: 'Moved selected node {direction}. New position, x: {x}, y: {y}',
+    edgeDescription: 'Press Enter or Space to select a connection. You can then press Delete to remove it or Escape to cancel.',
+    controls: 'Control panel',
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
+    fitView: 'Fit view',
+    interactive: 'Toggle interactivity',
+    minimap: 'Mini map',
+    handle: 'Handle',
+  },
   fields: {
     name: 'Name',
     up: 'Up',
@@ -157,7 +171,7 @@ export const en: Dict = {
     'no-subscribers': 'no subscribers',
     'no-targets': 'no targets available',
     'no-origin-queue': 'no source queue',
-    'client-rejects-requests': "clients don't accept requests",
+    'client-rejects-requests': "client doesn't accept requests",
     'dlq-rejects-requests': "DLQ doesn't accept requests",
   },
   labels: {
@@ -170,12 +184,12 @@ export const en: Dict = {
   },
   presets: {
     'load-balancer': {
-      name: 'Load balancer',
+      name: 'Load Balancer',
       description: 'Two clients spread their traffic across three servers with round robin.',
       nodes: {
         web: 'Browser',
         mobile: 'Mobile app',
-        lb: 'Load balancer',
+        lb: 'Load Balancer',
         server: 'Server {n}',
         db: 'Database',
       },
@@ -206,7 +220,7 @@ export const en: Dict = {
       },
     },
     'reverse-proxy': {
-      name: 'Reverse proxy',
+      name: 'Reverse Proxy',
       description: 'The proxy routes each path prefix to its service; anything that matches no rule goes to Web.',
       paths: {
         users: '/users',
@@ -217,7 +231,7 @@ export const en: Dict = {
       nodes: {
         web: 'Browser',
         mobile: 'Mobile app',
-        proxy: 'Reverse proxy',
+        proxy: 'Reverse Proxy',
         users: 'Users',
         orders: 'Orders',
         payments: 'Payments',

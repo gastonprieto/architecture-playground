@@ -16,7 +16,7 @@ const currentHash = (): string => {
  * Startup graph: URL hash, then localStorage, then the load-balancer preset in `lang`. `onHashLoaded`
  * runs when the graph came from the hash (the app clears it so a reload does not bring the link back).
  */
-export function initialGraph(hash: string = currentHash(), onHashLoaded?: () => void, lang: Lang = 'es'): Graph {
+export function initialGraph(lang: Lang, hash: string = currentHash(), onHashLoaded?: () => void): Graph {
   const fromHash = decodeHash(hash)
   if (fromHash) {
     onHashLoaded?.()

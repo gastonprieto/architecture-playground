@@ -91,13 +91,21 @@ describe('presets', () => {
     const names = enPresets.flatMap((p) => p.graph.nodes.map((n) => n.config.name))
     for (const name of ['Browser', 'Mobile app', 'Server 1', 'Database', 'Orders', 'Billing', 'Inventory', 'Emails', 'Analytics', 'Users', 'Payments', 'Web'])
       expect(names).toContain(name)
-    expect(enPresets.map((p) => p.name)).toEqual(['Load balancer', 'Sync vs queue', 'Pub/sub', 'Reverse proxy'])
+    expect(enPresets.map((p) => p.name)).toEqual(['Load Balancer', 'Sync vs queue', 'Pub/sub', 'Reverse Proxy'])
     expect(enPresets.find((p) => p.id === 'sync-vs-queue')!.description).toMatch(/^The same traffic/)
     for (const [i, p] of enPresets.entries()) {
       const es = presets[i]
       // Same topology and ids; only texts (names, paths, event types) change.
       expect(p.graph.nodes.map((n) => [n.id, n.type, n.position])).toEqual(es.graph.nodes.map((n) => [n.id, n.type, n.position]))
       expect(p.graph.edges.map((e) => e.id)).toEqual(es.graph.edges.map((e) => e.id))
+    }
+  })
+
+  it('node names of single-instance infrastructure match the type labels (title case)', () => {
+    for (const lang of ['es', 'en'] as const) {
+      const names = getPresets(lang).flatMap((p) => p.graph.nodes.map((n) => n.config.name))
+      expect(names).toContain('Load Balancer')
+      expect(names).toContain('Reverse Proxy')
     }
   })
 
