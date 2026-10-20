@@ -20,14 +20,23 @@ function usePersistence() {
       useEditor.getState().loadGraph(initialGraph())
     }
     let timer: ReturnType<typeof setTimeout> | undefined
+    const flush = () => {
+      if (timer === undefined) return
+      clearTimeout(timer)
+      timer = undefined
+      saveLocal(useEditor.getState().graph)
+    }
     const unsubscribe = useEditor.subscribe((s, prev) => {
       if (s.graph === prev.graph) return
       clearTimeout(timer)
-      timer = setTimeout(() => saveLocal(useEditor.getState().graph), SAVE_DEBOUNCE_MS)
+      timer = setTimeout(flush, SAVE_DEBOUNCE_MS)
     })
+    // A pending save must not be lost when the tab closes or the app unmounts.
+    window.addEventListener('pagehide', flush)
     return () => {
       unsubscribe()
-      clearTimeout(timer)
+      window.removeEventListener('pagehide', flush)
+      flush()
     }
   }, [])
 }

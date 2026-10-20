@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { STORAGE_KEY } from '../../src/persistence/storage'
 import App from '../../src/ui/App'
+import { useEditor } from '../../src/ui/store/editor'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -36,5 +38,17 @@ describe('App', () => {
     } finally {
       window.history.replaceState(null, '', '/')
     }
+  })
+
+  it('flushes a pending save on pagehide', () => {
+    localStorage.clear()
+    render(<App />)
+    act(() => {
+      useEditor.getState().addNode('cache', { x: 0, y: 0 })
+    })
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+    window.dispatchEvent(new Event('pagehide'))
+    expect(localStorage.getItem(STORAGE_KEY)).toContain('"cache"')
+    localStorage.clear()
   })
 })

@@ -13,7 +13,7 @@ import {
   type EdgeTypes,
   type OnDelete,
 } from '@xyflow/react'
-import { useCallback, useMemo, useState, type DragEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { defaultRegistry } from '../../components/index'
 import { C } from '../colors'
 import { ARCH_TYPE_MIME } from '../Palette'
@@ -27,6 +27,11 @@ const DELETE_KEYS = ['Delete', 'Backspace']
 /** A dropped node is placed so the cursor lands roughly on its center. */
 const DROP_OFFSET = { x: 70, y: 24 }
 const MARKER = { type: MarkerType.ArrowClosed, color: C.muted, width: 18, height: 18 }
+/** Same color as the selected edge stroke (theme.css). */
+const MARKER_SELECTED = { ...MARKER, color: 'var(--cyan)' }
+/** Low enough for fitView to fit a preset on a phone-width canvas. */
+const MIN_ZOOM = 0.2
+const FIT_VIEW_OPTIONS = { padding: 0.15 }
 
 type Size = { width: number; height: number }
 
@@ -45,7 +50,7 @@ function applySelect(kind: 'node' | 'edge', changes: { type: string; id?: string
 export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
   const graph = useEditor((s) => s.graph)
   const selection = useEditor((s) => s.selection)
-  const { screenToFlowPosition } = useReactFlow()
+  const { screenToFlowPosition, fitView } = useReactFlow()
   // React Flow only knows a node's size through `node.measured`, so measurements are cached here
   // (the graph itself is never copied; nodes/edges are derived from the store).
   const [sizes, setSizes] = useState<Record<string, Size>>({})
@@ -72,10 +77,20 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
         target: e.target,
         data: { rule: e.rule },
         selected: isSelected(selection, 'edge', e.id),
-        markerEnd: MARKER,
+        markerEnd: isSelected(selection, 'edge', e.id) ? MARKER_SELECTED : MARKER,
       })),
     [graph.edges, selection],
   )
+
+  // Entering/leaving read-only (mobile) mode changes the canvas size: refit, and drop the selection
+  // since it can no longer be changed or inspected.
+  const prevReadOnly = useRef(readOnly)
+  useEffect(() => {
+    if (prevReadOnly.current === readOnly) return
+    prevReadOnly.current = readOnly
+    if (readOnly) useEditor.getState().select(null)
+    void fitView(FIT_VIEW_OPTIONS)
+  }, [readOnly, fitView])
 
   const onNodesChange = useCallback((changes: NodeChange<ArchFlowNode>[]) => {
     const measured: Record<string, Size> = {}
@@ -145,13 +160,14 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
       connectionMode={ConnectionMode.Loose}
       deleteKeyCode={readOnly ? null : DELETE_KEYS}
       multiSelectionKeyCode={null}
+      selectionKeyCode={null}
       nodesDraggable={!readOnly}
       nodesConnectable={!readOnly}
       elementsSelectable={!readOnly}
       colorMode="dark"
+      minZoom={MIN_ZOOM}
       fitView
-      fitViewOptions={{ padding: 0.15 }}
-      proOptions={{ hideAttribution: true }}
+      fitViewOptions={FIT_VIEW_OPTIONS}
     >
       <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} color="var(--line)" />
       <Controls showInteractive={false} />
