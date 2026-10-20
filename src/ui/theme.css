@@ -264,6 +264,16 @@ body {
 .toolbar button:disabled { opacity: 0.45; cursor: not-allowed; }
 .toolbar button.primary { min-width: 84px; color: var(--cyan); border-color: var(--cyan); font-weight: 700; }
 .toolbar button.speed { min-width: 48px; font-family: var(--mono); }
+/* Secondary buttons collapse to icons before the toolbar would wrap. */
+.toolbar .tb-icon { display: none; }
+@media (max-width: 1360px) {
+  .toolbar { gap: 8px; }
+  .toolbar .tb-icon { display: inline; font-size: 15px; line-height: 1; }
+  .toolbar .tb-label { display: none; }
+}
+@media (max-width: 1000px) {
+  .app-title { display: none; }
+}
 .toast {
   position: absolute;
   top: calc(100% + 8px);

@@ -32,6 +32,18 @@ function Btn(props: ButtonHTMLAttributes<HTMLButtonElement>) {
   return <button type="button" onMouseDown={(e) => e.preventDefault()} {...props} />
 }
 
+/** A button that collapses to its icon on narrow screens; the label stays as its accessible name and tooltip. */
+function IconBtn({ icon, label, title, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { icon: string; label: string }) {
+  return (
+    <Btn aria-label={label} title={title ?? label} {...props}>
+      <span className="tb-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <span className="tb-label">{label}</span>
+    </Btn>
+  )
+}
+
 /** `ES | EN` switch; the active language is pressed. */
 function LangToggle() {
   const lang = useLang((s) => s.lang)
@@ -182,21 +194,29 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
       </select>
       {!mobile && (
         <div className="toolbar-group">
-          <Btn onClick={() => useEditor.getState().undo()} disabled={!canUndo} title="Ctrl/Cmd+Z">
-            {t('toolbar.undo')}
-          </Btn>
-          <Btn onClick={() => useEditor.getState().redo()} disabled={!canRedo} title="Ctrl/Cmd+Shift+Z">
-            {t('toolbar.redo')}
-          </Btn>
+          <IconBtn
+            icon="↶"
+            label={t('toolbar.undo')}
+            onClick={() => useEditor.getState().undo()}
+            disabled={!canUndo}
+            title={`${t('toolbar.undo')} (Ctrl/Cmd+Z)`}
+          />
+          <IconBtn
+            icon="↷"
+            label={t('toolbar.redo')}
+            onClick={() => useEditor.getState().redo()}
+            disabled={!canRedo}
+            title={`${t('toolbar.redo')} (Ctrl/Cmd+Shift+Z)`}
+          />
         </div>
       )}
       <div className="toolbar-group toolbar-end">
         {!mobile && (
           <>
-            <Btn onClick={onExport}>{t('toolbar.export')}</Btn>
-            <Btn onClick={() => fileRef.current?.click()}>{t('toolbar.import')}</Btn>
+            <IconBtn icon="⤓" label={t('toolbar.export')} onClick={onExport} />
+            <IconBtn icon="⤒" label={t('toolbar.import')} onClick={() => fileRef.current?.click()} />
             <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={onImport} />
-            <Btn onClick={onCopyLink}>{t('toolbar.copyLink')}</Btn>
+            <IconBtn icon="🔗" label={t('toolbar.copyLink')} onClick={onCopyLink} />
           </>
         )}
         <LangToggle />
