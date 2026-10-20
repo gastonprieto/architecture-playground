@@ -7,6 +7,8 @@ import { ZERO_METRICS, useRuntime } from './runtimeStore'
 
 /** Longest real-time slice one frame may simulate (a background tab must not jump minutes ahead). */
 export const MAX_FRAME_MS = 100
+/** Sim-ms per real ms at "1x": the animation reads best at half real time. */
+export const BASE_RATE = 0.5
 /** Sim-ms one "Paso" advances. */
 export const STEP_MS = 100
 
@@ -161,7 +163,7 @@ export function useSimulation(): SimApi {
       const { playing, speed } = useRuntime.getState()
       if (playing) {
         try {
-          s.advance(Math.min(realDt, MAX_FRAME_MS) * speed)
+          s.advance(Math.min(realDt, MAX_FRAME_MS) * speed * BASE_RATE)
         } catch (err) {
           // A throwing component must not kill the loop.
           console.error('Simulation step failed', err)
