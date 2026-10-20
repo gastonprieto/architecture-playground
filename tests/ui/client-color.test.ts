@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Graph, GraphNode } from '../../src/engine/types'
-import { nextClientColor } from '../../src/ui/clientColor'
+import { backfillClients, nextClientColor } from '../../src/ui/clientColor'
 import { C, CLIENT_COLORS } from '../../src/ui/colors'
 
 const n = (id: string, type: string, config: Record<string, unknown> = {}): GraphNode => ({ id, type, position: { x: 0, y: 0 }, config })
@@ -39,8 +39,10 @@ describe('client colors', () => {
     expect(CLIENT_COLORS).toHaveLength(6)
     expect(new Set(CLIENT_COLORS).size).toBe(6)
     for (const c of CLIENT_COLORS) {
-      expect(deltaE(c, C.ok), `${c} vs ok`).toBeGreaterThan(35)
-      expect(deltaE(c, C.err), `${c} vs err`).toBeGreaterThan(35)
+      // Clear of every semantic tone (packets, labels, retried cells, node borders use them).
+      for (const tone of ['req', 'ok', 'slow', 'err', 'hc', 'redis', 'db', 'text'] as const)
+        expect(deltaE(c, C[tone]), `${c} vs ${tone}`).toBeGreaterThan(28)
+      for (const other of CLIENT_COLORS) if (other !== c) expect(deltaE(c, other), `${c} vs ${other}`).toBeGreaterThan(28)
       // Nothing in the green family: a hue within 60° of the ok green that is also fairly close to it
       // (this rules out the decks' lime #a3e635 and teal #2dd4bf; sky blue is far enough).
       const dh = Math.abs(hue(c) - hue(C.ok))
@@ -56,5 +58,23 @@ describe('client colors', () => {
     const all = CLIENT_COLORS.map((c, i) => n(`c${i}`, 'client', { color: c }))
     expect(nextClientColor(g(...all))).toBe(CLIENT_COLORS[0])
     expect(nextClientColor(g(...all, n('x', 'client', { color: CLIENT_COLORS[0] })))).toBe(CLIENT_COLORS[1])
+  })
+})
+
+describe('backfillClients', () => {
+  it('gives old Clientes without color/ip distinct ones, in node order, leaving existing values alone', () => {
+    const old = g(n('a', 'client', { name: 'A' }), n('s', 'service'), n('b', 'client', { name: 'B' }), n('c', 'client', { color: CLIENT_COLORS[0], ip: '' }))
+    const out = backfillClients(old)
+    const cfg = (id: string) => out.nodes.find((x) => x.id === id)!.config
+    expect(cfg('c')).toEqual({ color: CLIENT_COLORS[0], ip: '' })
+    expect(cfg('a')).toEqual({ name: 'A', color: CLIENT_COLORS[1], ip: '10.0.0.1' })
+    expect(cfg('b')).toEqual({ name: 'B', color: CLIENT_COLORS[2], ip: '10.0.0.2' })
+    expect(cfg('s')).toEqual({})
+    expect(old.nodes[0].config).toEqual({ name: 'A' })
+  })
+
+  it('returns the same graph when nothing is missing', () => {
+    const full = g(n('a', 'client', { color: CLIENT_COLORS[3], ip: '10.0.0.9' }))
+    expect(backfillClients(full)).toBe(full)
   })
 })

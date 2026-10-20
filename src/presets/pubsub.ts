@@ -12,7 +12,7 @@ export function pubsubPreset(lang: Lang): PresetShape {
       nodes: [
         node('ordenes', 'client', 0, 1.5 * ROW, text('nodes.orders'), {
           ip: '10.0.0.1',
-          color: CLIENT_COLORS[4],
+          color: CLIENT_COLORS[2],
           kind: 'event',
           rate: 1,
           mix: [{ value: text('eventType'), weight: 1 }],

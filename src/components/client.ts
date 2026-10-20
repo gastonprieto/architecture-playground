@@ -20,10 +20,11 @@ export interface ClientState {
 }
 
 /**
- * Per-client colors, from the decks' sim.js, minus the two green-family ones (lime #a3e635 and
- * teal #2dd4bf, too close to the ok green), replaced by yellow and light gray.
+ * Per-client colors: six hue families (blue, amber, pink, lavender, peach, fuchsia), each clear
+ * (CIE76 ΔE > 28) of the others and of every semantic tone (req, ok, slow, err, hc, redis, db,
+ * text), so a client's packets never read as ok/error, a retry, a node tone or plain text.
  */
-export const CLIENT_COLORS = ['#38bdf8', '#f472b6', '#facc15', '#fb923c', '#a78bfa', '#e2e8f0'] as const
+export const CLIENT_COLORS = ['#3b82f6', '#d97706', '#ec4899', '#c4b5fd', '#fdba74', '#d946ef'] as const
 
 /** Burst messages are spread evenly over this many sim-ms. */
 export const BURST_WINDOW_MS = 1000

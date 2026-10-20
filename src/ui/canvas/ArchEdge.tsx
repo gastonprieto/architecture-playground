@@ -1,19 +1,22 @@
 import { BaseEdge, EdgeLabelRenderer, useInternalNode, type Edge, type EdgeProps } from '@xyflow/react'
 import { ruleLabel } from '../../engine/rules'
+import { useT } from '../../i18n'
 import type { EdgeRule } from '../../engine/types'
 import { boxOf, portPoints, wirePath, wirePoint } from '../geometry'
 
 /** `share`: effective % when the edge leaves a weighted load balancer. */
-export type ArchEdgeData = { rule?: EdgeRule; share?: number }
+export type ArchEdgeData = { rule?: EdgeRule; share?: number; down?: boolean }
 export type ArchFlowEdge = Edge<ArchEdgeData, 'arch'>
 
 /** Wire from the source's output port to the target's input port. */
 export function ArchEdge({ id, source, target, data, markerEnd, style, selected }: EdgeProps<ArchFlowEdge>) {
   const src = useInternalNode(source)
   const tgt = useInternalNode(target)
+  const t = useT()
   if (!src?.measured.width || !tgt?.measured.width) return null
   const [p0, p1] = portPoints(boxOf(src), boxOf(tgt))
-  const label = [ruleLabel(data?.rule), data?.share === undefined ? '' : `${data.share}%`].filter(Boolean).join(' · ')
+  const share = data?.share === undefined ? '' : `${data.share}%${data.down ? ` (${t('node.down')})` : ''}`
+  const label = [ruleLabel(data?.rule), share].filter(Boolean).join(' · ')
   const mid = wirePoint(p0, p1, 0.5)
   return (
     <>

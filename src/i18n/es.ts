@@ -103,12 +103,12 @@ export const es = {
   },
   /** Names of the Cliente palette colors (swatch labels). */
   colorNames: {
-    '38bdf8': 'Celeste',
-    f472b6: 'Rosa',
-    facc15: 'Amarillo',
-    fb923c: 'Naranja',
-    a78bfa: 'Violeta',
-    e2e8f0: 'Gris claro',
+    '3b82f6': 'Azul',
+    d97706: 'Ámbar',
+    ec4899: 'Rosa',
+    c4b5fd: 'Lavanda',
+    fdba74: 'Durazno',
+    d946ef: 'Fucsia',
   },
   /** Info panel: one-line help for the shared fields, and the panel's own texts. */
   fieldInfo: {
@@ -217,7 +217,7 @@ export const es = {
           'Least Connections: a la que tiene menos requests en curso.',
           'Random: al azar.',
           'IP Hash: misma IP del cliente, mismo destino; muestra "IP → servidor".',
-          'Weighted: en proporción a los pesos de cada conexión (editables en el inspector).',
+          'Weighted: en proporción a los pesos de cada conexión (editables en el inspector); si todas las disponibles tienen peso 0, reparte parejo.',
           'Sin destinos disponibles: `503`.',
         ],
         fields: {

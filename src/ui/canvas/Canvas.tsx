@@ -21,7 +21,7 @@ import { componentLabel } from '../../i18n/componentText'
 import { nextClientColor } from '../clientColor'
 import { nextClientIp } from '../clientIp'
 import { C } from '../colors'
-import { weightedEdgeShares } from '../lbWeights'
+import { weightedEdgeLabels } from '../lbWeights'
 import { ARCH_TYPE_MIME } from '../Palette'
 import { useEditor, type Selection } from '../store/editor'
 import { ArchEdge, type ArchFlowEdge } from './ArchEdge'
@@ -95,18 +95,22 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
     [graph.nodes, selection, sizes],
   )
 
+  // Only the weighted LBs' shares (and down targets) feed the edge labels, so edges re-derive when
+  // those change, not on every node move.
+  const weightKey = useEditor((s) => JSON.stringify(weightedEdgeLabels(s.graph)))
+  const weightInfo = useMemo(() => JSON.parse(weightKey) as ReturnType<typeof weightedEdgeLabels>, [weightKey])
+
   const edges = useMemo<ArchFlowEdge[]>(() => {
-    const shares = weightedEdgeShares(graph)
     return graph.edges.map((e) => ({
         id: e.id,
         type: 'arch',
         source: e.source,
         target: e.target,
-        data: { rule: e.rule, share: shares[e.id] },
+        data: { rule: e.rule, share: weightInfo[e.id]?.share, down: weightInfo[e.id]?.down },
         selected: isSelected(selection, 'edge', e.id),
         markerEnd: isSelected(selection, 'edge', e.id) ? MARKER_SELECTED : MARKER,
       }))
-  }, [graph, selection])
+  }, [graph.edges, selection, weightInfo])
 
   // Entering/leaving read-only (mobile) mode changes the canvas size: refit, and drop the selection
   // since it can no longer be changed or inspected.

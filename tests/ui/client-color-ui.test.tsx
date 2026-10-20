@@ -37,16 +37,16 @@ describe('client color swatches', () => {
     const group = within(inspector()).getByRole('radiogroup', { name: 'Color' })
     const radios = within(group).getAllByRole('radio')
     expect(radios).toHaveLength(6)
-    expect(within(group).getByRole('radio', { name: 'Celeste' }).getAttribute('aria-checked')).toBe('true')
+    expect(within(group).getByRole('radio', { name: 'Azul' }).getAttribute('aria-checked')).toBe('true')
 
-    fireEvent.click(within(group).getByRole('radio', { name: 'Naranja' }))
-    expect(useEditor.getState().graph.nodes.find((n) => n.id === 'web')!.config.color).toBe('#fb923c')
-    expect(within(group).getByRole('radio', { name: 'Naranja' }).getAttribute('aria-checked')).toBe('true')
-    expect(within(group).getByRole('radio', { name: 'Celeste' }).getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(within(group).getByRole('radio', { name: 'Durazno' }))
+    expect(useEditor.getState().graph.nodes.find((n) => n.id === 'web')!.config.color).toBe('#fdba74')
+    expect(within(group).getByRole('radio', { name: 'Durazno' }).getAttribute('aria-checked')).toBe('true')
+    expect(within(group).getByRole('radio', { name: 'Azul' }).getAttribute('aria-checked')).toBe('false')
 
-    // Arrow keys move the selection inside the group.
-    fireEvent.keyDown(within(group).getByRole('radio', { name: 'Naranja' }), { key: 'ArrowRight' })
-    expect(useEditor.getState().graph.nodes.find((n) => n.id === 'web')!.config.color).toBe('#a78bfa')
+    // Arrow keys move the selection inside the group (Durazno → Fucsia).
+    fireEvent.keyDown(within(group).getByRole('radio', { name: 'Durazno' }), { key: 'ArrowRight' })
+    expect(useEditor.getState().graph.nodes.find((n) => n.id === 'web')!.config.color).toBe('#d946ef')
   })
 
   it('names the swatches in English', () => {
@@ -55,12 +55,12 @@ describe('client color swatches', () => {
     act(() => useEditor.getState().select({ kind: 'node', id: 'web' }))
     const group = within(inspector()).getByRole('radiogroup', { name: 'Color' })
     expect(within(group).getAllByRole('radio').map((r) => r.getAttribute('aria-label'))).toEqual([
-      'Sky blue',
+      'Blue',
+      'Amber',
       'Pink',
-      'Yellow',
-      'Orange',
-      'Violet',
-      'Light gray',
+      'Lavender',
+      'Peach',
+      'Fuchsia',
     ])
   })
 })

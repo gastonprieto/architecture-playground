@@ -71,7 +71,7 @@ type MessageKind = 'request' | 'message' | 'event' | 'response'
 interface Message {
   id: string
   kind: MessageKind
-  meta: { path?: string; eventType?: string; clientId?: string; clientIp?: string; clientName?: string; [k: string]: unknown }
+  meta: { path?: string; eventType?: string; clientId?: string; clientIp?: string; clientName?: string; clientColor?: string; [k: string]: unknown }
   trail: NodeId[]        // camino recorrido; los requests vuelven por acá
   createdAt: number      // simTime
   status?: 'ok' | 'error'
@@ -148,7 +148,7 @@ Fuera del MVP: latencia por arista, jitter, timeouts, retries con backoff en el 
 | Tipo | Label (UI) | Comportamiento |
 |---|---|---|
 | `client` | Cliente | Genera requests o eventos con `rate` (req/s; default `0`: un cliente recién soltado no manda nada hasta que se sube la tasa o se usa "enviar 1" / "ráfaga") y un **mix** de `path`/`eventType` configurable. Tiene una **IP** (texto; al soltarlo desde la paleta se le asigna la siguiente libre `10.0.0.N`; los presets la fijan) que viaja en `meta.clientIp` junto a `clientId` y `clientName`. Tiene un **color** (6 muestras fijas; al soltarlo toma el siguiente libre) que viaja en `meta.clientColor` y pasa a todo lo derivado (llamadas de un Servicio, mensajes de la Cola, eventos del Broker): los paquetes se pintan con ese color y las respuestas suman un borde verde/rojo según ok/error. Acciones manuales: "enviar 1" y "ráfaga de N". Recibe respuestas y alimenta métricas de latencia. |
-| `load-balancer` | Load Balancer | Reparte cada request a **una** salida según algoritmo: `round-robin`, `least-connections`, `random`, `ip-hash` (hashea `meta.clientIp`; si está vacía, `clientId`; y emite el label `"<ip> → <destino>"` por cada request, con el nombre del cliente si no tiene IP), `weighted` (smooth weighted round-robin según el **peso de cada conexión**, `weight` en la arista, editable en el inspector del LB o de la arista; sin peso = 1, peso 0 = nunca, todos 0 = parejo; el canvas muestra el % efectivo como label de la arista). Toggle de **health checks**: si está activo, saca de rotación las salidas caídas; si no, les sigue mandando y fallan. |
+| `load-balancer` | Load Balancer | Reparte cada request a **una** salida según algoritmo: `round-robin`, `least-connections`, `random`, `ip-hash` (hashea `meta.clientIp`; si está vacía, `clientId`; y emite el label `"<ip> → <destino>"` por cada request, con el nombre del cliente si no tiene IP), `weighted` (smooth weighted round-robin según el **peso de cada conexión**, `weight` en la arista, editable en el inspector del LB o de la arista; sin peso = 1, peso 0 = nunca, todos los disponibles en 0 = parejo; el canvas muestra el % efectivo como label de la arista). Toggle de **health checks**: si está activo, saca de rotación las salidas caídas; si no, les sigue mandando y fallan. |
 | `reverse-proxy` | Reverse Proxy | Elige la salida cuya regla matchee `path` (prefijo más largo gana; una arista sin regla equivale a `/`). Sin match → `404`. Features opcionales en config: `auth` (rechaza % con `401`), `rateLimit` (req/s → `429`), `cache` (hit rate → responde él). |
 | `service` | Servicio | Sin salidas: procesa y responde. Con salidas: procesa y llama a sus dependencias en modo `parallel` (default) o `sequential`; responde cuando vuelven todas, error si alguna falla. Si una salida es Queue o Broker, solo espera el `202`/ack. |
 | `database` | Base de datos | Procesa (query) y responde. |

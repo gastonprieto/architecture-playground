@@ -52,6 +52,26 @@ describe('serialize/parse', () => {
     }
   })
 
+  it('drops an invalid client color or ip on import (so the UI backfills them)', () => {
+    const text = JSON.stringify({
+      version: 1,
+      graph: {
+        nodes: [
+          { id: 'a', type: 'client', position: { x: 0, y: 0 }, config: { name: 'A', color: 'red', ip: 7 } },
+          { id: 'b', type: 'client', position: { x: 0, y: 0 }, config: { name: 'B', color: '#AbCdEf', ip: '' } },
+          { id: 's', type: 'service', position: { x: 0, y: 0 }, config: { color: 'whatever' } },
+        ],
+        edges: [],
+      },
+    })
+    const r = parseGraph(text)
+    expect(r.ok).toBe(true)
+    const cfg = (id: string) => (r.ok ? r.graph.nodes.find((x) => x.id === id)!.config : null)
+    expect(cfg('a')).toEqual({ name: 'A' })
+    expect(cfg('b')).toEqual({ name: 'B', color: '#AbCdEf', ip: '' })
+    expect(cfg('s')).toEqual({ color: 'whatever' })
+  })
+
   it('reports edges pointing at missing nodes', () => {
     const r = parseGraph(JSON.stringify({ version: 1, graph: { nodes: g.nodes, edges: [{ id: 'e9', source: 'a', target: 'zzz' }] } }))
     expect(r).toEqual({ ok: false, error: 'dangling-edge', edgeId: 'e9' })

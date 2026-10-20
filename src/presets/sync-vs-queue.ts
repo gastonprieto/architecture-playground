@@ -13,7 +13,7 @@ export function syncVsQueuePreset(lang: Lang): PresetShape {
       nodes: [
         node('client-sync', 'client', 0, 0, text('nodes.clientSync'), { rate: 4, ip: '10.0.0.1', color: CLIENT_COLORS[0] }),
         node('service', 'service', 1, 0, text('nodes.service'), { capacity: 2, processingTime: 1500 }),
-        node('client-queue', 'client', 0, 2 * ROW, text('nodes.clientQueue'), { rate: 4, ip: '10.0.0.2', color: CLIENT_COLORS[3] }),
+        node('client-queue', 'client', 0, 2 * ROW, text('nodes.clientQueue'), { rate: 4, ip: '10.0.0.2', color: CLIENT_COLORS[1] }),
         // 200 so the queue absorbs the 30 s demo (rate 4 vs 3 workers at 1 msg / 1.5 s) without overflowing.
         node('cola', 'queue', 1, 2 * ROW, text('nodes.queue'), { queueMax: 200 }),
         node('worker-1', 'worker', 2, 1.5 * ROW, worker(1), { capacity: 1, processingTime: 1500 }),

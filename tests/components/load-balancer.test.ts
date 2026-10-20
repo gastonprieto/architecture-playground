@@ -218,6 +218,11 @@ describe('load balancer', () => {
     expect(r.count).toEqual({ D1: 100, D2: 100 })
   })
 
+  it('weighted: when every healthy target has weight 0, it splits equally among them', () => {
+    const r = shares(withHc(weighted([5, 0, 0], { burstSize: 100 }, [{ up: false }, { capacity: 50, queueMax: 500 }, { capacity: 50, queueMax: 500 }])))
+    expect(r.count).toEqual({ D2: 100, D3: 100 })
+  })
+
   it('weighted: health checks drop down targets before weighting', () => {
     const r = shares(withHc(weighted([5, 1, 1], { burstSize: 100 }, [{ up: false }, { capacity: 50, queueMax: 500 }, { capacity: 50, queueMax: 500 }])))
     expect(r.count).toEqual({ D2: 100, D3: 100 })

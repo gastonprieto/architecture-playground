@@ -100,12 +100,12 @@ export const en: Dict = {
   },
   /** Names of the Cliente palette colors (swatch labels). */
   colorNames: {
-    '38bdf8': 'Sky blue',
-    f472b6: 'Pink',
-    facc15: 'Yellow',
-    fb923c: 'Orange',
-    a78bfa: 'Violet',
-    e2e8f0: 'Light gray',
+    '3b82f6': 'Blue',
+    d97706: 'Amber',
+    ec4899: 'Pink',
+    c4b5fd: 'Lavender',
+    fdba74: 'Peach',
+    d946ef: 'Fuchsia',
   },
   /** Info panel: one-line help for the shared fields, and the panel's own texts. */
   fieldInfo: {
@@ -214,7 +214,7 @@ export const en: Dict = {
           'Least Connections: to the one with the fewest requests in flight.',
           'Random: at random.',
           'IP Hash: same client IP, same target; shows "IP → server".',
-          'Weighted: in proportion to each connection\'s weight (editable in the inspector).',
+          'Weighted: in proportion to each connection\'s weight (editable in the inspector); if every available one has weight 0, it splits equally.',
           'No targets available: `503`.',
         ],
         fields: {

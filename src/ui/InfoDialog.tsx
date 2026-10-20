@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type MouseEvent, type ReactNode } from 'react'
 import { defaultRegistry } from '../components/index'
 import { useLang, useT } from '../i18n'
 import { componentInfo, componentLabel } from '../i18n/componentText'
@@ -18,33 +18,50 @@ function InfoPanel({ type }: { type: string }) {
   const close = useInfoPanel((s) => s.close)
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const downOnBackdrop = useRef(false)
   const def = defaultRegistry.get(type)
   const label = def ? componentLabel(lang, type, def) : type
   const info = def ? componentInfo(lang, def) : undefined
 
-  useEffect(() => closeRef.current?.focus(), [])
-
-  // Keys stay inside the dialog: Esc closes, Tab cycles, and the app shortcuts (Space, Delete…) don't fire.
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    e.stopPropagation()
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      close()
-    } else if (e.key === 'Tab') {
-      const items = [...e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE)]
-      if (items.length === 0) return
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (e.shiftKey && document.activeElement === first) {
+  // While open, the dialog owns the keyboard: a document-level capture listener sees every key first,
+  // wherever focus is (even on the body after a click on the panel's text). Esc closes, Tab cycles
+  // inside the panel, and nothing reaches the app's shortcuts (Space, Delete, +/-, undo…). Default
+  // actions still happen, so Enter/Space on the ✕ button work. Focus returns to the opener on close.
+  useEffect(() => {
+    const opener = useInfoPanel.getState().opener
+    closeRef.current?.focus()
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      const panel = panelRef.current
+      e.stopPropagation()
+      if (!panel) return
+      if (e.key === 'Escape') {
         e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault()
-        first.focus()
+        close()
+      } else if (e.key === 'Tab') {
+        const items = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)]
+        if (items.length === 0) return
+        const first = items[0]
+        const last = items[items.length - 1]
+        const active = document.activeElement
+        if (!panel.contains(active)) {
+          e.preventDefault()
+          ;(e.shiftKey ? last : first).focus()
+        } else if (e.shiftKey && active === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault()
+          first.focus()
+        }
       }
     }
-  }
+    document.addEventListener('keydown', onKey, true)
+    return () => {
+      document.removeEventListener('keydown', onKey, true)
+      if (opener?.isConnected) opener.focus()
+    }
+  }, [close])
 
   // Only a click that starts and ends on the backdrop closes (not a text selection dragged out of the panel).
   const onBackdropDown = (e: MouseEvent) => {
@@ -62,7 +79,8 @@ function InfoPanel({ type }: { type: string }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        onKeyDown={onKeyDown}
+        tabIndex={-1}
+        ref={panelRef}
         style={{ ['--node-color' as string]: def ? toneColor(def.color) : 'var(--line)' }}
       >
         <header className="info-head">

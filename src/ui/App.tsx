@@ -5,6 +5,7 @@ import { useLang, useT } from '../i18n'
 import { clearLocationHash, initialGraph } from '../persistence/initial'
 import { saveLocal } from '../persistence/storage'
 import { Canvas } from './canvas/Canvas'
+import { backfillClients } from './clientColor'
 import { InfoDialog } from './InfoDialog'
 import { Inspector } from './Inspector'
 import { MetricsBar } from './MetricsBar'
@@ -13,6 +14,7 @@ import { SimContext, useSimulation } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 import './theme.css'
 import { Toolbar } from './Toolbar'
+import { useInfoPanel } from './store/infoPanel'
 import { useIsMobile } from './useIsMobile'
 
 const SAVE_DEBOUNCE_MS = 500
@@ -24,7 +26,7 @@ function usePersistence() {
     if (!loaded.current) {
       loaded.current = true
       // A shared link is loaded once; after that the local copy is the source of truth.
-      useEditor.getState().loadGraph(initialGraph(useLang.getState().lang, undefined, clearLocationHash))
+      useEditor.getState().loadGraph(backfillClients(initialGraph(useLang.getState().lang, undefined, clearLocationHash)))
     }
     let timer: ReturnType<typeof setTimeout> | undefined
     const flush = () => {
@@ -53,10 +55,12 @@ export default function App() {
   const mobile = useIsMobile()
   const api = useSimulation()
   const t = useT()
+  const infoOpen = useInfoPanel((s) => s.type !== null)
   return (
     <ReactFlowProvider>
       <SimContext.Provider value={api}>
-        <div className={`app${mobile ? ' mobile' : ''}`}>
+        {/* Inert behind the info dialog: no clicks, focus or keys reach the editor while it is open. */}
+        <div className={`app${mobile ? ' mobile' : ''}`} inert={infoOpen}>
           <header className="toolbar">
             <Toolbar api={api} mobile={mobile} />
           </header>

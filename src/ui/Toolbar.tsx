@@ -1,3 +1,4 @@
+import { backfillClients } from './clientColor'
 import { useReactFlow } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type ChangeEvent } from 'react'
 import type { Graph } from '../engine/types'
@@ -89,7 +90,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   /** Replace the graph (undoable), restart the simulation and frame the new graph. */
   const load = useCallback(
     (g: Graph) => {
-      useEditor.getState().replaceGraph(g)
+      useEditor.getState().replaceGraph(backfillClients(g))
       reset()
       // React Flow queues the fit until the new nodes are measured.
       void fitView(FIT_VIEW_OPTIONS)

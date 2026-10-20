@@ -1,4 +1,4 @@
-import type { Graph } from '../engine/types'
+import type { Graph, GraphNode } from '../engine/types'
 
 /** Why a graph could not be loaded: a stable code (the UI translates `errors.<code>`) plus params. */
 export type ParseError = { error: 'invalid-json' } | { error: 'unknown-format' } | { error: 'dangling-edge'; edgeId: string }
@@ -27,6 +27,21 @@ const validEdge = (e: unknown): boolean => {
   return isObj(e.rule) && (e.rule.kind === 'pathPrefix' || e.rule.kind === 'eventType') && typeof e.rule.value === 'string'
 }
 
+const HEX_COLOR = /^#[0-9a-f]{6}$/i
+
+/**
+ * A Cliente's `color` must be a #rrggbb string and its `ip` a string; a bad value is dropped (not an
+ * error), so the editor fills in a fresh one when the graph loads.
+ */
+function sanitizeNode(n: GraphNode): GraphNode {
+  if (n.type !== 'client') return n
+  const { color, ip, ...rest } = n.config
+  const badColor = color !== undefined && !(typeof color === 'string' && HEX_COLOR.test(color))
+  const badIp = ip !== undefined && typeof ip !== 'string'
+  if (!badColor && !badIp) return n
+  return { ...n, config: { ...rest, ...(badColor ? {} : { color }), ...(badIp ? {} : { ip }) } }
+}
+
 /** Validate an already-parsed JSON value. */
 export function validateGraphData(data: unknown): ParseResult {
   const bad: ParseResult = { ok: false, error: 'unknown-format' }
@@ -37,7 +52,9 @@ export function validateGraphData(data: unknown): ParseResult {
   for (const e of edges as { id: string; source: string; target: string }[]) {
     if (!ids.has(e.source) || !ids.has(e.target)) return { ok: false, error: 'dangling-edge', edgeId: e.id }
   }
-  return { ok: true, graph: data.graph as unknown as Graph }
+  const graph = data.graph as unknown as Graph
+  const clean = graph.nodes.map(sanitizeNode)
+  return { ok: true, graph: clean.some((n, i) => n !== graph.nodes[i]) ? { ...graph, nodes: clean } : graph }
 }
 
 export function parseGraph(text: string): ParseResult {

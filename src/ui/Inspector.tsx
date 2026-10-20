@@ -56,9 +56,19 @@ function FieldControl({ def, fieldKey, field, value, onChange }: FieldControlPro
   }
 }
 
+/** Slider range; an imported larger weight widens it instead of being clamped. */
 const WEIGHT_MAX = 100
 
-const Share = ({ pct }: { pct: number }) => <span className="weight-share">{pct}%</span>
+/** Effective % of a connection; a down target is marked (it gets nothing while health checks are on). */
+function Share({ pct, down }: { pct: number; down?: boolean }) {
+  const t = useT()
+  return (
+    <>
+      <span className="weight-share">{pct}%</span>
+      {down && <span className="weight-down">({t('node.down')})</span>}
+    </>
+  )
+}
 
 /** "Pesos": one relative weight per outgoing connection of a weighted LB, with its effective %. */
 function WeightsSection({ lbId }: { lbId: string }) {
@@ -78,15 +88,15 @@ function WeightsSection({ lbId }: { lbId: string }) {
       </h3>
       <p className="weights-hint">{t('inspector.weightsHint')}</p>
       {rows.length === 0 && <p className="weights-hint">{t('inspector.weightsEmpty')}</p>}
-      {rows.map(({ edge, share }) => (
+      {rows.map(({ edge, share, down }) => (
         <NumberField
           key={edge.id}
           label={nameOf(edge.target)}
           value={edge.weight ?? DEFAULT_WEIGHT}
           min={0}
-          max={WEIGHT_MAX}
+          max={Math.max(WEIGHT_MAX, edge.weight ?? 0)}
           step={1}
-          extra={<Share pct={share} />}
+          extra={<Share pct={share} down={down} />}
           onChange={(v) => setEdgeWeight(edge.id, v)}
         />
       ))}
@@ -131,9 +141,12 @@ function EdgeInspector({ id }: { id: string }) {
           label={t('inspector.weight')}
           value={edge.weight ?? DEFAULT_WEIGHT}
           min={0}
-          max={WEIGHT_MAX}
+          max={Math.max(WEIGHT_MAX, edge.weight ?? 0)}
           step={1}
-          extra={<Share pct={lbShares(graph, edge.source).find((r) => r.edge.id === id)?.share ?? 0} />}
+          extra={(() => {
+            const row = lbShares(graph, edge.source).find((r) => r.edge.id === id)
+            return <Share pct={row?.share ?? 0} down={row?.down} />
+          })()}
           onChange={(v) => setEdgeWeight(id, v)}
         />
       )}
