@@ -10,6 +10,8 @@ export interface EditorState {
   selection: Selection
   past: Graph[]
   future: Graph[]
+  /** Graph at the start of an in-progress drag (moveNode with commit=false). */
+  dragBase: { id: NodeId; graph: Graph } | null
   addNode(type: string, position: { x: number; y: number }): NodeId
   connect(source: NodeId, target: NodeId): EdgeId | null
   moveNode(id: NodeId, position: { x: number; y: number }, commit: boolean): void
@@ -30,19 +32,20 @@ const randomSuffix = () => {
   return s.slice(0, 6)
 }
 
-/** Graph at the start of an in-progress drag (moveNode with commit=false). */
-let dragBase: Graph | null = null
+const sel = (selection: Selection, g: Graph): Selection =>
+  selection && (selection.kind === 'node' ? g.nodes : g.edges).some((x) => x.id === selection.id) ? selection : null
 
 export const useEditor = create<EditorState>((set, get) => {
   /** Apply a committing mutation: push `prev` to history, clear redo. */
   const commit = (next: Graph, prev: Graph = get().graph, extra: Partial<EditorState> = {}) =>
-    set((st) => ({ graph: next, past: [...st.past, prev].slice(-HISTORY_LIMIT), future: [], ...extra }))
+    set((st) => ({ graph: next, past: [...st.past, prev].slice(-HISTORY_LIMIT), future: [], dragBase: null, ...extra }))
 
   return {
     graph: { nodes: [], edges: [] },
     selection: null,
     past: [],
     future: [],
+    dragBase: null,
 
     addNode(type, position) {
       const id = `${type}-${randomSuffix()}`
@@ -62,16 +65,16 @@ export const useEditor = create<EditorState>((set, get) => {
     },
 
     moveNode(id, position, isCommit) {
-      const { graph } = get()
+      const { graph, dragBase } = get()
+      if (!graph.nodes.some((n) => n.id === id)) return
       const next = { ...graph, nodes: graph.nodes.map((n) => (n.id === id ? { ...n, position } : n)) }
       if (!isCommit) {
-        dragBase ??= graph
-        set({ graph: next })
+        set({ graph: next, dragBase: dragBase?.id === id ? dragBase : { id, graph } })
         return
       }
-      const prev = dragBase ?? graph
-      dragBase = null
-      commit(next, prev)
+      const base = dragBase?.id === id ? dragBase.graph : null
+      if (!base && graph.nodes.some((n) => n.id === id && n.position.x === position.x && n.position.y === position.y)) return
+      commit(next, base ?? graph)
     },
 
     removeElements(ids) {
@@ -81,16 +84,19 @@ export const useEditor = create<EditorState>((set, get) => {
         nodes: graph.nodes.filter((n) => !drop.has(n.id)),
         edges: graph.edges.filter((e) => !drop.has(e.id) && !drop.has(e.source) && !drop.has(e.target)),
       }
+      if (next.nodes.length === graph.nodes.length && next.edges.length === graph.edges.length) return
       commit(next, graph, selection && drop.has(selection.id) ? { selection: null } : {})
     },
 
     updateNodeConfig(id, patch) {
       const { graph } = get()
+      if (!graph.nodes.some((n) => n.id === id)) return
       commit({ ...graph, nodes: graph.nodes.map((n) => (n.id === id ? { ...n, config: { ...n.config, ...patch } } : n)) })
     },
 
     setEdgeRule(id, rule) {
       const { graph } = get()
+      if (!graph.edges.some((e) => e.id === id)) return
       commit({
         ...graph,
         edges: graph.edges.map((e) => {
@@ -106,20 +112,20 @@ export const useEditor = create<EditorState>((set, get) => {
     },
 
     loadGraph(graph) {
-      dragBase = null
-      set({ graph, selection: null, past: [], future: [] })
+      set({ graph, selection: null, past: [], future: [], dragBase: null })
     },
 
     undo() {
       const { past, graph, future } = get()
       if (past.length === 0) return
-      set({ graph: past[past.length - 1], past: past.slice(0, -1), future: [graph, ...future] })
+      const prev = past[past.length - 1]
+      set({ graph: prev, past: past.slice(0, -1), future: [graph, ...future], dragBase: null, selection: sel(get().selection, prev) })
     },
 
     redo() {
       const { past, graph, future } = get()
       if (future.length === 0) return
-      set({ graph: future[0], past: [...past, graph], future: future.slice(1) })
+      set({ graph: future[0], past: [...past, graph], future: future.slice(1), dragBase: null, selection: sel(get().selection, future[0]) })
     },
   }
 })

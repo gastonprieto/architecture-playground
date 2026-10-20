@@ -86,4 +86,62 @@ describe('editor store', () => {
     expect(s().past).toHaveLength(0)
     expect(s().future).toHaveLength(0)
   })
+
+  const pos = () => s().graph.nodes[0].position
+
+  it('a drag then commit undoes in a single step to the pre-drag position', () => {
+    const a = s().addNode('client', { x: 0, y: 0 })
+    const n = s().past.length
+    s().moveNode(a, { x: 1, y: 1 }, false)
+    s().moveNode(a, { x: 2, y: 2 }, false)
+    s().moveNode(a, { x: 3, y: 3 }, true)
+    expect(s().past.length).toBe(n + 1)
+    s().undo()
+    expect(pos()).toEqual({ x: 0, y: 0 })
+  })
+
+  it('an uncommitted drag followed by another mutation does not leak a stale base', () => {
+    const a = s().addNode('client', { x: 0, y: 0 })
+    s().moveNode(a, { x: 5, y: 5 }, false)
+    s().updateNodeConfig(a, { k: 1 })
+    expect(s().dragBase).toBeNull()
+    s().undo()
+    expect(pos()).toEqual({ x: 5, y: 5 })
+    expect(s().graph.nodes[0].config.k).toBeUndefined()
+  })
+
+  it('undo mid-drag then commit keeps history consistent', () => {
+    const a = s().addNode('client', { x: 0, y: 0 })
+    s().updateNodeConfig(a, { k: 1 })
+    s().moveNode(a, { x: 5, y: 5 }, false)
+    s().undo()
+    expect(s().graph.nodes[0].config.k).toBeUndefined()
+    s().moveNode(a, { x: 7, y: 7 }, true)
+    s().undo()
+    expect(pos()).toEqual({ x: 0, y: 0 })
+    expect(s().graph.nodes[0].config.k).toBeUndefined()
+  })
+
+  it('a commit for a different node does not use the drag base of another node', () => {
+    const a = s().addNode('client', { x: 0, y: 0 })
+    const b = s().addNode('client', { x: 10, y: 10 })
+    s().moveNode(a, { x: 5, y: 5 }, false)
+    s().moveNode(b, { x: 20, y: 20 }, true)
+    s().undo()
+    expect(s().graph.nodes.find((x) => x.id === a)!.position).toEqual({ x: 5, y: 5 })
+    expect(s().graph.nodes.find((x) => x.id === b)!.position).toEqual({ x: 10, y: 10 })
+  })
+
+  it('no-op mutations do not push history; undo clears a dangling selection', () => {
+    const a = s().addNode('client', { x: 0, y: 0 })
+    const n = s().past.length
+    s().removeElements([])
+    s().moveNode('nope', { x: 1, y: 1 }, true)
+    s().updateNodeConfig('nope', { a: 1 })
+    s().setEdgeRule('nope', undefined)
+    expect(s().past.length).toBe(n)
+    s().select({ kind: 'node', id: a })
+    s().undo()
+    expect(s().selection).toBeNull()
+  })
 })
