@@ -1,6 +1,7 @@
 import { ReactFlowProvider } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useEffect, useRef } from 'react'
+import { useLang, useT } from '../i18n'
 import { clearLocationHash, initialGraph } from '../persistence/initial'
 import { saveLocal } from '../persistence/storage'
 import { Canvas } from './canvas/Canvas'
@@ -22,7 +23,7 @@ function usePersistence() {
     if (!loaded.current) {
       loaded.current = true
       // A shared link is loaded once; after that the local copy is the source of truth.
-      useEditor.getState().loadGraph(initialGraph(undefined, clearLocationHash))
+      useEditor.getState().loadGraph(initialGraph(undefined, clearLocationHash, useLang.getState().lang))
     }
     let timer: ReturnType<typeof setTimeout> | undefined
     const flush = () => {
@@ -50,6 +51,7 @@ export default function App() {
   usePersistence()
   const mobile = useIsMobile()
   const api = useSimulation()
+  const t = useT()
   return (
     <ReactFlowProvider>
       <SimContext.Provider value={api}>
@@ -62,7 +64,7 @@ export default function App() {
             <Canvas readOnly={mobile} />
           </main>
           {!mobile && (
-            <aside className="inspector" aria-label="Inspector">
+            <aside className="inspector" aria-label={t('inspector.label')}>
               <Inspector runAction={api.runAction} />
             </aside>
           )}

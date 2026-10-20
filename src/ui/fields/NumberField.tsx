@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react'
+import { useT } from '../../i18n'
 
 interface Props {
   label: string
@@ -14,6 +15,7 @@ const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(mi
 
 export function NumberField({ label, value, min, max, step = 1, unit, onChange }: Props) {
   const id = useId()
+  const t = useT()
   const [text, setText] = useState(String(value))
   useEffect(() => setText(String(value)), [value])
 
@@ -37,7 +39,7 @@ export function NumberField({ label, value, min, max, step = 1, unit, onChange }
     <div className="field">
       <label htmlFor={id}>{label}</label>
       <div className="field-row">
-        <input type="range" aria-label={`${label} (deslizador)`} min={min} max={max} step={step} value={value} onChange={(e) => onChange(clamp(Number(e.target.value), min, max))} />
+        <input type="range" aria-label={t('widgets.slider', { label })} min={min} max={max} step={step} value={value} onChange={(e) => onChange(clamp(Number(e.target.value), min, max))} />
         <input
           id={id}
           type="number"

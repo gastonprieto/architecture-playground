@@ -3,7 +3,10 @@ import { defaultRegistry } from '../../src/components/index'
 import { Simulation } from '../../src/engine/simulation'
 import type { Message } from '../../src/engine/types'
 import { parseGraph, serializeGraph } from '../../src/persistence/serialize'
-import { presets } from '../../src/presets'
+import { getPresets } from '../../src/presets'
+
+// Behavior is checked on the Spanish presets; the English ones only differ in texts.
+const presets = getPresets('es')
 
 const preset = (id: string) => presets.find((p) => p.id === id)!
 const run = (id: string) => {
@@ -80,5 +83,40 @@ describe('presets', () => {
 
   it('every preset survives parseGraph(serializeGraph(g))', () => {
     for (const p of presets) expect(parseGraph(serializeGraph(p.graph))).toEqual({ ok: true, graph: p.graph })
+  })
+
+  it('builds the same graphs in English, with translated names, descriptions and node names', () => {
+    const enPresets = getPresets('en')
+    expect(enPresets.map((p) => p.id)).toEqual(presets.map((p) => p.id))
+    const names = enPresets.flatMap((p) => p.graph.nodes.map((n) => n.config.name))
+    for (const name of ['Browser', 'Mobile app', 'Server 1', 'Database', 'Orders', 'Billing', 'Inventory', 'Emails', 'Analytics', 'Users', 'Payments', 'Web'])
+      expect(names).toContain(name)
+    expect(enPresets.map((p) => p.name)).toEqual(['Load balancer', 'Sync vs queue', 'Pub/sub', 'Reverse proxy'])
+    expect(enPresets.find((p) => p.id === 'sync-vs-queue')!.description).toMatch(/^The same traffic/)
+    for (const [i, p] of enPresets.entries()) {
+      const es = presets[i]
+      // Same topology and ids; only texts (names, paths, event types) change.
+      expect(p.graph.nodes.map((n) => [n.id, n.type, n.position])).toEqual(es.graph.nodes.map((n) => [n.id, n.type, n.position]))
+      expect(p.graph.edges.map((e) => e.id)).toEqual(es.graph.edges.map((e) => e.id))
+    }
+  })
+
+  it('the Spanish presets keep their Spanish names', () => {
+    const names = presets.flatMap((p) => p.graph.nodes.map((n) => n.config.name))
+    for (const name of ['Navegador', 'App móvil', 'Servidor 1', 'Base de datos', 'Órdenes', 'Facturación', 'Usuarios', 'Pagos'])
+      expect(names).toContain(name)
+  })
+
+  it('reverse-proxy in English routes /users, /orders and /payments', () => {
+    const p = getPresets('en').find((x) => x.id === 'reverse-proxy')!
+    const sim = new Simulation(p.graph, { seed: 1, registry: defaultRegistry })
+    const paths: Record<string, string[]> = {}
+    sim.on('message:arrived', (e) => {
+      if (e.msg.kind === 'request') (paths[e.at] ??= []).push(e.msg.meta.path ?? '')
+    })
+    sim.advance(30_000)
+    expect(paths['usuarios'].every((x) => x.startsWith('/users'))).toBe(true)
+    expect(paths['ordenes'].every((x) => x.startsWith('/orders'))).toBe(true)
+    expect(paths['pagos'].every((x) => x.startsWith('/payments'))).toBe(true)
   })
 })

@@ -1,4 +1,5 @@
 import type { MetricsSnapshot } from '../engine/types'
+import { useT } from '../i18n'
 import { useRuntime } from './runtime/runtimeStore'
 
 export function formatMetrics(m: MetricsSnapshot) {
@@ -13,11 +14,12 @@ export function formatMetrics(m: MetricsSnapshot) {
 /** Global rolling metrics of the requests completed at the clients. */
 export function MetricsBar() {
   const metrics = useRuntime((s) => s.metrics)
+  const t = useT()
   const f = formatMetrics(metrics)
   return (
-    <div className="metrics-bar" aria-label="Métricas">
+    <div className="metrics-bar" aria-label={t('metrics.label')}>
       <span>
-        Throughput <b>{f.throughput}</b> req/s
+        {t('metrics.throughput')} <b>{f.throughput}</b> req/s
       </span>
       <span className="sep">·</span>
       <span>
@@ -29,7 +31,7 @@ export function MetricsBar() {
       </span>
       <span className="sep">·</span>
       <span className={metrics.errorRate > 0 ? 'metrics-err' : undefined}>
-        Errores <b>{f.errors}</b>%
+        {t('metrics.errors')} <b>{f.errors}</b>%
       </span>
     </div>
   )

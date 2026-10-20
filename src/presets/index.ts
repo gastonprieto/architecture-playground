@@ -1,4 +1,5 @@
 import type { Graph } from '../engine/types'
+import type { Lang } from '../i18n'
 import { loadBalancerPreset } from './load-balancer'
 import { pubsubPreset } from './pubsub'
 import { reverseProxyPreset } from './reverse-proxy'
@@ -11,4 +12,7 @@ export interface Preset {
   graph: Graph
 }
 
-export const presets: Preset[] = [loadBalancerPreset, syncVsQueuePreset, pubsubPreset, reverseProxyPreset]
+const builders = [loadBalancerPreset, syncVsQueuePreset, pubsubPreset, reverseProxyPreset]
+
+/** The presets with their names, descriptions and node names in `lang` (fresh graphs every call). */
+export const getPresets = (lang: Lang): Preset[] => builders.map((build) => build(lang))

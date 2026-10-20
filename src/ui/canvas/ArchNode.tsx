@@ -1,6 +1,8 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { defaultRegistry } from '../../components/index'
 import type { Message, NodeId } from '../../engine/types'
+import { useLang, useT } from '../../i18n'
+import { componentLabel } from '../../i18n/componentText'
 import { C, toneColor } from '../colors'
 import { ZERO_STATS, useRuntime } from '../runtime/runtimeStore'
 import { UI_CELLS, type CellsView, type UiState } from '../runtime/useSimulation'
@@ -43,6 +45,7 @@ const truncate = (s: string, max: number) => (s.length > max ? `${s.slice(0, max
 /** Live counters, the down badge and queue/DLQ cells or broker lanes. */
 export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: string; config: Record<string, unknown> }) {
   const stats = useRuntime((s) => s.stats[nodeId]) ?? ZERO_STATS
+  const t = useT()
   const ui = useRuntime((s) => s.states[nodeId]) as UiState | undefined
   const nodes = useEditor((s) => (ui?.lanes ? s.graph.nodes : null))
   const nameOf = (id: NodeId) => {
@@ -54,11 +57,11 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
   return (
     <div className="node-stats">
       <div className="node-counters">
-        {config.up === false && <span className="node-down">caído</span>}
-        {stats.inFlight > 0 && <span title="En proceso">⏳ {compact(stats.inFlight)}</span>}
-        {stats.queued > 0 && <span title="En cola">☰ {compact(stats.queued)}</span>}
-        <span title="OK" className="node-ok">✔ {compact(stats.ok)}</span>
-        <span title="Errores" className={stats.errors > 0 ? 'node-err' : 'node-zero'}>✖ {compact(stats.errors)}</span>
+        {config.up === false && <span className="node-down">{t('node.down')}</span>}
+        {stats.inFlight > 0 && <span title={t('node.inFlight')}>⏳ {compact(stats.inFlight)}</span>}
+        {stats.queued > 0 && <span title={t('node.queued')}>☰ {compact(stats.queued)}</span>}
+        <span title={t('node.ok')} className="node-ok">✔ {compact(stats.ok)}</span>
+        <span title={t('node.errors')} className={stats.errors > 0 ? 'node-err' : 'node-zero'}>✖ {compact(stats.errors)}</span>
       </div>
       {ui?.items && (kind === 'queue' || kind === 'dlq') && <Cells cells={ui.items} kind={kind} />}
       {lanes.map(([id, cells]) => (
@@ -75,9 +78,11 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
 
 export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
   const def = defaultRegistry.get(data.kind)
+  const lang = useLang((s) => s.lang)
+  const typeLabel = componentLabel(lang, data.kind, def)
   const color = def ? toneColor(def.color) : C.err
   const configName = typeof data.config.name === 'string' ? data.config.name.trim() : ''
-  const name = configName || def?.label || data.kind
+  const name = configName || (def ? typeLabel : data.kind)
   return (
     <div
       className={`arch-node${selected ? ' selected' : ''}${def ? '' : ' unknown'}`}
@@ -90,7 +95,7 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
         </span>
         <div className="arch-node-text">
           <div className="arch-node-name">{name}</div>
-          <div className="arch-node-type">{def?.label ?? 'Desconocido'}</div>
+          <div className="arch-node-type">{typeLabel}</div>
         </div>
       </div>
       <NodeStatsSlot nodeId={id} kind={data.kind} config={data.config} />

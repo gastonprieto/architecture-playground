@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { useLang } from '../../src/i18n'
 import { STORAGE_KEY } from '../../src/persistence/storage'
 import App from '../../src/ui/App'
 import { useRuntime } from '../../src/ui/runtime/runtimeStore'
@@ -20,6 +21,8 @@ beforeAll(() => {
   } as unknown as typeof DOMMatrixReadOnly
 })
 
+// jsdom reports navigator.language 'en-US': these tests check the Spanish copy.
+beforeEach(() => useLang.getState().setLang('es'))
 afterEach(cleanup)
 
 describe('App', () => {

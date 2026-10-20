@@ -15,6 +15,8 @@ import {
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { defaultRegistry } from '../../components/index'
+import { useLang } from '../../i18n'
+import { componentLabel } from '../../i18n/componentText'
 import { C } from '../colors'
 import { ARCH_TYPE_MIME } from '../Palette'
 import { useEditor, type Selection } from '../store/editor'
@@ -136,11 +138,14 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
   const onDrop = useCallback(
     (e: DragEvent) => {
       const type = e.dataTransfer.getData(ARCH_TYPE_MIME)
-      if (!type || !defaultRegistry.get(type)) return
+      const def = type ? defaultRegistry.get(type) : undefined
+      if (!def) return
       e.preventDefault()
       const p = screenToFlowPosition({ x: e.clientX, y: e.clientY })
       const { addNode, select } = useEditor.getState()
-      const id = addNode(type, { x: Math.round(p.x - DROP_OFFSET.x), y: Math.round(p.y - DROP_OFFSET.y) })
+      // New nodes are named after their type in the current language (then they are user data).
+      const name = componentLabel(useLang.getState().lang, type, def)
+      const id = addNode(type, { x: Math.round(p.x - DROP_OFFSET.x), y: Math.round(p.y - DROP_OFFSET.y) }, name)
       select({ kind: 'node', id })
     },
     [screenToFlowPosition],

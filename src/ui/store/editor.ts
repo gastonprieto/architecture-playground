@@ -12,7 +12,8 @@ export interface EditorState {
   future: Graph[]
   /** Graph at the start of an in-progress drag (moveNode with commit=false). */
   dragBase: { id: NodeId; graph: Graph } | null
-  addNode(type: string, position: { x: number; y: number }): NodeId
+  /** `name` (the type's label in the UI language) overrides the def's default name. */
+  addNode(type: string, position: { x: number; y: number }, name?: string): NodeId
   connect(source: NodeId, target: NodeId): EdgeId | null
   moveNode(id: NodeId, position: { x: number; y: number }, commit: boolean): void
   removeElements(ids: string[]): void
@@ -54,11 +55,13 @@ export const useEditor = create<EditorState>((set, get) => {
     future: [],
     dragBase: null,
 
-    addNode(type, position) {
+    addNode(type, position, name) {
       const id = `${type}-${randomSuffix()}`
       const def = defaultRegistry.get(type)
       const { graph } = get()
-      commit({ ...graph, nodes: [...graph.nodes, { id, type, position, config: def ? defaultConfig(def) : {} }] })
+      const config = def ? defaultConfig(def) : {}
+      if (name !== undefined) config.name = name
+      commit({ ...graph, nodes: [...graph.nodes, { id, type, position, config }] })
       return id
     },
 

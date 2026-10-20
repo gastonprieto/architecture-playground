@@ -1,17 +1,16 @@
 import { useReactFlow } from '@xyflow/react'
-import { useCallback, useEffect, useRef, useState, type ButtonHTMLAttributes, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type ChangeEvent } from 'react'
 import type { Graph } from '../engine/types'
 import { encodeHash } from '../persistence/hash'
-import { t } from '../i18n'
+import { LANGS, useLang, useT } from '../i18n'
 import { parseGraph, serializeGraph } from '../persistence/serialize'
-import { presets } from '../presets'
+import { getPresets } from '../presets'
 import { cycleSpeed, stepSpeed, useRuntime } from './runtime/runtimeStore'
 import type { SimApi } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 
 const TOAST_MS = 2500
 const FIT_VIEW_OPTIONS = { padding: 0.15 }
-const EXPORT_FILENAME = 'arquitectura.json'
 /** Some browsers start the download asynchronously; keep the blob URL alive a while. */
 const REVOKE_URL_MS = 1000
 
@@ -31,6 +30,22 @@ const formatSpeed = (s: number) => `${s}x`
 /** A toolbar button that does not keep focus after a mouse click, so Space keeps toggling play. */
 function Btn(props: ButtonHTMLAttributes<HTMLButtonElement>) {
   return <button type="button" onMouseDown={(e) => e.preventDefault()} {...props} />
+}
+
+/** `ES | EN` switch; the active language is pressed. */
+function LangToggle() {
+  const lang = useLang((s) => s.lang)
+  const setLang = useLang((s) => s.setLang)
+  const t = useT()
+  return (
+    <div className="lang-toggle" role="group" aria-label={t('lang.label')}>
+      {LANGS.map((l) => (
+        <Btn key={l} className={l === lang ? 'active' : undefined} aria-pressed={l === lang} title={t(`lang.${l}`)} onClick={() => setLang(l)}>
+          {l.toUpperCase()}
+        </Btn>
+      ))}
+    </div>
+  )
 }
 
 function useToast() {
@@ -54,6 +69,9 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const { toast, show } = useToast()
   const { toggle, step, reset, setSpeed } = api
+  const lang = useLang((s) => s.lang)
+  const t = useT()
+  const presets = useMemo(() => getPresets(lang), [lang])
 
   /** Replace the graph (undoable), restart the simulation and frame the new graph. */
   const load = useCallback(
@@ -93,7 +111,8 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   }, [mobile, toggle, setSpeed])
 
   const onPreset = (e: ChangeEvent<HTMLSelectElement>) => {
-    const preset = presets.find((p) => p.id === e.target.value)
+    // Built on demand so the preset comes in the current language.
+    const preset = getPresets(useLang.getState().lang).find((p) => p.id === e.target.value)
     e.target.blur()
     if (preset) load(preset.graph)
   }
@@ -103,7 +122,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = EXPORT_FILENAME
+    a.download = t('toolbar.exportFilename')
     document.body.appendChild(a)
     a.click()
     a.remove()
@@ -136,24 +155,24 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     <>
       <h1 className="app-title">Architecture Playground</h1>
       <div className="toolbar-group">
-        <Btn className="primary" onClick={toggle} aria-pressed={playing} title="Espacio">
-          {playing ? '⏸ Pausa' : '▶ Play'}
+        <Btn className="primary" onClick={toggle} aria-pressed={playing} title={t('toolbar.playTitle')}>
+          {playing ? t('toolbar.pause') : t('toolbar.play')}
         </Btn>
         {!mobile && (
-          <Btn onClick={step} title="Avanzar 100 ms">
-            Paso
+          <Btn onClick={step} title={t('toolbar.stepTitle')}>
+            {t('toolbar.step')}
           </Btn>
         )}
-        <Btn onClick={reset}>Reset</Btn>
+        <Btn onClick={reset}>{t('toolbar.reset')}</Btn>
         {!mobile && (
-          <Btn className="speed" onClick={() => setSpeed(cycleSpeed(speed))} title="Velocidad (teclas - y +)">
+          <Btn className="speed" onClick={() => setSpeed(cycleSpeed(speed))} title={t('toolbar.speedTitle')}>
             {formatSpeed(speed)}
           </Btn>
         )}
       </div>
-      <select className="toolbar-select" value="" onChange={onPreset} aria-label="Presets">
+      <select className="toolbar-select" value="" onChange={onPreset} aria-label={t('toolbar.presets')}>
         <option value="" disabled>
-          Presets…
+          {t('toolbar.presetsPlaceholder')}
         </option>
         {presets.map((p) => (
           <option key={p.id} value={p.id} title={p.description}>
@@ -162,23 +181,26 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
         ))}
       </select>
       {!mobile && (
-        <>
-          <div className="toolbar-group">
-            <Btn onClick={() => useEditor.getState().undo()} disabled={!canUndo} title="Ctrl/Cmd+Z">
-              Deshacer
-            </Btn>
-            <Btn onClick={() => useEditor.getState().redo()} disabled={!canRedo} title="Ctrl/Cmd+Shift+Z">
-              Rehacer
-            </Btn>
-          </div>
-          <div className="toolbar-group toolbar-end">
-            <Btn onClick={onExport}>Exportar</Btn>
-            <Btn onClick={() => fileRef.current?.click()}>Importar</Btn>
-            <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={onImport} />
-            <Btn onClick={onCopyLink}>Copiar link</Btn>
-          </div>
-        </>
+        <div className="toolbar-group">
+          <Btn onClick={() => useEditor.getState().undo()} disabled={!canUndo} title="Ctrl/Cmd+Z">
+            {t('toolbar.undo')}
+          </Btn>
+          <Btn onClick={() => useEditor.getState().redo()} disabled={!canRedo} title="Ctrl/Cmd+Shift+Z">
+            {t('toolbar.redo')}
+          </Btn>
+        </div>
       )}
+      <div className="toolbar-group toolbar-end">
+        {!mobile && (
+          <>
+            <Btn onClick={onExport}>{t('toolbar.export')}</Btn>
+            <Btn onClick={() => fileRef.current?.click()}>{t('toolbar.import')}</Btn>
+            <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={onImport} />
+            <Btn onClick={onCopyLink}>{t('toolbar.copyLink')}</Btn>
+          </>
+        )}
+        <LangToggle />
+      </div>
       {toast && (
         <div key={toast.key} className="toast" role="status">
           {toast.text}

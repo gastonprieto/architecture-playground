@@ -238,6 +238,14 @@ body {
 .toolbar { flex-wrap: wrap; position: relative; }
 .toolbar-group { display: flex; align-items: center; gap: 6px; }
 .toolbar-end { margin-left: auto; }
+/* ES | EN segmented switch, last item of the toolbar (also on mobile) */
+.lang-toggle { display: flex; margin-left: 4px; }
+.toolbar .lang-toggle button { padding: 5px 8px; font: 600 12px/1.2 var(--mono); color: var(--muted); }
+.toolbar .lang-toggle button:first-child { border-radius: 6px 0 0 6px; }
+.toolbar .lang-toggle button:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+.toolbar .lang-toggle button.active { color: var(--cyan); background: #16213f; border-color: var(--cyan); }
+.toolbar .lang-toggle button.active:last-child { border-left: 1px solid var(--cyan); }
+.toolbar .lang-toggle button.active:first-child + button { border-left: none; }
 .toolbar button, .toolbar-select {
   background: var(--panel);
   color: var(--text);

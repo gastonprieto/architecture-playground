@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useLang } from '../../src/i18n'
 import { Inspector } from '../../src/ui/Inspector'
 import { useEditor } from '../../src/ui/store/editor'
 
@@ -17,6 +18,8 @@ const graph = {
 const select = (sel: { kind: 'node' | 'edge'; id: string } | null) => act(() => useEditor.getState().select(sel))
 
 beforeEach(() => act(() => useEditor.getState().loadGraph(structuredClone(graph))))
+// jsdom reports navigator.language 'en-US': these tests check the Spanish copy.
+beforeEach(() => useLang.getState().setLang('es'))
 afterEach(cleanup)
 
 describe('Inspector', () => {

@@ -1,5 +1,7 @@
 # Architecture Playground
 
+[English version](README.en.md)
+
 Un playground para armar arquitecturas en un canvas (clientes, servicios, bases de datos, load balancers, proxies reversos, caches, colas, workers, DLQs, brokers y suscriptores) y ver cómo fluyen los requests, mensajes y eventos entre los componentes. Se puede cambiar la configuración de cada componente (capacidad, tiempo de proceso, caídas, etc.) para ver cómo se comporta el sistema bajo carga.
 
 Incluye 4 presets para empezar:
@@ -10,6 +12,8 @@ Incluye 4 presets para empezar:
 - **Proxy reverso**: el proxy enruta por prefijo de path a cada servicio.
 
 Un Cliente envía a su primera salida (la primera arista que se conectó desde él).
+
+La interfaz está en español e inglés: el selector `ES | EN` de la toolbar cambia el idioma al instante (también `?lang=es` / `?lang=en` en la URL). Sin elección guardada se usa el idioma del navegador. Los presets se cargan en el idioma actual; los nombres de los nodos que ya armaste no se traducen.
 
 Online (una vez publicado el repo): https://gastonprieto.github.io/architecture-playground/
 
@@ -85,15 +89,26 @@ const builtins: ComponentDef[] = [/* ... */, rateLimiter]
 
 `defineComponent` agrega automáticamente el campo `name`. Los campos de `config` se muestran solos en el panel de propiedades.
 
+Los textos de la definición (`label`, labels de campos, opciones y acciones) son el fallback. Para traducirlos, agregá las claves en `src/i18n/es.ts` y `src/i18n/en.ts` (las dos con las mismas claves; el tipo `Dict` lo verifica):
+
+```ts
+'rate-limiter': {
+  label: 'Rate limiter',
+  fields: { maxPerSecond: 'Máx. por segundo' }, // en: 'Max per second'
+},
+```
+
+`name`, `up`, `processingTime`, `capacity` y `queueMax` ya tienen claves compartidas (`fields.<key>`). Las razones de `drop` y los textos de `label` son códigos estables en inglés (`'queue-full'`, `'retry'`); la UI busca `reasons.<code>` / `labels.<code>` y si no existe muestra el código tal cual.
+
 ### API de `ctx`
 
 - `send(target, msg)`: envía un mensaje a otro nodo (agrega este nodo al `trail`).
 - `reply(msg, { status, code })`: responde al origen del mensaje.
 - `forwardResponse(res)`: pasa una respuesta un salto más hacia atrás.
-- `drop(msg, reason, code?)`: descarta el mensaje (y le devuelve un response de error a quien lo envió).
+- `drop(msg, reason, code?)`: descarta el mensaje (y le devuelve un response de error a quien lo envió). `reason` es un código (`'down'`, `'queue-full'`, `'no-output'`…).
 - `process(msg, done)`: ocupa un slot de capacidad durante `processingTime` y luego llama a `done` (si no hay lugar, encola o rechaza).
 - `schedule(ms, fn)`: ejecuta `fn` después de `ms` de tiempo simulado.
-- `label(text, tone)`: muestra una etiqueta sobre el nodo.
+- `label(text, tone)`: muestra una etiqueta sobre el nodo (`text` es un código, ej. `'retry'`, o un literal como `'HIT'`).
 - `random()`: número aleatorio determinístico del motor.
 - `outputs()`: aristas de salida del nodo (`edgeId`, `target`, `targetType`, `rule`).
 - `peer(id)`: tipo y configuración de otro nodo.

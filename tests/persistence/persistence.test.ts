@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Graph } from '../../src/engine/types'
-import { presets } from '../../src/presets'
+import { getPresets } from '../../src/presets'
 import { decodeHash, encodeHash } from '../../src/persistence/hash'
 import { clearLocationHash, initialGraph } from '../../src/persistence/initial'
 import { parseGraph, serializeGraph } from '../../src/persistence/serialize'
@@ -39,7 +39,7 @@ describe('serialize/parse', () => {
     expect(r).toEqual({ ok: false, error: 'dangling-edge', edgeId: 'e9' })
   })
   it('every preset survives parseGraph(serializeGraph(g))', () => {
-    for (const p of presets) expect(parseGraph(serializeGraph(p.graph))).toEqual({ ok: true, graph: p.graph })
+    for (const p of getPresets('es')) expect(parseGraph(serializeGraph(p.graph))).toEqual({ ok: true, graph: p.graph })
   })
 })
 
@@ -81,7 +81,8 @@ describe('initialGraph', () => {
   it('prefers the URL hash, then localStorage, then the load-balancer preset', () => {
     const s = mem()
     vi.stubGlobal('localStorage', s)
-    expect(initialGraph('')).toEqual(presets.find((p) => p.id === 'load-balancer')!.graph)
+    expect(initialGraph('')).toEqual(getPresets('es').find((p) => p.id === 'load-balancer')!.graph)
+    expect(initialGraph('', undefined, 'en')).toEqual(getPresets('en').find((p) => p.id === 'load-balancer')!.graph)
     saveLocal(g)
     expect(initialGraph('')).toEqual(g)
     expect(initialGraph(encodeHash(other))).toEqual(other)

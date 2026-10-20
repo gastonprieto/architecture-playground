@@ -1,6 +1,7 @@
 import { defaultRegistry } from '../components'
 import { defaultConfig } from '../engine/registry'
 import type { EdgeRule, GraphEdge, GraphNode } from '../engine/types'
+import { translate, type Lang, type Params } from '../i18n'
 
 /** Horizontal distance between columns, and vertical distance between rows, in canvas px. */
 export const COL = 250
@@ -29,4 +30,10 @@ export interface PresetShape {
   name: string
   description: string
   graph: { nodes: GraphNode[]; edges: GraphEdge[] }
+}
+
+/** Texts of one preset in `lang`: `text('nodes.web')` reads `presets.<id>.nodes.web`. */
+export function presetText(lang: Lang, id: string) {
+  const text = (key: string, params?: Params) => translate(lang, `presets.${id}.${key}`, params)
+  return { text, name: text('name'), description: text('description') }
 }

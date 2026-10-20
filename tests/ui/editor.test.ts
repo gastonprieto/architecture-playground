@@ -15,6 +15,11 @@ describe('editor store', () => {
     expect(n.position).toEqual({ x: 1, y: 2 })
   })
 
+  it('addNode takes the (translated) name from the caller', () => {
+    const id = s().addNode('service', { x: 0, y: 0 }, 'Service')
+    expect(s().graph.nodes.find((x) => x.id === id)!.config.name).toBe('Service')
+  })
+
   it('connect rejects self-loops and duplicates', () => {
     const a = s().addNode('client', { x: 0, y: 0 })
     const b = s().addNode('service', { x: 0, y: 0 })
