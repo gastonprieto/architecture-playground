@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { initialGraph } from '../persistence/initial'
 import { saveLocal } from '../persistence/storage'
 import { Canvas } from './canvas/Canvas'
+import { Inspector } from './Inspector'
 import { Palette } from './Palette'
 import { useEditor } from './store/editor'
 import './theme.css'
@@ -55,8 +56,12 @@ export default function App() {
         <main className="canvas">
           <Canvas readOnly={mobile} />
         </main>
-        {/* Inspector slot: Task 17 renders <Inspector/> inside this aside. */}
-        {!mobile && <aside className="inspector" aria-label="Inspector" />}
+        {/* Task 18 passes the simulation's runAction to <Inspector/>. */}
+        {!mobile && (
+          <aside className="inspector" aria-label="Inspector">
+            <Inspector />
+          </aside>
+        )}
         {/* MetricsBar slot: Task 18 renders throughput, p50/p95 and error rate here. */}
         <footer className="metrics" />
       </div>
