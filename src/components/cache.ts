@@ -1,4 +1,4 @@
-import { defineComponent, processingFields } from '../engine/registry'
+import { defineComponent, processingFields, type Field } from '../engine/registry'
 
 export interface CacheConfig {
   name: string
@@ -11,6 +11,10 @@ export interface CacheState {
   stored: number
 }
 
+/** Same field as processingFields.processingTime, with a fast default (an in-memory lookup). */
+const baseTime = processingFields.processingTime
+const processingTime: Field = baseTime.type === 'number' ? { ...baseTime, default: 50 } : baseTime
+
 export const cache = defineComponent<CacheConfig, CacheState>({
   type: 'cache',
   label: 'Cache',
@@ -19,7 +23,7 @@ export const cache = defineComponent<CacheConfig, CacheState>({
   config: {
     hitRate: { type: 'number', label: 'Hit rate', default: 0.8, min: 0, max: 1, step: 0.05 },
     // Only the lookup time: no capacity/queueMax/up, so the cache never queues or rejects.
-    processingTime: { ...processingFields.processingTime, default: 50 },
+    processingTime,
   },
   initialState: () => ({ stored: 0 }),
   onMessage(msg, ctx) {
