@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { defaultRegistry } from '../../src/components/index'
 import { Simulation } from '../../src/engine/simulation'
 import type { Message } from '../../src/engine/types'
+import { parseGraph, serializeGraph } from '../../src/persistence/serialize'
 import { presets } from '../../src/presets'
 
 const preset = (id: string) => presets.find((p) => p.id === id)!
@@ -77,5 +78,7 @@ describe('presets', () => {
     expect(paths['web'].every((x) => x === '/static')).toBe(true)
   })
 
-  it.todo('every preset survives parseGraph(serializeGraph(g)) (enabled after Task 15)')
+  it('every preset survives parseGraph(serializeGraph(g))', () => {
+    for (const p of presets) expect(parseGraph(serializeGraph(p.graph))).toEqual({ ok: true, graph: p.graph })
+  })
 })
