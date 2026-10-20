@@ -71,6 +71,8 @@ export const useEditor = create<EditorState>((set, get) => {
     connect(source, target) {
       const { graph } = get()
       if (source === target) return null
+      const targetType = graph.nodes.find((n) => n.id === target)?.type
+      if (targetType !== undefined && defaultRegistry.get(targetType)?.inputs === false) return null
       if (graph.edges.some((e) => e.source === source && e.target === target)) return null
       const id = `edge-${randomSuffix()}`
       commit({ ...graph, edges: [...graph.edges, { id, source, target }] })

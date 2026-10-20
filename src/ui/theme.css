@@ -149,6 +149,9 @@ body {
   opacity: 0.6;
 }
 .arch-node:hover .arch-handle { opacity: 1; border-color: var(--node-color); }
+/* Hidden end point for a legacy wire into a source-only node (not a port: nothing connects to it). */
+.react-flow__handle.arch-handle-anchor,
+.arch-node:hover .arch-handle-anchor { opacity: 0; pointer-events: none; }
 
 .arch-edge-label {
   position: absolute;

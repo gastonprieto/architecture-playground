@@ -49,6 +49,7 @@ export const client = defineComponent<ClientConfig, ClientState>({
   icon: '💻',
   color: 'req',
   recordsMetrics: true,
+  inputs: false,
   config: {
     ip: { type: 'text', label: 'IP', default: '' },
     kind: {

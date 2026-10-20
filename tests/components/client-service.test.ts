@@ -78,6 +78,11 @@ describe('client', () => {
     expect(sent).toHaveLength(0)
   })
 
+  it('is the only source-only component (no input port)', () => {
+    expect(client.inputs).toBe(false)
+    for (const d of defaultRegistry.list()) if (d.type !== 'client') expect(d.inputs, d.type).not.toBe(false)
+  })
+
   it('has an IP text field that defaults to empty', () => {
     expect(client.config.ip).toMatchObject({ type: 'text', label: 'IP', default: '' })
   })

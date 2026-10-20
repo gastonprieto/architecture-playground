@@ -83,12 +83,19 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
   const color = def ? toneColor(def.color) : C.err
   const configName = typeof data.config.name === 'string' ? data.config.name.trim() : ''
   const name = configName || (def ? typeLabel : data.kind)
+  const hasIncoming = useEditor((s) => def?.inputs === false && s.graph.edges.some((e) => e.target === id))
   return (
     <div
       className={`arch-node${selected ? ' selected' : ''}${def ? '' : ' unknown'}`}
       style={{ ['--node-color' as string]: color }}
     >
-      <Handle type="target" position={Position.Left} className="arch-handle" />
+      {def?.inputs !== false ? (
+        <Handle type="target" position={Position.Left} className="arch-handle" />
+      ) : (
+        // Source-only components (Cliente) have no input port. React Flow only draws an edge that ends
+        // at a target handle, so a legacy wire into one gets a hidden anchor that accepts nothing new.
+        hasIncoming && <Handle type="target" position={Position.Left} className="arch-handle arch-handle-anchor" isConnectable={false} />
+      )}
       <div className="arch-node-head">
         <span className="arch-node-icon" aria-hidden>
           {def?.icon ?? '❓'}

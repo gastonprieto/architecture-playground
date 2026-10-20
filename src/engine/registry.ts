@@ -53,6 +53,8 @@ export interface ComponentDef<C = any, S = any> {
   actions?: Record<string, { label: string; run(ctx: Ctx<C, S>): void }>
   /** True only for client. */
   recordsMetrics?: boolean
+  /** False for source-only components (Cliente): no input port, nothing can be wired into them. Default true. */
+  inputs?: boolean
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 

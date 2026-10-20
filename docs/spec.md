@@ -57,7 +57,7 @@ Regla: `engine/` y `components/` **no importan nada de `ui/`**. La UI se suscrib
 ### 4.2 Grafo
 
 - **Nodos**: `{ id, type, position, config }`; el estado runtime vive en el motor, no en el grafo serializado.
-- **Aristas dirigidas** `{ id, source, target, rule? }`. Cualquier cosa se puede conectar con cualquier cosa; no hay validación de tipos. El componente decide qué hacer con sus salidas.
+- **Aristas dirigidas** `{ id, source, target, rule? }`. Cualquier cosa se puede conectar con cualquier cosa; no hay validación de tipos, salvo que los componentes solo-origen (`inputs: false` en el def; hoy solo el Cliente) no tienen puerto de entrada y no se les puede conectar nada. Una arista vieja hacia un Cliente se sigue cargando y dibujando (termina en su borde izquierdo). El componente decide qué hacer con sus salidas.
 - **Regla en arista** (opcional), usada por los componentes que rutean (Proxy, Broker):
   - `path startsWith <prefijo>`
   - `eventType = <tipo>`

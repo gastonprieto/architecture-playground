@@ -35,6 +35,14 @@ describe('editor store', () => {
     expect(s().graph.edges).toHaveLength(1)
   })
 
+  it('connect rejects a wire into a source-only component (Cliente has no input)', () => {
+    const c = s().addNode('client', { x: 0, y: 0 })
+    const svc = s().addNode('service', { x: 0, y: 0 })
+    expect(s().connect(svc, c)).toBeNull()
+    expect(s().graph.edges).toHaveLength(0)
+    expect(s().connect(c, svc)).toBeTruthy()
+  })
+
   it('removing a node cascades to its edges and clears selection', () => {
     const a = s().addNode('client', { x: 0, y: 0 })
     const b = s().addNode('service', { x: 0, y: 0 })

@@ -33,6 +33,45 @@ describe('App', () => {
     expect(screen.getByText('Servidor 1')).toBeTruthy()
   })
 
+  it('a Cliente has an output port but no input port; other nodes have both', () => {
+    localStorage.clear()
+    const { container } = render(<App />)
+    const handles = (id: string) => {
+      const el = container.querySelector(`.react-flow__node[data-id="${id}"]`)!
+      return { target: el.querySelectorAll('.react-flow__handle.target').length, source: el.querySelectorAll('.react-flow__handle.source').length }
+    }
+    expect(handles('web')).toEqual({ target: 0, source: 1 })
+    expect(handles('srv-1')).toEqual({ target: 1, source: 1 })
+  })
+
+  it('a graph with an old edge into a Cliente still loads and renders', () => {
+    localStorage.clear()
+    render(<App />)
+    try {
+      act(() => {
+        useEditor.getState().loadGraph({
+          nodes: [
+            { id: 's', type: 'service', position: { x: 0, y: 0 }, config: { name: 'S' } },
+            { id: 'c', type: 'client', position: { x: 300, y: 0 }, config: { name: 'C' } },
+          ],
+          edges: [{ id: 's-c', source: 's', target: 'c' }],
+        })
+      })
+      expect(screen.getByText('S')).toBeTruthy()
+      expect(screen.getByText('C')).toBeTruthy()
+      // React Flow cannot draw an edge without a target handle (error 008, wire hidden), so a Cliente
+      // with a legacy incoming wire keeps a hidden anchor that accepts no new connections.
+      const anchor = document.querySelector('.react-flow__node[data-id="c"] .react-flow__handle.target')!
+      expect(anchor).toBeTruthy()
+      expect(anchor.classList.contains('arch-handle-anchor')).toBe(true)
+      expect(anchor.classList.contains('connectable')).toBe(false)
+    } finally {
+      // Unmounting flushes the pending save; clear it after so later tests start from the preset.
+      cleanup()
+      localStorage.clear()
+    }
+  })
+
   it('hides the palette in mobile mode', () => {
     window.history.replaceState(null, '', '/?mobile=1')
     try {
