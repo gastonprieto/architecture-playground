@@ -166,6 +166,7 @@ Fuera del MVP (se agregan después como config): TLS, compresión, sticky sessio
 - **Paleta lateral** con los tipos del registry; drag & drop al canvas.
 - **Canvas** (React Flow): mover, conectar, seleccionar, borrar nodos y aristas, zoom/pan. Sin auto-layout.
 - **Inspector**: panel generado desde `config` del tipo; para aristas, editor de regla.
+- **Info por componente**: un botón ⓘ en cada tile de la paleta y en el encabezado del inspector abre un modal "Cómo funciona" con qué es, cómo se comporta (códigos que puede responder), qué hace cada campo de config y un tip para la clase. El texto vive en `components.<type>.info` (es/en); un tipo sin info muestra "Sin información".
 - **Undo/redo** de cambios estructurales y de config.
 - **Toolbar**: play/pause, step, velocidad, reset, presets, export/import, copiar link, selector de idioma `ES | EN`. Un import inválido muestra el error traducido (`parseGraph` devuelve códigos: `invalid-json`, `unknown-format`, `dangling-edge` + `edgeId`).
 - **Idiomas**: los textos viven en `src/i18n/` (`es.ts`, `en.ts` con las mismas claves). Los presets se cargan en el idioma actual; los nombres de los nodos que ya armó el usuario no se traducen.

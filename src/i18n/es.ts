@@ -97,6 +97,22 @@ export const es = {
     capacity: 'Capacidad',
     queueMax: 'Cola máx.',
   },
+  /** Info panel: one-line help for the shared fields, and the panel's own texts. */
+  fieldInfo: {
+    name: 'Cómo se llama en el canvas.',
+    up: 'Apagado, el componente está caído y rechaza con `503`.',
+    processingTime: 'Cuánto tarda en procesar cada mensaje.',
+    capacity: 'Cuántos mensajes procesa a la vez.',
+    queueMax: 'Cuántos pueden esperar cuando está ocupado; más allá, `503`.',
+  },
+  info: {
+    open: 'Cómo funciona {label}',
+    close: 'Cerrar',
+    behavior: 'Cómo se comporta',
+    fields: 'Configuración',
+    tip: 'Para la clase',
+    none: 'Sin información',
+  },
   components: {
     client: {
       label: 'Cliente',
@@ -114,6 +130,24 @@ export const es = {
         send1: 'Enviar 1',
         burst: 'Ráfaga',
       },
+      info: {
+        summary: 'Genera el tráfico: manda requests o eventos a su primera salida. Es solo origen, así que no tiene puerto de entrada.',
+        behavior: [
+          'Con Tasa en 0 (el default) no manda nada solo: usá "Enviar 1" o "Ráfaga".',
+          'Cada mensaje toma un path o tipo de evento del mix, según los pesos.',
+          'Lleva su IP, que el Load Balancer usa con IP Hash.',
+          'Recibe las respuestas y con ellas se calculan la latencia y los errores.',
+          'Sin salida conectada, el mensaje se descarta.',
+        ],
+        fields: {
+          ip: 'Dirección que hashea el IP Hash del Load Balancer; vacía, usa el id del cliente.',
+          kind: 'Request espera respuesta; Evento no espera nada.',
+          rate: 'Mensajes por segundo que manda solo.',
+          mix: 'Paths o tipos de evento a mandar, cada uno con su peso.',
+          burstSize: 'Cuántos mensajes manda "Ráfaga", repartidos en un segundo.',
+        },
+        tip: 'Arrancá con "Enviar 1" para seguir un request punta a punta, y después subí la tasa.',
+      },
     },
     service: {
       label: 'Servicio',
@@ -121,9 +155,32 @@ export const es = {
       options: {
         mode: { parallel: 'Paralelo', sequential: 'Secuencial' },
       },
+      info: {
+        summary: 'Procesa requests y responde. Si tiene salidas, llama a sus dependencias antes de responder.',
+        behavior: [
+          'Atiende hasta Capacidad requests a la vez; el resto espera en su cola.',
+          'Cola llena o servicio caído: `503`.',
+          'Sin salidas responde `200` al terminar; con salidas, cuando vuelven todas.',
+          'Si alguna dependencia falla, responde `502`.',
+          'Si una salida es una Cola o un Broker, solo espera su `202`.',
+        ],
+        fields: {
+          mode: 'Paralelo llama a todas las salidas a la vez; Secuencial, de a una y corta en el primer error.',
+        },
+        tip: 'Bajá la capacidad o subí el tiempo de proceso: vas a ver cómo se llena la cola y aparecen los `503`.',
+      },
     },
     database: {
       label: 'Base de datos',
+      info: {
+        summary: 'Recibe queries y responde cuando termina de procesarlas. Es el final del camino: no llama a nadie.',
+        behavior: [
+          'Atiende hasta Capacidad queries a la vez; el resto espera en cola.',
+          'Responde `200` al terminar cada una.',
+          'Cola llena o base caída: `503`.',
+        ],
+        tip: 'Poné varios servicios contra una sola base y mirá cómo se vuelve el cuello de botella.',
+      },
     },
     'load-balancer': {
       label: 'Load Balancer',
@@ -137,33 +194,139 @@ export const es = {
           weighted: 'Weighted',
         },
       },
+      info: {
+        summary: 'Reparte cada request a una sola de sus salidas, según el algoritmo.',
+        behavior: [
+          'Round Robin: en orden, una a cada una.',
+          'Least Connections: a la que tiene menos requests en curso.',
+          'Random: al azar.',
+          'IP Hash: misma IP del cliente, mismo destino; muestra "IP → servidor".',
+          'Weighted: en proporción a la capacidad de cada destino.',
+          'Sin destinos disponibles: `503`.',
+        ],
+        fields: {
+          algorithm: 'Cómo elige el destino de cada request.',
+          healthChecks: 'Saca de rotación los destinos caídos; apagado, les sigue mandando y fallan con `503`.',
+        },
+        tip: 'Tirá un servidor con los health checks apagados y después prendelos: los errores desaparecen.',
+      },
     },
     'reverse-proxy': {
       label: 'Reverse Proxy',
       fields: { authFailRate: 'Rechazo auth', rateLimit: 'Rate limit', cacheHitRate: 'Cache hit' },
+      info: {
+        summary: 'La puerta de entrada: enruta cada request según el prefijo de su path.',
+        behavior: [
+          'Gana la regla con el prefijo más largo; una conexión sin regla equivale a `/`.',
+          'Ningún prefijo coincide: `404`.',
+          'Rate limit superado: `429`.',
+          'Rechazo de auth: `401`.',
+          'Cache hit: responde él mismo con `200` (HIT).',
+        ],
+        fields: {
+          authFailRate: 'Fracción de requests que rechaza por auth (0 a 1).',
+          rateLimit: 'Máximo de requests por segundo; 0 es sin límite.',
+          cacheHitRate: 'Fracción de requests que responde desde su cache (0 a 1).',
+        },
+        tip: 'Las reglas van en las conexiones: seleccioná una flecha y poné el prefijo. Después mandá paths distintos desde el mix.',
+      },
     },
     cache: {
       label: 'Cache',
       fields: { hitRate: 'Hit rate' },
+      info: {
+        summary: 'Va adelante de un servicio o una base y responde lo que ya tiene guardado.',
+        behavior: [
+          'Hit: responde ella con `200` (HIT).',
+          'Miss: reenvía a su primera salida y deja pasar la respuesta (MISS).',
+          'Miss sin salida: `503`.',
+          'No encola ni rechaza: no tiene capacidad ni se cae.',
+        ],
+        fields: {
+          hitRate: 'Probabilidad de tener el dato (0 a 1).',
+          processingTime: 'Lo que tarda la búsqueda en memoria.',
+        },
+        tip: 'Compará la latencia p50 con hit rate alto y con hit rate bajo.',
+      },
     },
     queue: {
       label: 'Cola',
       fields: { queueMax: 'Cola máx.', maxRetries: 'Reintentos máx.' },
+      info: {
+        summary: 'Desacopla: acepta el trabajo al toque y se lo pasa a los workers.',
+        behavior: [
+          'A un request le responde `202` enseguida y encola un mensaje.',
+          'Empuja los mensajes a los workers libres conectados, por turnos.',
+          'Si el worker falla, reintenta hasta Reintentos máx.',
+          'Agotados los reintentos, lo manda a la DLQ conectada (sin DLQ, lo descarta).',
+          'Cola llena: `503`.',
+        ],
+        fields: {
+          queueMax: 'Cuántos mensajes pueden esperar; con la cola llena, `503`.',
+          maxRetries: 'Reintentos por mensaje antes de mandarlo a la DLQ.',
+        },
+        tip: 'Mandá una ráfaga: el cliente recibe `202` al instante mientras la cola se vacía al ritmo de los workers.',
+      },
     },
     worker: {
       label: 'Worker',
       fields: { failRate: 'Tasa de fallo' },
+      info: {
+        summary: 'Consume mensajes de una cola y los procesa.',
+        behavior: [
+          'La cola le manda mensajes solo cuando está activo y tiene capacidad libre.',
+          'Le avisa a la cola si salió bien (`200`) o mal (`500`), para que reintente.',
+          'Puede tener salidas (por ejemplo una base): las llama en paralelo, como un servicio.',
+          'Caído, deja de recibir y los mensajes esperan en la cola.',
+        ],
+        fields: {
+          failRate: 'Probabilidad de que un mensaje falle (mensajes venenosos).',
+        },
+        tip: 'Subí la tasa de fallo para ver los reintentos y los mensajes llegando a la DLQ.',
+      },
     },
     dlq: {
       label: 'DLQ',
       actions: { reprocess: 'Reprocesar' },
+      info: {
+        summary: 'Dead letter queue: guarda los mensajes que agotaron sus reintentos.',
+        behavior: [
+          'Muestra los mensajes muertos como celdas.',
+          '"Reprocesar" los devuelve a la cola de la que vinieron.',
+          'No acepta requests: les responde `503`.',
+        ],
+        tip: 'Arreglá el worker (bajale la tasa de fallo) y tocá "Reprocesar".',
+      },
     },
     broker: {
       label: 'Broker',
+      info: {
+        summary: 'Pub/sub: cada evento llega a todos los suscriptores interesados.',
+        behavior: [
+          'Copia el evento a cada salida cuya regla coincide con su tipo (sin regla, recibe todo).',
+          'Tiene un buffer por suscriptor: cada uno consume a su ritmo.',
+          'Un suscriptor caído acumula eventos y los recibe cuando vuelve.',
+          'A un request le responde `202` y lo publica como evento.',
+          'Si ningún suscriptor coincide, el evento se descarta.',
+        ],
+        tip: 'Hacé lento a un suscriptor y mirá cómo crece su buffer sin frenar a los demás.',
+      },
     },
     subscriber: {
       label: 'Suscriptor',
       fields: { emits: 'Emite evento' },
+      info: {
+        summary: 'Consume los eventos que le manda el broker, a su ritmo.',
+        behavior: [
+          'Procesa hasta Capacidad eventos a la vez y confirma cada uno al broker.',
+          'Caído, el broker le guarda los eventos hasta que vuelva.',
+          'Si Emite evento tiene un tipo, al terminar manda ese evento a todas sus salidas.',
+        ],
+        fields: {
+          emits: 'Tipo de evento que publica después de procesar; vacío, no emite nada.',
+        },
+        tip: 'Encadená suscriptores con Emite evento para mostrar una coreografía de eventos.',
+      },
     },
   },
   /** Drop reasons (`message:dropped.reason`), shown when a drop carries no status code. */

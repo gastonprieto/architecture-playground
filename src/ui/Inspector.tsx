@@ -9,6 +9,7 @@ import { MixField, type MixRow } from './fields/MixField'
 import { NumberField } from './fields/NumberField'
 import { SelectField } from './fields/SelectField'
 import { TextField } from './fields/TextField'
+import { InfoButton } from './InfoDialog'
 import { useEditor } from './store/editor'
 
 export interface InspectorProps {
@@ -115,9 +116,12 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
   }
   return (
     <div className="inspector-body">
-      <h2 className="panel-title">
-        <span aria-hidden>{def.icon}</span> {componentLabel(lang, def.type, def)}
-      </h2>
+      <div className="inspector-head">
+        <h2 className="panel-title">
+          <span aria-hidden>{def.icon}</span> {componentLabel(lang, def.type, def)}
+        </h2>
+        <InfoButton type={def.type} label={componentLabel(lang, def.type, def)} />
+      </div>
       {Object.entries(def.config).map(([key, field]) => (
         <FieldControl key={key} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, { [key]: v })} />
       ))}

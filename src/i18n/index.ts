@@ -9,20 +9,33 @@ export const LANG_STORAGE_KEY = 'architecture-playground:lang'
 export const APP_TITLE = 'Architecture Playground'
 
 export type Params = Record<string, string | number>
-type Tree = { [key: string]: string | Tree }
+type Tree = { [key: string]: string | readonly string[] | Tree }
 
 const DICTS: Record<Lang, Tree> = { es, en }
 
 const isLang = (v: unknown): v is Lang => v === 'es' || v === 'en'
 
-/** The string at a dotted key, or undefined when it is missing or names a group. */
-function resolve(tree: Tree | undefined, key: string): string | undefined {
-  let node: string | Tree | undefined = tree
+type Node = string | readonly string[] | Tree | undefined
+
+/** The node at a dotted key (a string, a list of strings or a group), or undefined. */
+function resolveNode(tree: Tree | undefined, key: string): Node {
+  let node: Node = tree
   for (const part of key.split('.')) {
-    if (typeof node !== 'object' || node === null) return undefined
-    node = node[part]
+    if (typeof node !== 'object' || node === null || Array.isArray(node)) return undefined
+    node = (node as Tree)[part]
   }
+  return node
+}
+
+/** The string at a dotted key, or undefined when it is missing or names a group or a list. */
+function resolve(tree: Tree | undefined, key: string): string | undefined {
+  const node = resolveNode(tree, key)
   return typeof node === 'string' ? node : undefined
+}
+
+const resolveList = (tree: Tree | undefined, key: string): readonly string[] | undefined => {
+  const node = resolveNode(tree, key)
+  return Array.isArray(node) ? node : undefined
 }
 
 const interpolate = (text: string, params?: Params) =>
@@ -37,6 +50,12 @@ export function translateWith(dicts: Record<Lang, Tree>, lang: Lang, key: string
 export function lookup(lang: Lang, key: string, params?: Params): string | undefined {
   const text = resolve(DICTS[lang], key) ?? resolve(DICTS.es, key)
   return text === undefined ? undefined : interpolate(text, params)
+}
+
+/** The list of strings at `key` in `lang` (falling back to es), or undefined. */
+export function lookupList(lang: Lang, key: string): string[] | undefined {
+  const list = resolveList(DICTS[lang], key) ?? resolveList(DICTS.es, key)
+  return list ? [...list] : undefined
 }
 
 export const translate = (lang: Lang, key: string, params?: Params): string => translateWith(DICTS, lang, key, params)

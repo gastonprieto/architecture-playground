@@ -1,5 +1,5 @@
 import type { ComponentDef } from '../engine/registry'
-import { lookup, translate, type Lang } from './index'
+import { lookup, lookupList, translate, type Lang } from './index'
 
 /*
  * Component defs keep their own (Spanish) texts as fallback; the UI shows them through these
@@ -29,3 +29,27 @@ export function actionLabel(lang: Lang, def: ComponentDef, name: string): string
 }
 
 export const unknownTypeTitle = (lang: Lang, type: string): string => translate(lang, 'inspector.unknownType', { type })
+
+export interface ComponentInfo {
+  summary: string
+  behavior: string[]
+  /** Every config field of the def, in order, with its label and one-line help (if any). */
+  fields: { key: string; label: string; help?: string }[]
+  tip: string
+}
+
+/**
+ * The info panel content of a type (`components.<type>.info`), or undefined when it has none (e.g. a
+ * third-party component). Field help: the component's `info.fields.<key>`, then the shared `fieldInfo.<key>`.
+ */
+export function componentInfo(lang: Lang, def: ComponentDef): ComponentInfo | undefined {
+  const base = `components.${def.type}.info`
+  const summary = lookup(lang, `${base}.summary`)
+  if (summary === undefined) return undefined
+  const fields = Object.keys(def.config).map((key) => ({
+    key,
+    label: fieldLabel(lang, def, key),
+    help: lookup(lang, `${base}.fields.${key}`) ?? lookup(lang, `fieldInfo.${key}`),
+  }))
+  return { summary, behavior: lookupList(lang, `${base}.behavior`) ?? [], fields, tip: lookup(lang, `${base}.tip`) ?? '' }
+}

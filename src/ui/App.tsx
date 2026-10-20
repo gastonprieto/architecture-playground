@@ -5,6 +5,7 @@ import { useLang, useT } from '../i18n'
 import { clearLocationHash, initialGraph } from '../persistence/initial'
 import { saveLocal } from '../persistence/storage'
 import { Canvas } from './canvas/Canvas'
+import { InfoDialog } from './InfoDialog'
 import { Inspector } from './Inspector'
 import { MetricsBar } from './MetricsBar'
 import { Palette } from './Palette'
@@ -72,6 +73,7 @@ export default function App() {
             <MetricsBar />
           </footer>
         </div>
+        <InfoDialog />
       </SimContext.Provider>
     </ReactFlowProvider>
   )

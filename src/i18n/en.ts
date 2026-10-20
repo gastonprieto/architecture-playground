@@ -94,6 +94,22 @@ export const en: Dict = {
     capacity: 'Capacity',
     queueMax: 'Max queue',
   },
+  /** Info panel: one-line help for the shared fields, and the panel's own texts. */
+  fieldInfo: {
+    name: 'What it is called on the canvas.',
+    up: 'Off, the component is down and rejects with `503`.',
+    processingTime: 'How long it takes to process each message.',
+    capacity: 'How many messages it processes at once.',
+    queueMax: 'How many can wait while it is busy; beyond that, `503`.',
+  },
+  info: {
+    open: 'How {label} works',
+    close: 'Close',
+    behavior: 'How it behaves',
+    fields: 'Settings',
+    tip: 'Classroom tip',
+    none: 'No information',
+  },
   components: {
     client: {
       label: 'Client',
@@ -111,6 +127,24 @@ export const en: Dict = {
         send1: 'Send 1',
         burst: 'Burst',
       },
+      info: {
+        summary: 'Generates the traffic: sends requests or events to its first output. It is a source only, so it has no input port.',
+        behavior: [
+          'With Rate at 0 (the default) it sends nothing on its own: use "Send 1" or "Burst".',
+          'Each message takes a path or event type from the mix, by weight.',
+          'Carries its IP, which the Load Balancer uses with IP Hash.',
+          'Receives the responses, which feed the latency and error metrics.',
+          'With no output connected, the message is dropped.',
+        ],
+        fields: {
+          ip: 'Address the Load Balancer\'s IP Hash hashes; empty, it uses the client id.',
+          kind: 'Request waits for a response; Event waits for nothing.',
+          rate: 'Messages per second it sends on its own.',
+          mix: 'Paths or event types to send, each with its weight.',
+          burstSize: 'How many messages "Burst" sends, spread over one second.',
+        },
+        tip: 'Start with "Send 1" to follow one request end to end, then raise the rate.',
+      },
     },
     service: {
       label: 'Service',
@@ -118,9 +152,32 @@ export const en: Dict = {
       options: {
         mode: { parallel: 'Parallel', sequential: 'Sequential' },
       },
+      info: {
+        summary: 'Processes requests and responds. If it has outputs, it calls its dependencies before responding.',
+        behavior: [
+          'Handles up to Capacity requests at once; the rest wait in its queue.',
+          'Queue full or service down: `503`.',
+          'With no outputs it responds `200` when done; with outputs, once they all answer.',
+          'If any dependency fails, it responds `502`.',
+          'If an output is a Queue or a Broker, it only waits for its `202`.',
+        ],
+        fields: {
+          mode: 'Parallel calls every output at once; Sequential, one at a time, stopping at the first error.',
+        },
+        tip: 'Lower the capacity or raise the processing time: you will see the queue fill up and the `503`s show up.',
+      },
     },
     database: {
       label: 'Database',
+      info: {
+        summary: 'Receives queries and responds once it has processed them. It is the end of the line: it calls nobody.',
+        behavior: [
+          'Handles up to Capacity queries at once; the rest wait in a queue.',
+          'Responds `200` when each one is done.',
+          'Queue full or database down: `503`.',
+        ],
+        tip: 'Point several services at a single database and watch it become the bottleneck.',
+      },
     },
     'load-balancer': {
       label: 'Load Balancer',
@@ -134,33 +191,139 @@ export const en: Dict = {
           weighted: 'Weighted',
         },
       },
+      info: {
+        summary: 'Sends each request to just one of its outputs, according to the algorithm.',
+        behavior: [
+          'Round Robin: in order, one each.',
+          'Least Connections: to the one with the fewest requests in flight.',
+          'Random: at random.',
+          'IP Hash: same client IP, same target; shows "IP → server".',
+          'Weighted: in proportion to each target\'s capacity.',
+          'No targets available: `503`.',
+        ],
+        fields: {
+          algorithm: 'How it picks the target of each request.',
+          healthChecks: 'Takes down targets out of rotation; off, it keeps sending to them and they fail with `503`.',
+        },
+        tip: 'Take a server down with health checks off, then turn them on: the errors go away.',
+      },
     },
     'reverse-proxy': {
       label: 'Reverse Proxy',
       fields: { authFailRate: 'Auth rejection', rateLimit: 'Rate limit', cacheHitRate: 'Cache hit' },
+      info: {
+        summary: 'The front door: routes each request by the prefix of its path.',
+        behavior: [
+          'The rule with the longest prefix wins; a connection with no rule counts as `/`.',
+          'No prefix matches: `404`.',
+          'Rate limit exceeded: `429`.',
+          'Auth rejection: `401`.',
+          'Cache hit: it responds itself with `200` (HIT).',
+        ],
+        fields: {
+          authFailRate: 'Share of requests it rejects on auth (0 to 1).',
+          rateLimit: 'Maximum requests per second; 0 means no limit.',
+          cacheHitRate: 'Share of requests it answers from its cache (0 to 1).',
+        },
+        tip: 'Rules live on the connections: select an arrow and set the prefix. Then send different paths from the mix.',
+      },
     },
     cache: {
       label: 'Cache',
       fields: { hitRate: 'Hit rate' },
+      info: {
+        summary: 'Sits in front of a service or a database and answers what it already has stored.',
+        behavior: [
+          'Hit: it responds itself with `200` (HIT).',
+          'Miss: it forwards to its first output and lets the response through (MISS).',
+          'Miss with no output: `503`.',
+          'It never queues or rejects: it has no capacity and never goes down.',
+        ],
+        fields: {
+          hitRate: 'Probability of having the data (0 to 1).',
+          processingTime: 'How long the in-memory lookup takes.',
+        },
+        tip: 'Compare the p50 latency with a high hit rate and with a low one.',
+      },
     },
     queue: {
       label: 'Queue',
       fields: { queueMax: 'Max queue', maxRetries: 'Max retries' },
+      info: {
+        summary: 'Decouples: accepts the work right away and hands it to the workers.',
+        behavior: [
+          'Answers a request with `202` immediately and enqueues a message.',
+          'Pushes messages to the free workers connected to it, taking turns.',
+          'If the worker fails, it retries up to Max retries.',
+          'Once retries run out, it sends the message to the connected DLQ (no DLQ: it drops it).',
+          'Queue full: `503`.',
+        ],
+        fields: {
+          queueMax: 'How many messages can wait; with the queue full, `503`.',
+          maxRetries: 'Retries per message before it goes to the DLQ.',
+        },
+        tip: 'Send a burst: the client gets `202` instantly while the queue drains at the workers\' pace.',
+      },
     },
     worker: {
       label: 'Worker',
       fields: { failRate: 'Failure rate' },
+      info: {
+        summary: 'Consumes messages from a queue and processes them.',
+        behavior: [
+          'The queue only sends it messages while it is up and has a free slot.',
+          'Tells the queue whether it went well (`200`) or not (`500`), so it can retry.',
+          'Can have outputs (a database, say): it calls them in parallel, like a service.',
+          'When down, it stops receiving and the messages wait in the queue.',
+        ],
+        fields: {
+          failRate: 'Probability that a message fails (poison messages).',
+        },
+        tip: 'Raise the failure rate to see the retries and the messages landing in the DLQ.',
+      },
     },
     dlq: {
       label: 'DLQ',
       actions: { reprocess: 'Reprocess' },
+      info: {
+        summary: 'Dead letter queue: keeps the messages that ran out of retries.',
+        behavior: [
+          'Shows the dead messages as cells.',
+          '"Reprocess" sends them back to the queue they came from.',
+          'It does not accept requests: it answers them with `503`.',
+        ],
+        tip: 'Fix the worker (lower its failure rate) and press "Reprocess".',
+      },
     },
     broker: {
       label: 'Broker',
+      info: {
+        summary: 'Pub/sub: every event reaches all the subscribers interested in it.',
+        behavior: [
+          'Copies the event to each output whose rule matches its type (no rule: it gets everything).',
+          'Keeps one buffer per subscriber: each one consumes at its own pace.',
+          'A subscriber that is down piles up events and gets them when it is back.',
+          'Answers a request with `202` and publishes it as an event.',
+          'If no subscriber matches, the event is dropped.',
+        ],
+        tip: 'Make one subscriber slow and watch its buffer grow without holding back the others.',
+      },
     },
     subscriber: {
       label: 'Subscriber',
       fields: { emits: 'Emits event' },
+      info: {
+        summary: 'Consumes the events the broker sends it, at its own pace.',
+        behavior: [
+          'Processes up to Capacity events at once and acks each one to the broker.',
+          'When down, the broker keeps its events until it is back.',
+          'If Emits event has a type, it sends that event to all its outputs when done.',
+        ],
+        fields: {
+          emits: 'Event type it publishes after processing; empty, it emits nothing.',
+        },
+        tip: 'Chain subscribers with Emits event to show an event choreography.',
+      },
     },
   },
   reasons: {
