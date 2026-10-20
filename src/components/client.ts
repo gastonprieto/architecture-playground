@@ -64,8 +64,11 @@ export const client = defineComponent<ClientConfig, ClientState>({
     burstSize: { type: 'number', label: 'Tamaño de ráfaga', default: 20, min: 1, max: 200, step: 1 },
   },
   initialState: () => ({ acc: 0 }),
-  // A client has no inputs; anything that reaches it is ignored. Responses end here (empty trail).
-  onMessage() {},
+  // A client has no inputs: anything but a response that reaches it fails visibly (requests get a
+  // 503 back). Responses never get here; they end at the client (empty trail).
+  onMessage(msg, ctx) {
+    ctx.drop(msg, 'el cliente no recibe requests', 503)
+  },
   onTick(ctx, dtMs) {
     ctx.state.acc += (ctx.config.rate * dtMs) / 1000
     while (ctx.state.acc >= 1) {

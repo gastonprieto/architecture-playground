@@ -255,6 +255,26 @@ describe('worker', () => {
 })
 
 describe('dlq', () => {
+  it("rejects a request with 'DLQ no acepta requests' (503)", () => {
+    const s = sim({ nodes: [node('C', 'client', { rate: 0 }), node('DLQ', 'dlq')], edges: [edge('C', 'DLQ')] })
+    const d = drops(s)
+    const res = responsesAt(s, 'C')
+    s.runAction('C', 'send1')
+    s.advance(3 * HOP_MS)
+    expect(d.map((e) => [e.at, e.reason, e.code])).toEqual([['DLQ', 'DLQ no acepta requests', 503]])
+    expect(res.map((r) => [r.status, r.code])).toEqual([['error', 503]])
+    expect(s.nodeState<QueueState>('DLQ').items).toEqual([])
+  })
+
+  it('stores events without replying', () => {
+    const s = sim({ nodes: [node('C', 'client', { rate: 0, kind: 'event' }), node('DLQ', 'dlq')], edges: [edge('C', 'DLQ')] })
+    const res = responsesAt(s, 'C')
+    s.runAction('C', 'send1')
+    s.advance(3 * HOP_MS)
+    expect(res).toEqual([])
+    expect(s.nodeState<QueueState>('DLQ').items.map((m) => m.kind)).toEqual(['event'])
+  })
+
   it('reprocess empties the DLQ and messages re-enter the queue', () => {
     const g = queueGraph({ queue: { maxRetries: 0 }, workers: [{ failRate: 1 }], dlq: true, client: { burstSize: 2 } })
     const s = sim(g)

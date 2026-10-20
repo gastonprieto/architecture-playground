@@ -127,6 +127,28 @@ describe('client', () => {
   })
 })
 
+describe('client receiving traffic', () => {
+  it("drops a request sent to it with 'el cliente no recibe requests' and answers 503", () => {
+    const s = sim(graph([node('C1', 'client', { rate: 0 }), node('C2', 'client', { rate: 0 })], [edge('C1', 'C2')]))
+    const drops: SimEvents['message:dropped'][] = []
+    s.on('message:dropped', (p) => drops.push(p))
+    const res = responsesAt(s, 'C1')
+    s.runAction('C1', 'send1')
+    s.advance(3 * HOP_MS)
+    expect(drops.map((d) => [d.at, d.reason, d.code])).toEqual([['C2', 'el cliente no recibe requests', 503]])
+    expect(res.map((r) => [r.status, r.code])).toEqual([['error', 503]])
+  })
+
+  it('drops events sent to it too', () => {
+    const s = sim(graph([node('C1', 'client', { rate: 0, kind: 'event' }), node('C2', 'client', { rate: 0 })], [edge('C1', 'C2')]))
+    const drops: SimEvents['message:dropped'][] = []
+    s.on('message:dropped', (p) => drops.push(p))
+    s.runAction('C1', 'send1')
+    s.advance(3 * HOP_MS)
+    expect(drops.map((d) => [d.at, d.reason, d.msg.kind])).toEqual([['C2', 'el cliente no recibe requests', 'event']])
+  })
+})
+
 describe('service and database', () => {
   it('client→service→db completes ok and records latency', () => {
     const s = sim(

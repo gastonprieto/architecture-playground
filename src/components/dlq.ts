@@ -17,9 +17,10 @@ export const dlq = defineComponent<DlqConfig, DlqState>({
   color: 'err',
   config: {},
   initialState: () => ({ items: [] }),
-  // Stores whatever arrives; never replies.
+  // Stores dead messages and events without replying; a request would wait forever, so it fails.
   onMessage(msg, ctx) {
-    ctx.state.items.push(msg)
+    if (msg.kind === 'request') ctx.drop(msg, 'DLQ no acepta requests', 503)
+    else ctx.state.items.push(msg)
   },
   actions: {
     reprocess: {

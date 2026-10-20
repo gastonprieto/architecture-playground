@@ -9,6 +9,8 @@ Incluye 4 presets para empezar:
 - **Pub/sub**: un evento se publica en el broker y llega a cuatro suscriptores; uno es lento y se atrasa.
 - **Proxy reverso**: el proxy enruta por prefijo de path a cada servicio.
 
+Un Cliente envía a su primera salida (la primera arista que se conectó desde él).
+
 Online (una vez publicado el repo): https://gastonprieto.github.io/architecture-playground/
 
 ## Cómo correrlo
@@ -16,7 +18,7 @@ Online (una vez publicado el repo): https://gastonprieto.github.io/architecture-
 ```bash
 npm install
 npm run dev      # servidor de desarrollo
-npm test         # tests (vitest)
+npm test         # tests (vitest; requiere Node >= 22.22.2)
 npm run build    # build de producción en dist/
 ```
 
@@ -88,7 +90,7 @@ const builtins: ComponentDef[] = [/* ... */, rateLimiter]
 - `send(target, msg)`: envía un mensaje a otro nodo (agrega este nodo al `trail`).
 - `reply(msg, { status, code })`: responde al origen del mensaje.
 - `forwardResponse(res)`: pasa una respuesta un salto más hacia atrás.
-- `drop(msg, reason, code?)`: descarta el mensaje.
+- `drop(msg, reason, code?)`: descarta el mensaje (y le devuelve un response de error a quien lo envió).
 - `process(msg, done)`: ocupa un slot de capacidad durante `processingTime` y luego llama a `done` (si no hay lugar, encola o rechaza).
 - `schedule(ms, fn)`: ejecuta `fn` después de `ms` de tiempo simulado.
 - `label(text, tone)`: muestra una etiqueta sobre el nodo.
