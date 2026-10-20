@@ -302,7 +302,7 @@ export class Simulation {
       outputs: (): OutEdge[] =>
         sim.edgeList
           .filter((e) => e.source === rec.id)
-          .map((e) => ({ edgeId: e.id, target: e.target, targetType: sim.nodes.get(e.target)!.type, rule: e.rule })),
+          .map((e) => ({ edgeId: e.id, target: e.target, targetType: sim.nodes.get(e.target)!.type, rule: e.rule, ...(e.weight !== undefined && { weight: e.weight }) })),
       peer: (id) => {
         const p = sim.nodes.get(id)
         return p ? { type: p.type, config: p.config } : undefined

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import { useT } from '../../i18n'
 
 interface Props {
@@ -8,12 +8,14 @@ interface Props {
   max: number
   step?: number
   unit?: string
+  /** Shown at the end of the row (e.g. a weight's effective %). */
+  extra?: ReactNode
   onChange(value: number): void
 }
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
 
-export function NumberField({ label, value, min, max, step = 1, unit, onChange }: Props) {
+export function NumberField({ label, value, min, max, step = 1, unit, extra, onChange }: Props) {
   const id = useId()
   const t = useT()
   const [text, setText] = useState(String(value))
@@ -52,6 +54,7 @@ export function NumberField({ label, value, min, max, step = 1, unit, onChange }
           onBlur={(e) => commit(e.target.value)}
         />
         {unit && <span className="field-unit">{unit}</span>}
+        {extra}
       </div>
     </div>
   )

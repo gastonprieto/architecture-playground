@@ -17,6 +17,7 @@ const mem = () => {
   const m = new Map<string, string>()
   return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) }
 }
+const node = (id: string, type: string) => ({ id, type, position: { x: 0, y: 0 }, config: {} })
 afterEach(() => vi.unstubAllGlobals())
 
 describe('serialize/parse', () => {
@@ -34,6 +35,23 @@ describe('serialize/parse', () => {
     bad({ version: 1, graph: { nodes: [], edges: [{ id: 'e', source: 'a', target: 'b', rule: { kind: 'nope', value: 'x' } }] } })
     bad(null)
   })
+  it('round-trips edge weights; graphs without weights still load', () => {
+    const g: Graph = { nodes: [node('a', 'load-balancer'), node('b', 'service'), node('c', 'service')], edges: [
+      { id: 'e1', source: 'a', target: 'b', weight: 3 },
+      { id: 'e2', source: 'a', target: 'c', weight: 0 },
+    ] }
+    expect(parseGraph(serializeGraph(g))).toEqual({ ok: true, graph: g })
+    const old: Graph = { ...g, edges: [{ id: 'e1', source: 'a', target: 'b' }] }
+    expect(parseGraph(serializeGraph(old))).toEqual({ ok: true, graph: old })
+  })
+
+  it('rejects an invalid edge weight', () => {
+    for (const weight of [-1, 'x', null, Number.POSITIVE_INFINITY]) {
+      const text = JSON.stringify({ version: 1, graph: { nodes: [node('a', 'x'), node('b', 'x')], edges: [{ id: 'e', source: 'a', target: 'b', weight }] } })
+      expect(parseGraph(text), String(weight)).toEqual({ ok: false, error: 'unknown-format' })
+    }
+  })
+
   it('reports edges pointing at missing nodes', () => {
     const r = parseGraph(JSON.stringify({ version: 1, graph: { nodes: g.nodes, edges: [{ id: 'e9', source: 'a', target: 'zzz' }] } }))
     expect(r).toEqual({ ok: false, error: 'dangling-edge', edgeId: 'e9' })

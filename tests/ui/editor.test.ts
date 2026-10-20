@@ -70,6 +70,23 @@ describe('editor store', () => {
     expect(s().future).toHaveLength(0)
   })
 
+  it('setEdgeWeight sets and clears a weight, undoably, coalescing quick edits', () => {
+    const a = s().addNode('load-balancer', { x: 0, y: 0 })
+    const b = s().addNode('service', { x: 0, y: 0 })
+    const e = s().connect(a, b)!
+    const edge = () => s().graph.edges.find((x) => x.id === e)!
+    s().setEdgeWeight(e, 5)
+    s().setEdgeWeight(e, 6)
+    expect(edge().weight).toBe(6)
+    s().undo()
+    expect(edge().weight).toBeUndefined()
+    s().redo()
+    expect(edge().weight).toBe(6)
+    s().setEdgeWeight(e, undefined)
+    expect('weight' in edge()).toBe(false)
+    s().setEdgeWeight('nope', 1)
+  })
+
   it('setEdgeRule sets and clears a rule', () => {
     const a = s().addNode('client', { x: 0, y: 0 })
     const b = s().addNode('service', { x: 0, y: 0 })

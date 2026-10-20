@@ -3,7 +3,8 @@ import { ruleLabel } from '../../engine/rules'
 import type { EdgeRule } from '../../engine/types'
 import { boxOf, portPoints, wirePath, wirePoint } from '../geometry'
 
-export type ArchEdgeData = { rule?: EdgeRule }
+/** `share`: effective % when the edge leaves a weighted load balancer. */
+export type ArchEdgeData = { rule?: EdgeRule; share?: number }
 export type ArchFlowEdge = Edge<ArchEdgeData, 'arch'>
 
 /** Wire from the source's output port to the target's input port. */
@@ -12,7 +13,7 @@ export function ArchEdge({ id, source, target, data, markerEnd, style, selected 
   const tgt = useInternalNode(target)
   if (!src?.measured.width || !tgt?.measured.width) return null
   const [p0, p1] = portPoints(boxOf(src), boxOf(tgt))
-  const label = ruleLabel(data?.rule)
+  const label = [ruleLabel(data?.rule), data?.share === undefined ? '' : `${data.share}%`].filter(Boolean).join(' · ')
   const mid = wirePoint(p0, p1, 0.5)
   return (
     <>

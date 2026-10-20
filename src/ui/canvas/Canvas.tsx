@@ -20,6 +20,7 @@ import { useLang, useT } from '../../i18n'
 import { componentLabel } from '../../i18n/componentText'
 import { nextClientIp } from '../clientIp'
 import { C } from '../colors'
+import { weightedEdgeShares } from '../lbWeights'
 import { ARCH_TYPE_MIME } from '../Palette'
 import { useEditor, type Selection } from '../store/editor'
 import { ArchEdge, type ArchFlowEdge } from './ArchEdge'
@@ -93,19 +94,18 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
     [graph.nodes, selection, sizes],
   )
 
-  const edges = useMemo<ArchFlowEdge[]>(
-    () =>
-      graph.edges.map((e) => ({
+  const edges = useMemo<ArchFlowEdge[]>(() => {
+    const shares = weightedEdgeShares(graph)
+    return graph.edges.map((e) => ({
         id: e.id,
         type: 'arch',
         source: e.source,
         target: e.target,
-        data: { rule: e.rule },
+        data: { rule: e.rule, share: shares[e.id] },
         selected: isSelected(selection, 'edge', e.id),
         markerEnd: isSelected(selection, 'edge', e.id) ? MARKER_SELECTED : MARKER,
-      })),
-    [graph.edges, selection],
-  )
+      }))
+  }, [graph, selection])
 
   // Entering/leaving read-only (mobile) mode changes the canvas size: refit, and drop the selection
   // since it can no longer be changed or inspected.

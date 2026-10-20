@@ -10,6 +10,7 @@ const node = (id: string, type: string, config: Record<string, unknown> = {}): G
   config,
 })
 const edge = (source: string, target: string): GraphEdge => ({ id: `${source}-${target}`, source, target })
+const withHc = (g: Graph): Graph => ({ ...g, nodes: g.nodes.map((n) => (n.id === 'LB' ? { ...n, config: { ...n.config, healthChecks: true } } : n)) })
 const sim = (g: Graph) => new Simulation(g, { seed: 7, registry: defaultRegistry })
 
 function sentFrom(s: Simulation, from: string): { msg: Message; to: string }[] {
@@ -173,19 +174,53 @@ describe('load balancer', () => {
     }
   })
 
-  it('weighted by capacity 3,1 gives about 75/25 over 400 requests', () => {
-    const s = sim(
-      lbGraph({ algorithm: 'weighted' }, [{ capacity: 3, queueMax: 500 }, { capacity: 1, queueMax: 500 }], { burstSize: 200 }),
-    )
+  /** lbGraph with a weight on each LB → D edge (undefined = no weight). */
+  const weighted = (weights: (number | undefined)[], clientConfig: Record<string, unknown> = {}, dbConfigs?: Record<string, unknown>[]) => {
+    const g = lbGraph({ algorithm: 'weighted' }, dbConfigs ?? weights.map(() => ({ capacity: 50, queueMax: 500 })), { burstSize: 200, ...clientConfig })
+    g.edges = g.edges.map((e) => {
+      const i = Number(e.target.slice(1)) - 1
+      return e.source === 'LB' && weights[i] !== undefined ? { ...e, weight: weights[i] } : e
+    })
+    return g
+  }
+  const shares = (g: Graph, bursts = 2) => {
+    const s = sim(g)
     const sent = sentFrom(s, 'LB')
-    s.runAction('C', 'burst')
-    s.advance(2500)
-    s.runAction('C', 'burst')
-    s.advance(2500)
-    expect(sent).toHaveLength(400)
-    const share = sent.filter((e) => e.to === 'D1').length / 400
-    expect(share).toBeGreaterThan(0.67)
-    expect(share).toBeLessThan(0.83)
+    for (let i = 0; i < bursts; i++) {
+      s.runAction('C', 'burst')
+      s.advance(2500)
+    }
+    const count: Record<string, number> = {}
+    for (const e of sent) count[e.to] = (count[e.to] ?? 0) + 1
+    return { total: sent.length, count, order: sent.map((e) => e.to) }
+  }
+
+  it('weighted: edge weights 3:1 give exactly 300/100 over 400 requests, interleaved (smooth WRR)', () => {
+    const r = shares(weighted([3, 1]))
+    expect(r.total).toBe(400)
+    expect(r.count).toEqual({ D1: 300, D2: 100 })
+    expect(r.order.slice(0, 4)).toEqual(['D1', 'D1', 'D2', 'D1'])
+  })
+
+  it('weighted: a weight-0 connection is never chosen', () => {
+    const r = shares(weighted([2, 0, 1]))
+    expect(r.count.D2).toBeUndefined()
+    expect(r.count).toEqual({ D1: 267, D3: 133 })
+  })
+
+  it('weighted: all weights 0 falls back to an equal split', () => {
+    const r = shares(weighted([0, 0], { burstSize: 100 }))
+    expect(r.count).toEqual({ D1: 100, D2: 100 })
+  })
+
+  it('weighted: missing weights count as 1 (equal split), whatever the target capacity', () => {
+    const r = shares(weighted([undefined, undefined], { burstSize: 100 }, [{ capacity: 3, queueMax: 500 }, { capacity: 1, queueMax: 500 }]))
+    expect(r.count).toEqual({ D1: 100, D2: 100 })
+  })
+
+  it('weighted: health checks drop down targets before weighting', () => {
+    const r = shares(withHc(weighted([5, 1, 1], { burstSize: 100 }, [{ up: false }, { capacity: 50, queueMax: 500 }, { capacity: 50, queueMax: 500 }])))
+    expect(r.count).toEqual({ D2: 100, D3: 100 })
   })
 
   it('random spreads across targets', () => {

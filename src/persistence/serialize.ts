@@ -22,6 +22,7 @@ const validNode = (n: unknown): boolean =>
 
 const validEdge = (e: unknown): boolean => {
   if (!isObj(e) || typeof e.id !== 'string' || typeof e.source !== 'string' || typeof e.target !== 'string') return false
+  if (e.weight !== undefined && !(isNum(e.weight) && (e.weight as number) >= 0)) return false
   if (e.rule === undefined) return true
   return isObj(e.rule) && (e.rule.kind === 'pathPrefix' || e.rule.kind === 'eventType') && typeof e.rule.value === 'string'
 }

@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { DEFAULT_WEIGHT } from '../engine/weights'
 import { defaultRegistry } from '../components/index'
 import type { ComponentDef, Field } from '../engine/registry'
 import type { EdgeRule } from '../engine/types'
@@ -10,6 +11,7 @@ import { NumberField } from './fields/NumberField'
 import { SelectField } from './fields/SelectField'
 import { TextField } from './fields/TextField'
 import { InfoButton } from './InfoDialog'
+import { isWeightedLb, lbShares } from './lbWeights'
 import { useEditor } from './store/editor'
 
 export interface InspectorProps {
@@ -43,9 +45,48 @@ function FieldControl({ def, fieldKey, field, value, onChange }: FieldControlPro
   }
 }
 
+const WEIGHT_MAX = 100
+
+const Share = ({ pct }: { pct: number }) => <span className="weight-share">{pct}%</span>
+
+/** "Pesos": one relative weight per outgoing connection of a weighted LB, with its effective %. */
+function WeightsSection({ lbId }: { lbId: string }) {
+  const graph = useEditor((s) => s.graph)
+  const setEdgeWeight = useEditor((s) => s.setEdgeWeight)
+  const t = useT()
+  const titleId = useId()
+  const rows = lbShares(graph, lbId)
+  const nameOf = (nodeId: string) => {
+    const n = graph.nodes.find((x) => x.id === nodeId)
+    return typeof n?.config.name === 'string' && n.config.name.trim() ? n.config.name : nodeId
+  }
+  return (
+    <section className="weights" role="group" aria-labelledby={titleId}>
+      <h3 id={titleId} className="weights-title">
+        {t('inspector.weights')}
+      </h3>
+      <p className="weights-hint">{t('inspector.weightsHint')}</p>
+      {rows.length === 0 && <p className="weights-hint">{t('inspector.weightsEmpty')}</p>}
+      {rows.map(({ edge, share }) => (
+        <NumberField
+          key={edge.id}
+          label={nameOf(edge.target)}
+          value={edge.weight ?? DEFAULT_WEIGHT}
+          min={0}
+          max={WEIGHT_MAX}
+          step={1}
+          extra={<Share pct={share} />}
+          onChange={(v) => setEdgeWeight(edge.id, v)}
+        />
+      ))}
+    </section>
+  )
+}
+
 function EdgeInspector({ id }: { id: string }) {
   const graph = useEditor((s) => s.graph)
   const setEdgeRule = useEditor((s) => s.setEdgeRule)
+  const setEdgeWeight = useEditor((s) => s.setEdgeWeight)
   const removeElements = useEditor((s) => s.removeElements)
   const valueId = useId()
   const t = useT()
@@ -74,6 +115,17 @@ function EdgeInspector({ id }: { id: string }) {
         ]}
         onChange={setKind}
       />
+      {isWeightedLb(graph, edge.source) && (
+        <NumberField
+          label={t('inspector.weight')}
+          value={edge.weight ?? DEFAULT_WEIGHT}
+          min={0}
+          max={WEIGHT_MAX}
+          step={1}
+          extra={<Share pct={lbShares(graph, edge.source).find((r) => r.edge.id === id)?.share ?? 0} />}
+          onChange={(v) => setEdgeWeight(id, v)}
+        />
+      )}
       {rule && (
         <div className="field">
           <label htmlFor={valueId}>{t('inspector.value')}</label>
@@ -125,6 +177,7 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
       {Object.entries(def.config).map(([key, field]) => (
         <FieldControl key={key} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, { [key]: v })} />
       ))}
+      {def.type === 'load-balancer' && node.config.algorithm === 'weighted' && <WeightsSection lbId={id} />}
       {def.actions && (
         <div className="inspector-actions">
           {Object.keys(def.actions).map((name) => (

@@ -17,6 +17,8 @@ export interface GraphEdge {
   source: NodeId
   target: NodeId
   rule?: EdgeRule
+  /** Relative weight for a weighted load balancer (≥ 0; missing = 1). */
+  weight?: number
 }
 
 export interface Graph {

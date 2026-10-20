@@ -52,6 +52,10 @@ export const es = {
     pathPlaceholder: '/ordenes',
     eventPlaceholder: 'order.created',
     delete: 'Borrar',
+    weights: 'Pesos',
+    weightsHint: 'Los números son relativos: lo que cuenta es el % de tráfico que recibe cada conexión.',
+    weightsEmpty: 'Conectá el Load Balancer a sus destinos para repartir pesos.',
+    weight: 'Peso',
     unknownType: 'Tipo desconocido: {type}',
   },
   widgets: {
@@ -201,7 +205,7 @@ export const es = {
           'Least Connections: a la que tiene menos requests en curso.',
           'Random: al azar.',
           'IP Hash: misma IP del cliente, mismo destino; muestra "IP → servidor".',
-          'Weighted: en proporción a la capacidad de cada destino.',
+          'Weighted: en proporción a los pesos de cada conexión (editables en el inspector).',
           'Sin destinos disponibles: `503`.',
         ],
         fields: {

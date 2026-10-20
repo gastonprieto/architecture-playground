@@ -22,6 +22,8 @@ export interface EditorState {
   removeElements(ids: string[]): void
   updateNodeConfig(id: NodeId, patch: Record<string, unknown>): void
   setEdgeRule(id: EdgeId, rule: EdgeRule | undefined): void
+  /** Weight for a weighted load balancer; undefined removes it. Quick edits coalesce like config edits. */
+  setEdgeWeight(id: EdgeId, weight: number | undefined): void
   select(sel: Selection): void
   /** Replace the whole graph and clear history (app boot). */
   loadGraph(graph: Graph): void
@@ -129,6 +131,26 @@ export const useEditor = create<EditorState>((set, get) => {
           return rule ? { ...rest, rule } : rest
         }),
       })
+    },
+
+    setEdgeWeight(id, weight) {
+      const { graph } = get()
+      if (!graph.edges.some((e) => e.id === id)) return
+      const next = {
+        ...graph,
+        edges: graph.edges.map((e) => {
+          if (e.id !== id) return e
+          const { weight: _old, ...rest } = e
+          return weight === undefined ? rest : { ...rest, weight }
+        }),
+      }
+      const now = Date.now()
+      if (lastEdit && lastEdit.graph === graph && lastEdit.id === id && lastEdit.key === 'weight' && now - lastEdit.at < COALESCE_MS) {
+        set({ graph: next, future: [], dragBase: null })
+      } else {
+        commit(next)
+      }
+      lastEdit = { id, key: 'weight', at: now, graph: next }
     },
 
     select(selection) {

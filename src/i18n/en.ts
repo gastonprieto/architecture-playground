@@ -51,6 +51,10 @@ export const en: Dict = {
     pathPlaceholder: '/orders',
     eventPlaceholder: 'order.created',
     delete: 'Delete',
+    weights: 'Weights',
+    weightsHint: 'The numbers are relative: what counts is the % of traffic each connection gets.',
+    weightsEmpty: 'Connect the Load Balancer to its targets to set weights.',
+    weight: 'Weight',
     unknownType: 'Unknown type: {type}',
   },
   widgets: {
@@ -198,7 +202,7 @@ export const en: Dict = {
           'Least Connections: to the one with the fewest requests in flight.',
           'Random: at random.',
           'IP Hash: same client IP, same target; shows "IP → server".',
-          'Weighted: in proportion to each target\'s capacity.',
+          'Weighted: in proportion to each connection\'s weight (editable in the inspector).',
           'No targets available: `503`.',
         ],
         fields: {

@@ -1,5 +1,6 @@
 import { defineComponent } from '../engine/registry'
 import type { NodeId } from '../engine/types'
+import { effectiveWeights } from '../engine/weights'
 
 export type LbAlgorithm = 'round-robin' | 'least-connections' | 'random' | 'ip-hash' | 'weighted'
 
@@ -87,15 +88,14 @@ export const loadBalancer = defineComponent<LoadBalancerConfig, LoadBalancerStat
         break
       }
       case 'weighted': {
-        // Smooth weighted round-robin (nginx style): deterministic and evenly interleaved.
-        const weightOf = (id: NodeId) => {
-          const c = ctx.peer(id)?.config.capacity
-          return typeof c === 'number' && c > 0 ? c : 1
-        }
+        // Smooth weighted round-robin (nginx style) over the connection weights: deterministic and
+        // evenly interleaved. Weight 0 is never chosen (unless all are 0: equal split).
+        const weights = effectiveWeights(targets.map((o) => o.weight))
         let total = 0
         let best = -Infinity
-        for (const o of targets) {
-          const w = weightOf(o.target)
+        for (const [i, o] of targets.entries()) {
+          const w = weights[i]
+          if (w <= 0) continue
           total += w
           const cur = (st.current[o.target] ?? 0) + w
           st.current[o.target] = cur

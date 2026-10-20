@@ -14,6 +14,8 @@ export interface OutEdge {
   target: NodeId
   targetType: string
   rule?: EdgeRule
+  /** The connection's weight, if set (see engine/weights). */
+  weight?: number
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
