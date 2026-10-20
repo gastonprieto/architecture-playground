@@ -3,14 +3,13 @@ import { defaultRegistry } from '../../components/index'
 import type { Message, NodeId } from '../../engine/types'
 import { C, toneColor } from '../colors'
 import { ZERO_STATS, useRuntime } from '../runtime/runtimeStore'
-import type { UiState } from '../runtime/useSimulation'
+import { UI_CELLS, type CellsView, type UiState } from '../runtime/useSimulation'
 import { useEditor } from '../store/editor'
 import { colorFor } from './PacketLayer'
 
 export type ArchNodeData = { kind: string; config: Record<string, unknown> }
 export type ArchFlowNode = Node<ArchNodeData, 'arch'>
 
-const MAX_CELLS = 12
 const LANE_LABEL_MAX = 8
 
 /** 1234 → '1234', 12345 → '12.3k' (keeps the counters row narrow). */
@@ -26,15 +25,15 @@ function cellColor(kind: string, msg: Message): string {
   return colorFor(msg)
 }
 
-/** Up to MAX_CELLS cells plus "+N" for the rest. */
-function Cells({ items, kind }: { items: Message[]; kind: string }) {
-  const shown = items.slice(0, MAX_CELLS)
+/** Up to UI_CELLS cells plus "+N" for the rest. */
+function Cells({ cells, kind }: { cells: CellsView; kind: string }) {
+  const shown = cells.head.slice(0, UI_CELLS)
   return (
     <span className="node-cells">
       {shown.map((m, i) => (
         <span key={i} className="node-cell" style={{ background: cellColor(kind, m) }} />
       ))}
-      {items.length > MAX_CELLS && <span className="node-cells-more">+{items.length - MAX_CELLS}</span>}
+      {cells.total > shown.length && <span className="node-cells-more">+{cells.total - shown.length}</span>}
     </span>
   )
 }
@@ -61,13 +60,13 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
         <span title="OK" className="node-ok">✔ {compact(stats.ok)}</span>
         <span title="Errores" className={stats.errors > 0 ? 'node-err' : 'node-zero'}>✖ {compact(stats.errors)}</span>
       </div>
-      {ui?.items && (kind === 'queue' || kind === 'dlq') && <Cells items={ui.items} kind={kind} />}
-      {lanes.map(([id, items]) => (
+      {ui?.items && (kind === 'queue' || kind === 'dlq') && <Cells cells={ui.items} kind={kind} />}
+      {lanes.map(([id, cells]) => (
         <div key={id} className="node-lane">
           <span className="node-lane-label" title={nameOf(id)}>
             {truncate(nameOf(id), LANE_LABEL_MAX)}
           </span>
-          <Cells items={items} kind={kind} />
+          <Cells cells={cells} kind={kind} />
         </div>
       ))}
     </div>

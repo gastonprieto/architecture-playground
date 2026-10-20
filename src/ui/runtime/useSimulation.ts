@@ -32,8 +32,20 @@ export const useSim = (): SimApi | null => useContext(SimContext)
 
 const makeSim = (graph: Graph) => new Simulation(graph, { seed: 1, registry: defaultRegistry })
 
-/** Queue/DLQ items and broker lanes, copied so React sees new references (components mutate in place). */
-export type UiState = { items?: Message[]; lanes?: Record<NodeId, Message[]> }
+/** Cells a node draws per queue or lane; the rest is shown as "+N". */
+export const UI_CELLS = 12
+
+/** The drawable head of a buffer (first UI_CELLS messages) and its full length. */
+export interface CellsView {
+  head: Message[]
+  total: number
+}
+
+/**
+ * Queue/DLQ items and broker lanes, copied so React sees new references (components mutate in
+ * place). Only the head is copied: a long buffer costs the same as a short one.
+ */
+export type UiState = { items?: CellsView; lanes?: Record<NodeId, CellsView> }
 
 const sigOf = (arr: Message[]) => `${arr.length}:${arr[0]?.id ?? ''}:${arr[arr.length - 1]?.id ?? ''}`
 
@@ -50,10 +62,12 @@ function uiSignature(state: unknown): string | null {
   return null
 }
 
-function uiCopy(state: unknown): UiState {
+const view = (arr: Message[]): CellsView => ({ head: arr.slice(0, UI_CELLS), total: arr.length })
+
+export function uiCopy(state: unknown): UiState {
   const s = state as { items?: Message[]; lanes?: Record<NodeId, Message[]> }
-  if (Array.isArray(s.items)) return { items: [...s.items] }
-  return { lanes: Object.fromEntries(Object.entries(s.lanes ?? {}).map(([k, v]) => [k, [...v]])) }
+  if (Array.isArray(s.items)) return { items: view(s.items) }
+  return { lanes: Object.fromEntries(Object.entries(s.lanes ?? {}).map(([k, v]) => [k, view(v)])) }
 }
 
 /**

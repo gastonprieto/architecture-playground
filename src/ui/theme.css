@@ -173,15 +173,18 @@ body {
 /* ---------- inspector ---------- */
 
 .inspector-help { margin: 0; color: var(--muted); font-size: 13px; }
-.inspector-body { display: grid; gap: 12px; }
+.inspector-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .inspector-edge { margin: 0; color: var(--text); font-family: var(--mono); font-size: 12px; }
 .inspector-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.field { display: grid; gap: 4px; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }
 .field > label, .field-label { font-size: 12px; color: var(--muted); }
-.field-row { display: flex; align-items: center; gap: 6px; }
+.field-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.field-row > * { min-width: 0; }
 .field-row input[type='range'] { flex: 1; min-width: 0; accent-color: var(--cyan); }
-.field-row input[type='number'] { width: 64px; }
-.mix-row input[type='text'] { flex: 1; min-width: 0; }
+.field-row input[type='number'] { width: 56px; flex: none; }
+.mix-row { display: grid; grid-template-columns: minmax(0, 1fr) 56px auto; }
+.mix-row input[type='number'] { width: 100%; }
+.inspector .mix-row button { padding: 5px 8px; }
 .field-unit { color: var(--dim); font: 11px var(--mono); }
 .field input[type='text'], .field input[type='number'], .field select {
   background: var(--panel);
@@ -190,8 +193,10 @@ body {
   border-radius: 6px;
   padding: 5px 8px;
   font: inherit;
+  min-width: 0;
+  box-sizing: border-box;
 }
-.field-inline { grid-template-columns: 1fr auto; align-items: center; }
+.field-inline { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
 .switch {
   appearance: none;
   width: 34px;

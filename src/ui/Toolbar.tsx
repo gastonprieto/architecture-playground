@@ -20,6 +20,11 @@ function isTyping(target: EventTarget | null): boolean {
   return target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)
 }
 
+/** Space activates a focused button or link natively; the play shortcut must not hijack it. */
+function isActivatable(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest('button, a[href], [role="button"]') !== null
+}
+
 const formatSpeed = (s: number) => `${s}x`
 
 /** A toolbar button that does not keep focus after a mouse click, so Space keeps toggling play. */
@@ -73,6 +78,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
       }
       if (mod || e.altKey) return
       if (e.key === ' ') {
+        if (e.repeat || isActivatable(e.target)) return
         e.preventDefault()
         toggle()
       } else if (e.key === '-' || e.key === '_') {

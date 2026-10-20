@@ -3,6 +3,7 @@ import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { STORAGE_KEY } from '../../src/persistence/storage'
 import App from '../../src/ui/App'
+import { useRuntime } from '../../src/ui/runtime/runtimeStore'
 import { useEditor } from '../../src/ui/store/editor'
 
 beforeAll(() => {
@@ -50,5 +51,23 @@ describe('App', () => {
     window.dispatchEvent(new Event('pagehide'))
     expect(localStorage.getItem(STORAGE_KEY)).toContain('"cache"')
     localStorage.clear()
+  })
+
+  it('Space toggles play, but not on key repeat nor when a button has focus', () => {
+    render(<App />)
+    const space = (target: EventTarget, repeat = false) =>
+      act(() => {
+        target.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', repeat, bubbles: true, cancelable: true }))
+      })
+    useRuntime.setState({ playing: false })
+    space(document.body)
+    expect(useRuntime.getState().playing).toBe(true)
+    space(document.body, true)
+    expect(useRuntime.getState().playing).toBe(true)
+    const btn = screen.getByRole('button', { name: 'Exportar' })
+    btn.focus()
+    space(btn)
+    expect(useRuntime.getState().playing).toBe(true)
+    useRuntime.setState({ playing: false })
   })
 })

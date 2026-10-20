@@ -1,16 +1,16 @@
 import { ViewportPortal, useStoreApi } from '@xyflow/react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { NodeId } from '../../engine/types'
 import { C, toneColor } from '../colors'
 import { useSim } from '../runtime/useSimulation'
+import { LabelBook } from './labelBook'
 
 /** At most this many labels at once; the oldest go first. */
 export const MAX_LABELS = 60
-/** Labels on the same node are spread over a small grid of offsets so bursts stay readable. */
-const SPREAD_X = [0, -26, 26, -13, 13]
-const SPREAD_Y = [0, -9, -4]
-/** The same text on the same node is shown at most once per this many real ms (floods stay readable). */
-const REPEAT_MS = 120
+/** Vertical distance between stacked labels of one node; past STACK_ROWS they continue in a new column. */
+const STACK_DY = 15
+const STACK_ROWS = 4
+const STACK_DX = 34
 
 interface FloatLabel {
   key: number
@@ -18,11 +18,21 @@ interface FloatLabel {
   color: string
   x: number
   y: number
+  /** How many times the text fired while this label was collecting repeats. */
+  count: number
+}
+
+/** Offset of stacking slot `slot`: rows upward, then alternating columns right/left. */
+function slotOffset(slot: number): { dx: number; dy: number } {
+  const col = Math.floor(slot / STACK_ROWS)
+  const side = col === 0 ? 0 : (col % 2 === 1 ? 1 : -1) * Math.ceil(col / 2)
+  return { dx: side * STACK_DX, dy: -(slot % STACK_ROWS) * STACK_DY }
 }
 
 /**
- * Short texts that float up and fade over 1 s above a node: drops (code or reason, red), 202s
- * reaching their originator (green) and the components' own node:label texts.
+ * Short texts that float up and fade over 1 s above a node: drops (code or reason, red) and the
+ * components' own node:label texts (e.g. the 202 at a queue or broker). Repeats of a text on a node
+ * within REPEAT_MS bump a "×N" counter instead of stacking up; different texts get their own slot.
  */
 export function FloatingLabels() {
   const api = useSim()
@@ -32,54 +42,57 @@ export function FloatingLabels() {
   // Labels belong to the simulation that produced them; a reset (new simulation) hides them all.
   const [owned, setOwned] = useState<{ owner: unknown; labels: FloatLabel[] }>({ owner: null, labels: [] })
   const labels = owned.owner === sim ? owned.labels : []
+  const bookRef = useRef<LabelBook | null>(null)
 
   useEffect(() => {
     if (!sim || !onFrame) return
-    let seq = 0
+    const book = new LabelBook()
+    bookRef.current = book
     let buffer: FloatLabel[] = []
-    const lastShown = new Map<string, number>()
+    const bumps = new Map<number, number>()
 
     const add = (nodeId: NodeId, text: string, color: string) => {
       const n = store.getState().nodeLookup.get(nodeId)
       if (!n?.measured.width) return
-      const now = performance.now()
-      const id = `${nodeId}|${text}`
-      if (now - (lastShown.get(id) ?? -Infinity) < REPEAT_MS) return
-      lastShown.set(id, now)
-      const key = ++seq
-      // Deterministic spread: consecutive labels land at different offsets.
-      const dx = SPREAD_X[key % SPREAD_X.length]
-      const dy = SPREAD_Y[key % SPREAD_Y.length]
+      const r = book.add(nodeId, text, performance.now())
+      if (r.type === 'bump') {
+        bumps.set(r.key, r.count)
+        return
+      }
+      const { dx, dy } = slotOffset(r.slot)
       const { x, y } = n.internals.positionAbsolute
-      buffer.push({ key, text, color, x: x + n.measured.width / 2 + dx, y: y - 4 + dy })
-      if (buffer.length > MAX_LABELS) buffer = buffer.slice(-MAX_LABELS)
+      buffer.push({ key: r.key, text, color, x: x + n.measured.width / 2 + dx, y: y - 4 + dy, count: 1 })
     }
 
     const offs = [
       sim.on('message:dropped', ({ at, reason, code }) => add(at, String(code ?? reason), C.err)),
-      sim.on('message:arrived', ({ msg, at }) => {
-        if (msg.kind === 'response' && msg.code === 202 && msg.trail.length === 0) add(at, '202', C.ok)
-      }),
       sim.on('node:label', ({ nodeId, text, tone }) => add(nodeId, text, toneColor(tone))),
       onFrame(() => {
-        if (buffer.length === 0) return
+        if (buffer.length === 0 && bumps.size === 0) return
         const batch = buffer
+        const counts = new Map(bumps)
         buffer = []
-        setOwned((prev) => ({
-          owner: sim,
-          labels: (prev.owner === sim ? [...prev.labels, ...batch] : batch).slice(-MAX_LABELS),
-        }))
+        bumps.clear()
+        setOwned((prev) => {
+          const all = (prev.owner === sim ? [...prev.labels, ...batch] : batch).map((l) =>
+            counts.has(l.key) ? { ...l, count: counts.get(l.key)! } : l,
+          )
+          const dropped = all.length - MAX_LABELS
+          if (dropped > 0) for (const l of all.slice(0, dropped)) book.remove(l.key)
+          return { owner: sim, labels: dropped > 0 ? all.slice(dropped) : all }
+        })
       }),
     ]
     return () => {
       for (const off of offs) off()
+      book.clear()
     }
   }, [sim, onFrame, store])
 
-  const remove = useCallback(
-    (key: number) => setOwned((prev) => ({ ...prev, labels: prev.labels.filter((l) => l.key !== key) })),
-    [],
-  )
+  const remove = useCallback((key: number) => {
+    bookRef.current?.remove(key)
+    setOwned((prev) => ({ ...prev, labels: prev.labels.filter((l) => l.key !== key) }))
+  }, [])
 
   if (labels.length === 0) return null
   return (
@@ -87,7 +100,7 @@ export function FloatingLabels() {
       {labels.map((l) => (
         <div key={l.key} className="float-label" style={{ transform: `translate(${l.x}px, ${l.y}px)` }}>
           <span style={{ color: l.color }} onAnimationEnd={() => remove(l.key)}>
-            {l.text}
+            {l.count > 1 ? `${l.text} ×${l.count}` : l.text}
           </span>
         </div>
       ))}
