@@ -46,3 +46,23 @@ describe('Registry', () => {
     expect(r.get('zzz')).toBeUndefined()
   })
 })
+
+describe('defaultConfig mix defaults', () => {
+  it('returns a fresh copy of mix default arrays on every call', () => {
+    const def = defineComponent({
+      type: 'client',
+      label: 'Client',
+      icon: 'c',
+      color: 'req',
+      config: { paths: { type: 'mix', label: 'Paths', default: [{ value: '/a', weight: 1 }] } },
+      initialState: () => ({}),
+      onMessage() {},
+    })
+    const a = defaultConfig(def).paths as { value: string; weight: number }[]
+    const b = defaultConfig(def).paths as { value: string; weight: number }[]
+    expect(a).toEqual(b)
+    expect(a).not.toBe(b)
+    expect(a[0]).not.toBe(b[0])
+    expect(a).not.toBe(def.config.paths.default)
+  })
+})

@@ -87,5 +87,7 @@ export class Registry {
 }
 
 export function defaultConfig(def: ComponentDef): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(def.config).map(([key, f]) => [key, f.default]))
+  return Object.fromEntries(
+    Object.entries(def.config).map(([key, f]) => [key, f.type === 'mix' ? f.default.map((o) => ({ ...o })) : f.default]),
+  )
 }
