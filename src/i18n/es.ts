@@ -26,6 +26,8 @@ export const es = {
     export: 'Exportar',
     import: 'Importar',
     copyLink: 'Copiar link',
+    clearAll: 'Limpiar todo',
+    cleared: 'Canvas vacío · Deshacer lo recupera',
     linkCopied: 'Link copiado',
     exportFilename: 'arquitectura.json',
   },

@@ -77,6 +77,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const speed = useRuntime((s) => s.speed)
   const canUndo = useEditor((s) => s.past.length > 0)
   const canRedo = useEditor((s) => s.future.length > 0)
+  const isEmpty = useEditor((s) => s.graph.nodes.length === 0)
   const { fitView } = useReactFlow()
   const fileRef = useRef<HTMLInputElement>(null)
   const { toast, show } = useToast()
@@ -95,6 +96,13 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     },
     [reset, fitView],
   )
+
+  /** Remove every component (undoable) and restart the simulation. */
+  const clearAll = useCallback(() => {
+    useEditor.getState().replaceGraph({ nodes: [], edges: [] })
+    reset()
+    show(t('toolbar.cleared'))
+  }, [reset, show, t])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -208,6 +216,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
             disabled={!canRedo}
             title={`${t('toolbar.redo')} (Ctrl/Cmd+Shift+Z)`}
           />
+          <IconBtn icon="🗑" label={t('toolbar.clearAll')} className="danger" onClick={clearAll} disabled={isEmpty} />
         </div>
       )}
       <div className="toolbar-group toolbar-end">

@@ -25,6 +25,8 @@ export const en: Dict = {
     export: 'Export',
     import: 'Import',
     copyLink: 'Copy link',
+    clearAll: 'Clear all',
+    cleared: 'Canvas cleared · Undo brings it back',
     linkCopied: 'Link copied',
     exportFilename: 'architecture.json',
   },
