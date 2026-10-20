@@ -2,8 +2,9 @@ import { ViewportPortal, useStoreApi } from '@xyflow/react'
 import { useEffect, useRef } from 'react'
 import type { Message, MessageKind, NodeId } from '../../engine/types'
 import { C, CLIENT_COLORS } from '../colors'
-import { boxOf, cubicPoint, edgePoint } from '../geometry'
+import { boxOf, portPoints, wirePoint } from '../geometry'
 import { useSim } from '../runtime/useSimulation'
+import { useEditor } from '../store/editor'
 
 /** At most this many packets are drawn; the oldest are evicted first. */
 export const MAX_PACKETS = 300
@@ -14,6 +15,8 @@ export interface Packet {
   msg: Message
   from: NodeId
   to: NodeId
+  /** True when the hop travels against its edge (a response going back), so it rides the wire backwards. */
+  reverse?: boolean
   /** Sim time the hop started. */
   start: number
   duration: number
@@ -131,8 +134,10 @@ export function PacketLayer() {
     let seq = 0
     const els = new Map<number, SVGGElement>()
 
-    const offSent = sim.on('message:sent', ({ msg, from, to, at, duration }) => {
-      packets = packetsReducer(packets, { type: 'sent', packet: { key: ++seq, msg, from, to, start: at, duration } })
+    const offSent = sim.on('message:sent', ({ msg, from, to, edgeId, at, duration }) => {
+      const edge = edgeId ? useEditor.getState().graph.edges.find((e) => e.id === edgeId) : undefined
+      const reverse = edge?.source === to
+      packets = packetsReducer(packets, { type: 'sent', packet: { key: ++seq, msg, from, to, reverse, start: at, duration } })
     })
 
     const offFrame = onFrame(() => {
@@ -150,9 +155,10 @@ export function PacketLayer() {
         const a = nodeLookup.get(p.from)!
         const b = nodeLookup.get(p.to)!
         if (!a.measured.width || !b.measured.width) continue
-        const ba = boxOf(a)
-        const bb = boxOf(b)
-        const pt = cubicPoint(edgePoint(ba, bb), edgePoint(bb, ba), easeInOut((now - p.start) / p.duration))
+        const t = easeInOut((now - p.start) / p.duration)
+        const pt = p.reverse
+          ? wirePoint(...portPoints(boxOf(b), boxOf(a)), 1 - t)
+          : wirePoint(...portPoints(boxOf(a), boxOf(b)), t)
         let el = els.get(p.key)
         if (!el) {
           el = createPacketEl(p.msg)

@@ -36,6 +36,8 @@ const MARKER = { type: MarkerType.ArrowClosed, color: C.muted, width: 18, height
 const MARKER_SELECTED = { ...MARKER, color: 'var(--cyan)' }
 /** Low enough for fitView to fit a preset on a phone-width canvas. */
 const MIN_ZOOM = 0.2
+/** Dropping a new wire this close to an input port snaps it there (Strict mode: output → input only). */
+const CONNECTION_RADIUS = 60
 const FIT_VIEW_OPTIONS = { padding: 0.15 }
 
 type Size = { width: number; height: number }
@@ -182,7 +184,8 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
       onDelete={onDelete}
       onDragOver={readOnly ? undefined : onDragOver}
       onDrop={readOnly ? undefined : onDrop}
-      connectionMode={ConnectionMode.Loose}
+      connectionMode={ConnectionMode.Strict}
+      connectionRadius={CONNECTION_RADIUS}
       deleteKeyCode={readOnly ? null : DELETE_KEYS}
       multiSelectionKeyCode={null}
       selectionKeyCode={null}
