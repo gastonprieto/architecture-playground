@@ -1,5 +1,6 @@
 import { Emitter } from './emitter'
 import { createRandom } from './random'
+import { Processor } from './processing'
 import { defaultConfig, type ComponentDef, type Ctx, type OutEdge, type Registry, type Tone } from './registry'
 import { Scheduler } from './scheduler'
 import type { EdgeId, Graph, GraphEdge, Message, MessageKind, MetricsSnapshot, NodeId, NodeStats } from './types'
@@ -29,6 +30,8 @@ interface NodeRecord {
   config: Record<string, unknown>
   state: unknown
   stats: NodeStats
+  /** Capacity slots, internal queue and up/down for ctx.process. */
+  processor: Processor
 }
 
 export interface SimulationOptions {
@@ -73,6 +76,7 @@ export class Simulation {
    */
   setGraph(graph: Graph): void {
     const next = new Map<NodeId, NodeRecord>()
+    const kept: NodeRecord[] = []
     for (const gn of graph.nodes) {
       const def = this.registry.get(gn.type)
       const config = def ? { ...defaultConfig(def), ...gn.config } : { ...gn.config }
@@ -80,14 +84,16 @@ export class Simulation {
       if (prev && prev.type === gn.type) {
         prev.config = config
         next.set(gn.id, prev)
+        kept.push(prev)
       } else {
-        const state = def ? def.initialState() : {}
-        next.set(gn.id, { id: gn.id, type: gn.type, def, config, state, stats: zeroStats() })
+        next.set(gn.id, this.newRecord(gn.id, gn.type, def, config))
       }
     }
     this.nodes = next
     this.edgeList = graph.edges.filter((e) => next.has(e.source) && next.has(e.target))
     this.edges = new Map(this.edgeList.map((e) => [e.id, e]))
+    // After the new graph is in place, so rejections reply along the current edges.
+    for (const rec of kept) rec.processor.reconfigure()
   }
 
   runAction(nodeId: NodeId, action: string): void {
@@ -195,13 +201,6 @@ export class Simulation {
     if (msg.kind === 'request') this.respond(at, msg, { status: 'error', code: effective! })
   }
 
-  /**
-   * Seam for Task 5 (capacity slots + internal queue + up/down). For now: wait processingTime, then done.
-   */
-  private process(rec: NodeRecord, _msg: Message, done: () => void): void {
-    const ms = Number(rec.config.processingTime ?? 0)
-    this.scheduleFor(rec, ms, done)
-  }
 
   /** Schedule a node-owned callback; skipped if the node was removed or replaced meanwhile. */
   private scheduleFor(rec: NodeRecord, ms: number, fn: () => void): void {
@@ -212,6 +211,18 @@ export class Simulation {
 
   // ---------------------------------------------------------------- helpers
 
+  private newRecord(id: NodeId, type: string, def: ComponentDef | undefined, config: Record<string, unknown>): NodeRecord {
+    const rec = { id, type, def, config, state: def ? def.initialState() : {}, stats: zeroStats() } as NodeRecord
+    rec.processor = new Processor({
+      config: () => rec.config,
+      stats: rec.stats,
+      statsChanged: () => this.emitStats(rec),
+      schedule: (ms, fn) => this.scheduleFor(rec, ms, fn),
+      drop: (msg, reason, code) => this.drop(rec.id, msg, reason, code),
+    })
+    return rec
+  }
+
   private edgeBetween(a: NodeId, b: NodeId): EdgeId | null {
     const forward = this.edgeList.find((e) => e.source === a && e.target === b)
     const reverse = forward ?? this.edgeList.find((e) => e.source === b && e.target === a)
@@ -220,6 +231,10 @@ export class Simulation {
 
   private bump(rec: NodeRecord, field: keyof NodeStats): void {
     rec.stats[field]++
+    this.emitStats(rec)
+  }
+
+  private emitStats(rec: NodeRecord): void {
     this.events.emit('node:stats', { nodeId: rec.id, stats: { ...rec.stats } })
   }
 
@@ -265,7 +280,7 @@ export class Simulation {
       },
       forwardResponse: (res) => sim.forwardResponse(rec.id, res),
       drop: (msg, reason, code) => sim.drop(rec.id, msg, reason, code),
-      process: (msg, done) => sim.process(rec, msg, done),
+      process: (msg, done) => rec.processor.process(msg, done),
       schedule: (ms, fn) => sim.scheduleFor(rec, ms, fn),
       label: (text, tone) => sim.events.emit('node:label', { nodeId: rec.id, text, tone }),
       random: () => sim.random(),

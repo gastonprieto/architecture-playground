@@ -1,4 +1,4 @@
-import { Registry, defineComponent } from '../../src/engine/registry'
+import { Registry, defineComponent, processingFields } from '../../src/engine/registry'
 import type { Graph, GraphEdge, GraphNode } from '../../src/engine/types'
 
 /** Replies ok 200 to every request. */
@@ -38,6 +38,19 @@ export const slow = defineComponent({
   config: {
     processingTime: { type: 'number', label: 'Tiempo', default: 400, min: 0, max: 5000 },
   },
+  initialState: () => ({}),
+  onMessage(msg, ctx) {
+    ctx.process(msg, () => ctx.reply(msg, { status: 'ok', code: 200 }))
+  },
+})
+
+/** Processing component (up/processingTime/capacity/queueMax): processes, then replies ok 200. */
+export const proc = defineComponent({
+  type: 'proc',
+  label: 'Proc',
+  icon: 'p',
+  color: 'slow',
+  config: { ...processingFields },
   initialState: () => ({}),
   onMessage(msg, ctx) {
     ctx.process(msg, () => ctx.reply(msg, { status: 'ok', code: 200 }))
@@ -98,7 +111,7 @@ export const counter = defineComponent({
 
 export function makeRegistry(): Registry {
   const r = new Registry()
-  for (const def of [echo, fwd, slow, reject, gen, counter]) r.register(def)
+  for (const def of [echo, fwd, slow, proc, reject, gen, counter]) r.register(def)
   return r
 }
 
