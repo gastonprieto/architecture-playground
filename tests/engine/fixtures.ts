@@ -89,6 +89,27 @@ export const gen = defineComponent({
   },
 })
 
+/** Origin with recordsMetrics: its `send` action sends one request to its first output. */
+export const origin = defineComponent({
+  type: 'origin',
+  label: 'Origin',
+  icon: 'o',
+  color: 'req',
+  config: {},
+  initialState: () => ({}),
+  recordsMetrics: true,
+  onMessage() {},
+  actions: {
+    send: {
+      label: 'Send',
+      run(ctx) {
+        const out = ctx.outputs()[0]
+        if (out) ctx.send(out.target, ctx.newMessage('request', { path: '/' }))
+      },
+    },
+  },
+})
+
 /** Has a `bump` action that increments state.count and emits a label. */
 export const counter = defineComponent({
   type: 'counter',
@@ -111,7 +132,7 @@ export const counter = defineComponent({
 
 export function makeRegistry(): Registry {
   const r = new Registry()
-  for (const def of [echo, fwd, slow, proc, reject, gen, counter]) r.register(def)
+  for (const def of [echo, fwd, slow, proc, reject, gen, counter, origin]) r.register(def)
   return r
 }
 

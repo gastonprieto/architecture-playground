@@ -1,5 +1,6 @@
 import { Emitter } from './emitter'
 import { createRandom } from './random'
+import { RollingMetrics } from './metrics'
 import { Processor } from './processing'
 import { defaultConfig, type ComponentDef, type Ctx, type OutEdge, type Registry, type Tone } from './registry'
 import { Scheduler } from './scheduler'
@@ -11,6 +12,8 @@ export const HOP_MS = 600
 export const MAX_TRAIL = 32
 /** onTick period in sim-ms. */
 export const TICK_MS = 100
+/** metrics:tick period in sim-ms. */
+export const METRICS_TICK_MS = 500
 
 export interface SimEvents {
   'message:sent': { msg: Message; from: NodeId; to: NodeId; edgeId: EdgeId | null; duration: number; at: number }
@@ -49,12 +52,14 @@ export class Simulation {
   private edges = new Map<EdgeId, GraphEdge>()
   private edgeList: GraphEdge[] = []
   private msgSeq = 0
+  private rolling = new RollingMetrics()
 
   constructor(graph: Graph, opts: SimulationOptions) {
     this.registry = opts.registry
     this.random = createRandom(opts.seed ?? 1)
     this.setGraph(graph)
     this.scheduler.after(TICK_MS, () => this.tick())
+    this.scheduler.after(METRICS_TICK_MS, () => this.metricsTick())
   }
 
   get now(): number {
@@ -117,9 +122,9 @@ export class Simulation {
     return this.nodes.get(id)?.state as S
   }
 
-  /** Implemented in Task 6. */
+  /** Rolling throughput / latency / error rate of completed requests at recordsMetrics originators. */
   metrics(): MetricsSnapshot {
-    return { throughput: 0, p50: 0, p95: 0, errorRate: 0 }
+    return this.rolling.snapshot(this.now)
   }
 
   // ---------------------------------------------------------------- ticking
@@ -127,6 +132,11 @@ export class Simulation {
   private tick(): void {
     this.scheduler.after(TICK_MS, () => this.tick())
     for (const rec of this.nodes.values()) rec.def?.onTick?.(this.ctx(rec), TICK_MS)
+  }
+
+  private metricsTick(): void {
+    this.scheduler.after(METRICS_TICK_MS, () => this.metricsTick())
+    this.events.emit('metrics:tick', this.metrics())
   }
 
   // ---------------------------------------------------------------- delivery
@@ -152,6 +162,10 @@ export class Simulation {
     this.events.emit('message:arrived', { msg, at: rec.id })
     const { def } = rec
     if (msg.kind === 'response') {
+      // An empty trail means this node originated the request: the round trip is complete.
+      if (msg.trail.length === 0 && def?.recordsMetrics) {
+        this.rolling.record(this.now, this.now - msg.createdAt, msg.status === 'ok')
+      }
       if (def?.onResponse) def.onResponse(msg, this.ctx(rec))
       else this.forwardResponse(rec.id, msg)
     } else if (!def) {
