@@ -201,6 +201,23 @@ describe('Simulation', () => {
     ])
   })
 
+  it('counts completed responses in the recordsMetrics originator stats', () => {
+    const sim = new Simulation(
+      graph([node('O', 'origin'), node('E', 'echo'), node('P', 'origin'), node('R', 'reject')], [edge('O', 'E'), edge('P', 'R')]),
+      { registry: makeRegistry() },
+    )
+    const log = record(sim)
+    sim.runAction('O', 'send')
+    sim.runAction('O', 'send')
+    sim.runAction('P', 'send')
+    sim.advance(10 * HOP_MS)
+    expect(sim.nodeStats('O')).toMatchObject({ ok: 2, errors: 0 })
+    expect(sim.nodeStats('P')).toMatchObject({ ok: 0, errors: 1 })
+    const oStats = of(log, 'node:stats').filter((e) => e.p.nodeId === 'O')
+    expect(oStats.at(-1)?.p.stats).toMatchObject({ ok: 2, errors: 0 })
+    expect(oStats.at(-1)?.t).toBe(2 * HOP_MS)
+  })
+
   it('metrics returns zeros', () => {
     const sim = new Simulation(graph([]), { registry: makeRegistry() })
     expect(sim.metrics()).toEqual({ throughput: 0, p50: 0, p95: 0, errorRate: 0 })

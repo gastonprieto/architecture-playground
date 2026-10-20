@@ -165,6 +165,8 @@ export class Simulation {
       // An empty trail means this node originated the request: the round trip is complete.
       if (msg.trail.length === 0 && def?.recordsMetrics) {
         this.rolling.record(this.now, this.now - msg.createdAt, msg.status === 'ok')
+        // The originator's own counters show how its requests ended.
+        this.bump(rec, msg.status === 'ok' ? 'ok' : 'errors')
       }
       if (def?.onResponse) def.onResponse(msg, this.ctx(rec))
       else this.forwardResponse(rec.id, msg)
