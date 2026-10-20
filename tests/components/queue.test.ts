@@ -182,6 +182,30 @@ describe('queue', () => {
     expect(d.map((e) => [e.at, e.reason, e.msg.kind])).toEqual([['Q', 'sin DLQ', 'message']])
   })
 
+  it('a Servicio consumer that goes down mid-hop nacks: the queue retries, then dead-letters', () => {
+    const g: Graph = {
+      nodes: [node('C', 'client', { rate: 0 }), node('Q', 'queue', { maxRetries: 1 }), node('S', 'service', { processingTime: 100 }), node('DLQ', 'dlq')],
+      edges: [edge('C', 'Q'), edge('Q', 'S'), edge('Q', 'DLQ')],
+    }
+    const down = { ...g, nodes: g.nodes.map((n) => (n.id === 'S' ? { ...n, config: { ...n.config, up: false } } : n)) }
+    const s = sim(g)
+    const fromQ = sentFrom(s, 'Q')
+    s.runAction('C', 'send1')
+    s.advance(HOP_MS + 100) // the queue pushed attempt 0 to S
+    expect(fromQ.map((e) => [e.to, e.msg.attempt])).toEqual([['S', 0]])
+    s.setGraph(down)
+    s.advance(2 * HOP_MS) // S drops 'caído' and nacks; the retry waits for S to be up
+    expect(s.nodeState<QueueState>('Q').items.map((m) => m.attempt)).toEqual([1])
+    s.setGraph(g)
+    s.advance(200) // next tick pushes attempt 1
+    expect(fromQ.map((e) => [e.to, e.msg.attempt])).toEqual([['S', 0], ['S', 1]])
+    s.setGraph(down)
+    s.advance(5000)
+    expect(fromQ.filter((e) => e.to === 'DLQ')).toHaveLength(1)
+    expect(s.nodeState<QueueState>('DLQ').items).toHaveLength(1)
+    expect(s.nodeState<{ inFlight: Record<string, number> }>('Q').inFlight.S).toBe(0)
+  })
+
   it('a full queue answers 503', () => {
     const s = sim(queueGraph({ queue: { queueMax: 2 }, workers: [{ up: false }], client: { burstSize: 5 } }))
     const res = responsesAt(s, 'C')

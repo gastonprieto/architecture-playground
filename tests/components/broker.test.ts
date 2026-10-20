@@ -182,16 +182,43 @@ describe('broker', () => {
     const g = brokerGraph({ subs: [{}] })
     const s = sim(g)
     const atB = arrivedAt(s, 'B', 'response')
-    const labels = labelsOf(s, 'S1')
+    const drops: SimEvents['message:dropped'][] = []
+    s.on('message:dropped', (p) => drops.push(p))
     s.runAction('C', 'send1')
     s.advance(HOP_MS + 100) // the broker already pushed the event to S1
     s.setGraph({ ...g, nodes: g.nodes.map((n) => (n.id === 'S1' ? { ...n, config: { up: false } } : n)) })
     s.advance(5000)
     expect(atB.map((r) => [r.status, r.code])).toEqual([['error', 503]])
-    expect(labels).toContain('caído:err')
+    expect(drops.map((d) => [d.at, d.reason, d.code])).toEqual([['S1', 'caído', 503]])
     const st = s.nodeState<BrokerState>('B')
     expect(st.inFlight.S1).toBe(0)
     expect(st.pending).toEqual({})
+  })
+
+  it('a Servicio subscriber that goes down mid-hop nacks via the engine drop and the lane drains', () => {
+    const g: Graph = {
+      nodes: [
+        node('C', 'client', { rate: 0, kind: 'event', mix: [{ value: 'A', weight: 1 }], burstSize: 3 }),
+        node('B', 'broker'),
+        node('S', 'service', { processingTime: 100, capacity: 1 }),
+      ],
+      edges: [edge('C', 'B'), edge('B', 'S')],
+    }
+    const s = sim(g)
+    const atB = arrivedAt(s, 'B', 'response')
+    s.runAction('C', 'burst')
+    s.advance(HOP_MS + 100) // the broker already pushed the first event to S
+    s.setGraph({ ...g, nodes: g.nodes.map((n) => (n.id === 'S' ? { ...n, config: { ...n.config, up: false } } : n)) })
+    s.advance(2 * HOP_MS) // the event reaches S (down) and the nack travels back to B
+    expect(atB.map((r) => [r.status, r.code])).toContainEqual(['error', 503])
+    expect(s.nodeState<BrokerState>('B').inFlight.S).toBe(0)
+    s.setGraph(g) // back up
+    s.advance(20_000)
+    const st = s.nodeState<BrokerState>('B')
+    expect(st.inFlight.S).toBe(0)
+    expect(st.pending).toEqual({})
+    expect(st.lanes.S).toEqual([])
+    expect(s.nodeStats('S').ok).toBe(2)
   })
 
   it('pushes to queues fire-and-forget: broker → queue → worker processes the event', () => {

@@ -22,13 +22,6 @@ export const worker = defineComponent<WorkerConfig, DependencyState>({
   },
   initialState: initialDependencyState,
   onMessage(msg, ctx) {
-    // A down worker would drop a message silently (no reply), leaving the queue waiting for an ack
-    // forever; nack it instead so the queue retries. Requests keep the engine's 503 'caído' path.
-    if (msg.kind !== 'request' && ctx.config.up === false) {
-      ctx.label('caído', 'err')
-      ctx.reply(msg, { status: 'error', code: 503 })
-      return
-    }
     ctx.process(msg, () =>
       callDependencies(ctx, msg, 'parallel', (ok) => {
         const { failRate } = ctx.config

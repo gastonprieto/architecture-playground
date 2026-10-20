@@ -39,6 +39,8 @@ export interface Message {
   code?: number
   /** Copy/derivative (e.g. a queued message derived from a request). */
   parentId?: string
+  /** Hops travelled by its ancestors (parent.depth + parent.trail.length); loop detection counts it. */
+  depth?: number
   /** Retry count in Queue. */
   attempt?: number
   /** On a response: id of the message it answers. */

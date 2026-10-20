@@ -14,7 +14,6 @@ function record(sim: Simulation): Rec[] {
     'node:stats',
     'node:label',
     'metrics:tick',
-    'sim:reset',
   ]
   for (const type of types) sim.on(type, (p) => log.push({ type, p, t: sim.now } as Rec))
   return log
@@ -186,6 +185,28 @@ describe('Simulation', () => {
     sim.advance(HOP_MS)
     expect(of(log, 'message:dropped').map((e) => [e.p.at, e.p.reason])).toEqual([['B', 'removed']])
     expect(sim.nodeState('K')).toEqual({ count: 0 })
+  })
+
+  it('a dropped message (not a request) is nacked to whoever sent it', () => {
+    const sim = new Simulation(graph([node('A', 'fwd'), node('N', 'nope')], [edge('A', 'N')]), { registry: makeRegistry() })
+    const log = record(sim)
+    sim.inject('A', { ...req(), kind: 'message', trail: ['Q'] })
+    sim.advance(2 * HOP_MS)
+    expect(of(log, 'message:dropped').map((e) => [e.p.at, e.p.reason, e.p.code])).toEqual([['N', 'tipo desconocido', 503]])
+    const nack = of(log, 'message:sent').find((e) => e.p.msg.kind === 'response')!
+    expect([nack.p.from, nack.p.to, nack.p.msg.status, nack.p.msg.code]).toEqual(['N', 'A', 'error', 503])
+  })
+
+  it('an event whose target node was removed mid-hop is dropped without throwing', () => {
+    const sim = new Simulation(graph([node('A', 'fwd'), node('B', 'echo')], [edge('A', 'B')]), { registry: makeRegistry() })
+    const log = record(sim)
+    sim.inject('A', { ...req(), kind: 'event' })
+    sim.advance(HOP_MS / 2)
+    sim.setGraph(graph([node('A', 'fwd')]))
+    expect(() => sim.advance(5 * HOP_MS)).not.toThrow()
+    expect(of(log, 'message:dropped').map((e) => [e.p.at, e.p.reason])).toEqual([['B', 'removed']])
+    const nacks = of(log, 'message:arrived').filter((e) => e.p.msg.kind === 'response')
+    expect(nacks.map((e) => [e.p.at, e.p.msg.status])).toEqual([['A', 'error']])
   })
 
   it('runAction calls def.actions[name].run', () => {

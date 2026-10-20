@@ -8,7 +8,7 @@ import type { EdgeId, Graph, GraphEdge, Message, MessageKind, MetricsSnapshot, N
 
 /** Sim-ms one hop between two nodes takes. */
 export const HOP_MS = 600
-/** Messages whose trail would grow past this many nodes are dropped with reason 'loop'. */
+/** Messages whose depth + trail would grow past this many nodes are dropped with reason 'loop'. */
 export const MAX_TRAIL = 32
 /** onTick period in sim-ms. */
 export const TICK_MS = 100
@@ -22,7 +22,6 @@ export interface SimEvents {
   'node:stats': { nodeId: NodeId; stats: NodeStats }
   'node:label': { nodeId: NodeId; text: string; tone: Tone }
   'metrics:tick': MetricsSnapshot
-  'sim:reset': Record<string, never>
 }
 
 /** Runtime record of a node. `def` is undefined for unknown component types. */
@@ -177,10 +176,15 @@ export class Simulation {
     }
   }
 
-  /** Appends `from` to a copy of the trail (so fan-out copies don't share it), or drops on loop. */
+  /**
+   * Appends `from` to a copy of the trail (so fan-out copies don't share it), or drops on loop: once
+   * depth (hops of its ancestors) + trail reaches MAX_TRAIL. A looping message `from` itself created
+   * (empty trail) has nobody upstream to answer, so its error response is delivered back to `from`.
+   */
   private send(from: NodeId, to: NodeId, msg: Message): void {
-    if (msg.trail.length >= MAX_TRAIL) {
+    if ((msg.depth ?? 0) + msg.trail.length >= MAX_TRAIL) {
       this.drop(from, msg, 'loop')
+      if (msg.trail.length === 0) this.nackSelf(from, msg)
       return
     }
     this.transmit(from, to, { ...msg, trail: [...msg.trail, from] })
@@ -203,18 +207,40 @@ export class Simulation {
     this.transmit(from, msg.trail[msg.trail.length - 1], res)
   }
 
+  /** Next instant (never re-entrant), deliver an error response for `msg` to the node that created it. */
+  private nackSelf(at: NodeId, msg: Message): void {
+    const res: Message = {
+      id: this.nextId(),
+      kind: 'response',
+      meta: { ...msg.meta },
+      trail: [],
+      createdAt: msg.createdAt,
+      status: 'error',
+      code: 503,
+      replyTo: msg.id,
+    }
+    this.scheduler.after(0, () => {
+      const rec = this.nodes.get(at)
+      if (rec) this.deliver(rec, res)
+    })
+  }
+
   private forwardResponse(from: NodeId, res: Message): void {
     if (res.trail.length === 0) return // reached the originator: the response ends here
     this.transmit(from, res.trail[res.trail.length - 1], { ...res, trail: res.trail.slice(0, -1) })
   }
 
-  /** Emit message:dropped, count an error, and answer requests with an error response. */
+  /**
+   * Emit message:dropped, count an error, and answer with an error response: a request gets its
+   * error reply and a message/event a generic nack, so whoever pushed it (a queue or broker waiting
+   * for the ack) frees its slot. Responses are never answered.
+   */
   private drop(at: NodeId, msg: Message, reason: string, code?: number): void {
-    const effective = msg.kind === 'request' ? (code ?? 503) : code
+    const effective = msg.kind === 'response' ? code : (code ?? 503)
     this.events.emit('message:dropped', { msg, at, reason, code: effective })
     const rec = this.nodes.get(at)
     if (rec) this.bump(rec, 'errors')
-    if (msg.kind === 'request') this.respond(at, msg, { status: 'error', code: effective! })
+    if (msg.kind !== 'response') this.respond(at, msg, { status: 'error', code: effective! })
   }
 
 
@@ -288,6 +314,7 @@ export class Simulation {
         trail: [],
         createdAt: sim.now,
         parentId: parent?.id,
+        ...(parent ? { depth: (parent.depth ?? 0) + parent.trail.length } : {}),
       }),
       send: (target, msg) => sim.send(rec.id, target, msg),
       reply: (msg, r) => {

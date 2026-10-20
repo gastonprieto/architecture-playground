@@ -77,6 +77,7 @@ interface Message {
   status?: 'ok' | 'error'
   code?: number          // 200, 202, 401, 429, 503, ...
   parentId?: string      // copia/derivado (ej. message encolado a partir de un request)
+  depth?: number         // saltos de sus ancestros (parent.depth + parent.trail.length); el corte `loop` cuenta depth + trail
   attempt?: number       // reintentos en Queue
   replyTo?: string       // en un response: id del mensaje que responde
 }
@@ -125,7 +126,7 @@ defineComponent({
 
 ### 4.5 Eventos que emite el motor
 
-`message:sent { msg, from, to, edgeId, duration }`, `message:arrived`, `message:dropped { msg, at, reason, code? }`, `node:stats { nodeId, stats }`, `node:label { nodeId, text, tone }`, `metrics:tick`, `sim:reset`.
+`message:sent { msg, from, to, edgeId, duration }`, `message:arrived`, `message:dropped { msg, at, reason, code? }`, `node:stats { nodeId, stats }`, `node:label { nodeId, text, tone }`, `metrics:tick`. Reiniciar es crear una `Simulation` nueva (no hay evento de reset).
 
 El grafo se puede editar **con la simulación corriendo** (`sim.setGraph(graph)`): los nodos que siguen conservan su estado, los nuevos arrancan vacíos y los mensajes hacia nodos o aristas borrados se descartan. Así se puede "agregar un server" en vivo como en los decks.
 La capa visual anima a partir de estos eventos; el motor no sabe nada de SVG.

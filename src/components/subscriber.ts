@@ -21,13 +21,6 @@ export const subscriber = defineComponent<SubscriberConfig, Record<string, never
   },
   initialState: () => ({}),
   onMessage(msg, ctx) {
-    // A down subscriber would drop an event silently, leaving the broker's slot taken forever; nack
-    // it instead. Requests keep the engine's 503 'caído' path.
-    if (msg.kind !== 'request' && ctx.config.up === false) {
-      ctx.label('caído', 'err')
-      ctx.reply(msg, { status: 'error', code: 503 })
-      return
-    }
     ctx.process(msg, () => {
       ctx.reply(msg, { status: 'ok', code: 200 })
       const { emits } = ctx.config

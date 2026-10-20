@@ -253,6 +253,26 @@ describe('service and database', () => {
     expect(s.metrics()).toMatchObject({ errorRate: 1, p50: 4 * HOP_MS + 400 + 1000 })
   })
 
+  it('a Servicio A ↔ Servicio B cycle trips the loop guard and the client gets an error', () => {
+    const s = sim(
+      graph(
+        [node('C', 'client', { rate: 0 }), node('A', 'service', { processingTime: 10, capacity: 100 }), node('B', 'service', { processingTime: 10, capacity: 100 })],
+        [edge('C', 'A'), edge('A', 'B'), edge('B', 'A')],
+      ),
+    )
+    const drops: SimEvents['message:dropped'][] = []
+    s.on('message:dropped', (p) => drops.push(p))
+    const res = responsesAt(s, 'C')
+    s.runAction('C', 'send1')
+    expect(() => s.advance(120_000)).not.toThrow()
+    expect(drops.filter((d) => d.reason === 'loop').length).toBeGreaterThan(0)
+    expect(res.map((r) => r.status)).toEqual(['error'])
+    // The simulation keeps running afterwards.
+    s.runAction('C', 'send1')
+    s.advance(120_000)
+    expect(res.map((r) => r.status)).toEqual(['error', 'error'])
+  })
+
   it('database processingTime defaults to 300 and service mode to parallel', () => {
     const db = defaultRegistry.get('database')!
     const svc = defaultRegistry.get('service')!
