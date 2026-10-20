@@ -20,6 +20,8 @@ import { ARCH_TYPE_MIME } from '../Palette'
 import { useEditor, type Selection } from '../store/editor'
 import { ArchEdge, type ArchFlowEdge } from './ArchEdge'
 import { ArchNode, type ArchFlowNode } from './ArchNode'
+import { FloatingLabels } from './FloatingLabels'
+import { PacketLayer } from './PacketLayer'
 
 const nodeTypes: NodeTypes = { arch: ArchNode }
 const edgeTypes: EdgeTypes = { arch: ArchEdge }
@@ -171,6 +173,8 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
     >
       <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} color="var(--line)" />
       <Controls showInteractive={false} />
+      <PacketLayer />
+      <FloatingLabels />
     </ReactFlow>
   )
 }

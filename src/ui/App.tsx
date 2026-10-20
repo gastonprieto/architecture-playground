@@ -5,9 +5,12 @@ import { initialGraph } from '../persistence/initial'
 import { saveLocal } from '../persistence/storage'
 import { Canvas } from './canvas/Canvas'
 import { Inspector } from './Inspector'
+import { MetricsBar } from './MetricsBar'
 import { Palette } from './Palette'
+import { SimContext, useSimulation } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 import './theme.css'
+import { Toolbar } from './Toolbar'
 import { useIsMobile } from './useIsMobile'
 
 const SAVE_DEBOUNCE_MS = 500
@@ -45,26 +48,28 @@ function usePersistence() {
 export default function App() {
   usePersistence()
   const mobile = useIsMobile()
+  const api = useSimulation()
   return (
     <ReactFlowProvider>
-      <div className={`app${mobile ? ' mobile' : ''}`}>
-        {/* Toolbar slot: Task 18 adds play/pause, step, speed, reset, presets, export/import, link. */}
-        <header className="toolbar">
-          <h1 className="app-title">Architecture Playground</h1>
-        </header>
-        {!mobile && <Palette />}
-        <main className="canvas">
-          <Canvas readOnly={mobile} />
-        </main>
-        {/* Task 18 passes the simulation's runAction to <Inspector/>. */}
-        {!mobile && (
-          <aside className="inspector" aria-label="Inspector">
-            <Inspector />
-          </aside>
-        )}
-        {/* MetricsBar slot: Task 18 renders throughput, p50/p95 and error rate here. */}
-        <footer className="metrics" />
-      </div>
+      <SimContext.Provider value={api}>
+        <div className={`app${mobile ? ' mobile' : ''}`}>
+          <header className="toolbar">
+            <Toolbar api={api} mobile={mobile} />
+          </header>
+          {!mobile && <Palette />}
+          <main className="canvas">
+            <Canvas readOnly={mobile} />
+          </main>
+          {!mobile && (
+            <aside className="inspector" aria-label="Inspector">
+              <Inspector runAction={api.runAction} />
+            </aside>
+          )}
+          <footer className="metrics">
+            <MetricsBar />
+          </footer>
+        </div>
+      </SimContext.Provider>
     </ReactFlowProvider>
   )
 }

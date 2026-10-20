@@ -1,17 +1,77 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { defaultRegistry } from '../../components/index'
-import type { NodeId } from '../../engine/types'
+import type { Message, NodeId } from '../../engine/types'
 import { C, toneColor } from '../colors'
+import { ZERO_STATS, useRuntime } from '../runtime/runtimeStore'
+import type { UiState } from '../runtime/useSimulation'
+import { useEditor } from '../store/editor'
+import { colorFor } from './PacketLayer'
 
 export type ArchNodeData = { kind: string; config: Record<string, unknown> }
 export type ArchFlowNode = Node<ArchNodeData, 'arch'>
 
-/**
- * Live counters slot (in flight, queued, ok, errors, up/down badge).
- * Task 18 replaces this body; it renders nothing for now.
- */
-export function NodeStatsSlot(_props: { nodeId: NodeId }) {
-  return null
+const MAX_CELLS = 12
+const LANE_LABEL_MAX = 8
+
+/** 1234 → '1234', 12345 → '12.3k' (keeps the counters row narrow). */
+function compact(n: number): string {
+  if (n < 10_000) return String(n)
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`
+  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+}
+
+function cellColor(kind: string, msg: Message): string {
+  if (kind === 'dlq') return C.err
+  if ((msg.attempt ?? 0) > 0) return C.slow
+  return colorFor(msg)
+}
+
+/** Up to MAX_CELLS cells plus "+N" for the rest. */
+function Cells({ items, kind }: { items: Message[]; kind: string }) {
+  const shown = items.slice(0, MAX_CELLS)
+  return (
+    <span className="node-cells">
+      {shown.map((m, i) => (
+        <span key={i} className="node-cell" style={{ background: cellColor(kind, m) }} />
+      ))}
+      {items.length > MAX_CELLS && <span className="node-cells-more">+{items.length - MAX_CELLS}</span>}
+    </span>
+  )
+}
+
+const truncate = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
+
+/** Live counters, the down badge and queue/DLQ cells or broker lanes. */
+export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: string; config: Record<string, unknown> }) {
+  const stats = useRuntime((s) => s.stats[nodeId]) ?? ZERO_STATS
+  const ui = useRuntime((s) => s.states[nodeId]) as UiState | undefined
+  const nodes = useEditor((s) => (ui?.lanes ? s.graph.nodes : null))
+  const nameOf = (id: NodeId) => {
+    const n = nodes?.find((x) => x.id === id)
+    const name = typeof n?.config.name === 'string' ? n.config.name.trim() : ''
+    return name || id
+  }
+  const lanes = ui?.lanes ? Object.entries(ui.lanes).filter(([id]) => nodes?.some((n) => n.id === id)) : []
+  return (
+    <div className="node-stats">
+      <div className="node-counters">
+        {config.up === false && <span className="node-down">caído</span>}
+        {stats.inFlight > 0 && <span title="En proceso">⏳ {compact(stats.inFlight)}</span>}
+        {stats.queued > 0 && <span title="En cola">☰ {compact(stats.queued)}</span>}
+        <span title="OK" className="node-ok">✔ {compact(stats.ok)}</span>
+        <span title="Errores" className={stats.errors > 0 ? 'node-err' : 'node-zero'}>✖ {compact(stats.errors)}</span>
+      </div>
+      {ui?.items && (kind === 'queue' || kind === 'dlq') && <Cells items={ui.items} kind={kind} />}
+      {lanes.map(([id, items]) => (
+        <div key={id} className="node-lane">
+          <span className="node-lane-label" title={nameOf(id)}>
+            {truncate(nameOf(id), LANE_LABEL_MAX)}
+          </span>
+          <Cells items={items} kind={kind} />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
@@ -34,7 +94,7 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
           <div className="arch-node-type">{def?.label ?? 'Desconocido'}</div>
         </div>
       </div>
-      <NodeStatsSlot nodeId={id} />
+      <NodeStatsSlot nodeId={id} kind={data.kind} config={data.config} />
       <Handle type="source" position={Position.Right} className="arch-handle" />
     </div>
   )

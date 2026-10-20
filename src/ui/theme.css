@@ -227,3 +227,120 @@ body {
 .inspector button:hover:not(:disabled) { background: #16213f; border-color: var(--cyan); }
 .inspector button:disabled { opacity: 0.5; cursor: not-allowed; }
 .inspector button.danger { color: var(--red); border-color: var(--red); }
+
+/* ---------- toolbar ---------- */
+
+.toolbar { flex-wrap: wrap; position: relative; }
+.toolbar-group { display: flex; align-items: center; gap: 6px; }
+.toolbar-end { margin-left: auto; }
+.toolbar button, .toolbar-select {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font: 500 13px/1.2 var(--sans);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.toolbar button:hover:not(:disabled), .toolbar-select:hover { background: #16213f; border-color: var(--cyan); }
+.toolbar button:disabled { opacity: 0.45; cursor: not-allowed; }
+.toolbar button.primary { min-width: 84px; color: var(--cyan); border-color: var(--cyan); font-weight: 700; }
+.toolbar button.speed { min-width: 48px; font-family: var(--mono); }
+.toast {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  max-width: min(560px, 90vw);
+  padding: 8px 14px;
+  border: 1px solid var(--cyan);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: 13px/1.3 var(--sans);
+  word-break: break-all;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  animation: toast-in 0.15s ease-out;
+}
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, -4px); } }
+
+/* ---------- metrics bar ---------- */
+
+.metrics-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  font: 12px/1.3 var(--mono);
+  color: var(--muted);
+}
+.metrics-bar b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.metrics-bar .sep { color: var(--dim); }
+.metrics-bar .metrics-err b { color: var(--red); }
+
+/* ---------- node counters ---------- */
+
+.node-stats { display: grid; gap: 5px; margin-top: 8px; }
+.node-counters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font: 11px/1.2 var(--mono);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.node-ok { color: var(--green); }
+.node-err { color: var(--red); }
+.node-zero { color: var(--dim); }
+.node-down {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-weight: 700;
+}
+.arch-node:has(.node-down) { border-style: dashed; }
+.node-cells { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; min-height: 8px; }
+.node-cell { width: 8px; height: 8px; border-radius: 2px; }
+.node-cells-more { margin-left: 3px; font: 10px/1 var(--mono); color: var(--muted); }
+.node-lane { display: flex; align-items: center; gap: 6px; }
+.node-lane-label { width: 58px; flex: none; overflow: hidden; font: 10px/1.2 var(--mono); color: var(--muted); white-space: nowrap; }
+
+/* ---------- animation overlay (flow coordinates, inside ViewportPortal) ---------- */
+
+.packet-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+.packet > * { stroke: var(--bg); stroke-width: 1.5; }
+
+.float-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+.float-label > span {
+  display: block;
+  font: 700 13px/1 var(--mono);
+  white-space: nowrap;
+  text-shadow: 0 0 4px var(--bg), 0 0 2px var(--bg);
+  animation: float-up 1s ease-out forwards;
+}
+@keyframes float-up {
+  from { opacity: 1; transform: translate(-50%, -100%); }
+  70% { opacity: 0.85; }
+  to { opacity: 0; transform: translate(-50%, calc(-100% - 24px)); }
+}
