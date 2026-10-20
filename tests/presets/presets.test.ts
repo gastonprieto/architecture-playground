@@ -57,7 +57,9 @@ describe('presets', () => {
     sim.advance(30_000)
     for (const id of ['facturacion', 'stock', 'mails', 'analytics']) expect(sim.nodeStats(id).ok).toBeGreaterThan(0)
     const lanes = (sim.nodeState('broker') as { lanes: Record<string, unknown[]> }).lanes
-    expect((lanes['analytics'] ?? []).length).toBeGreaterThan((lanes['stock'] ?? []).length)
+    const len = (id: string) => (lanes[id] ?? []).length
+    for (const id of ['facturacion', 'stock', 'mails']) expect(len(id)).toBeLessThanOrEqual(2)
+    expect(len('analytics')).toBeGreaterThan(5)
   })
 
   it('reverse-proxy: routes by path prefix', () => {

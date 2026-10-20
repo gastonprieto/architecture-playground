@@ -6,7 +6,7 @@ export const pubsubPreset: PresetShape = {
   description: 'Un evento OrdenCreada se publica en el broker y llega a cuatro suscriptores; Analytics es lento y se atrasa.',
   graph: {
     nodes: [
-      node('ordenes', 'client', 0, 1.5 * ROW, 'Órdenes', { kind: 'event', rate: 3, mix: [{ value: 'OrdenCreada', weight: 1 }] }),
+      node('ordenes', 'client', 0, 1.5 * ROW, 'Órdenes', { kind: 'event', rate: 1, mix: [{ value: 'OrdenCreada', weight: 1 }] }),
       node('broker', 'broker', 1, 1.5 * ROW, 'Broker'),
       node('facturacion', 'subscriber', 2, 0, 'Facturación'),
       node('stock', 'subscriber', 2, ROW, 'Stock'),
