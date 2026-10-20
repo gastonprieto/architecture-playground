@@ -4,6 +4,8 @@ export type MixEntry = { value: string; weight: number }
 
 export interface ClientConfig {
   name: string
+  /** Source IP the load balancer's ip-hash uses; empty → it hashes the client id. */
+  ip: string
   kind: 'request' | 'event'
   rate: number
   mix: MixEntry[]
@@ -34,10 +36,8 @@ function pick(mix: MixEntry[], r: number): string {
 function sendOne(ctx: Ctx<ClientConfig, ClientState>): void {
   const value = pick(ctx.config.mix, ctx.random())
   const isEvent = ctx.config.kind === 'event'
-  const msg = ctx.newMessage(
-    isEvent ? 'event' : 'request',
-    isEvent ? { eventType: value, clientId: ctx.nodeId } : { path: value, clientId: ctx.nodeId },
-  )
+  const who = { clientId: ctx.nodeId, clientIp: ctx.config.ip ?? '', clientName: ctx.config.name ?? '' }
+  const msg = ctx.newMessage(isEvent ? 'event' : 'request', isEvent ? { eventType: value, ...who } : { path: value, ...who })
   const out = ctx.outputs()[0]
   if (out) ctx.send(out.target, msg)
   else ctx.drop(msg, 'no-output')
@@ -50,6 +50,7 @@ export const client = defineComponent<ClientConfig, ClientState>({
   color: 'req',
   recordsMetrics: true,
   config: {
+    ip: { type: 'text', label: 'IP', default: '' },
     kind: {
       type: 'select',
       label: 'Tipo',

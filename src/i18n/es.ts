@@ -101,6 +101,7 @@ export const es = {
     client: {
       label: 'Cliente',
       fields: {
+        ip: 'IP',
         kind: 'Tipo',
         rate: 'Tasa',
         mix: 'Mix (path / evento)',

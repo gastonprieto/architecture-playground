@@ -26,6 +26,12 @@ function hash(text: string): number {
   return h
 }
 
+/** The value as a trimmed string, or undefined when it is missing or blank. */
+function nonEmpty(v: unknown): string | undefined {
+  const s = typeof v === 'string' ? v.trim() : ''
+  return s === '' ? undefined : s
+}
+
 export const loadBalancer = defineComponent<LoadBalancerConfig, LoadBalancerState>({
   type: 'load-balancer',
   label: 'Load Balancer',
@@ -71,9 +77,15 @@ export const loadBalancer = defineComponent<LoadBalancerConfig, LoadBalancerStat
       case 'random':
         chosen = targets[Math.floor(ctx.random() * targets.length)].target
         break
-      case 'ip-hash':
-        chosen = targets[hash(String(msg.meta.clientId ?? msg.id)) % targets.length].target
+      case 'ip-hash': {
+        const ip = nonEmpty(msg.meta.clientIp)
+        chosen = targets[hash(ip ?? nonEmpty(msg.meta.clientId) ?? msg.id) % targets.length].target
+        // "<ip> → <target name>" so the class sees which server each client is pinned to.
+        const who = ip ?? nonEmpty(msg.meta.clientName) ?? nonEmpty(msg.meta.clientId) ?? msg.id
+        const targetName = nonEmpty(ctx.peer(chosen)?.config.name) ?? chosen
+        ctx.label(`${who} → ${targetName}`, 'hc')
         break
+      }
       case 'weighted': {
         // Smooth weighted round-robin (nginx style): deterministic and evenly interleaved.
         const weightOf = (id: NodeId) => {

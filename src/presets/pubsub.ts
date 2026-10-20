@@ -10,6 +10,7 @@ export function pubsubPreset(lang: Lang): PresetShape {
     graph: {
       nodes: [
         node('ordenes', 'client', 0, 1.5 * ROW, text('nodes.orders'), {
+          ip: '10.0.0.1',
           kind: 'event',
           rate: 1,
           mix: [{ value: text('eventType'), weight: 1 }],

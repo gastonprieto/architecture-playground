@@ -20,6 +20,12 @@ describe('editor store', () => {
     expect(s().graph.nodes.find((x) => x.id === id)!.config.name).toBe('Service')
   })
 
+  it('addNode applies config overrides from the caller on top of the defaults', () => {
+    const id = s().addNode('client', { x: 0, y: 0 }, 'Cliente', { ip: '10.0.0.4' })
+    const cfg = s().graph.nodes.find((x) => x.id === id)!.config
+    expect(cfg).toEqual({ ...defaultConfig(defaultRegistry.get('client')!), name: 'Cliente', ip: '10.0.0.4' })
+  })
+
   it('connect rejects self-loops and duplicates', () => {
     const a = s().addNode('client', { x: 0, y: 0 })
     const b = s().addNode('service', { x: 0, y: 0 })

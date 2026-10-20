@@ -59,6 +59,20 @@ describe('client', () => {
     expect(requests.every((e) => e.msg.meta.clientId === 'C' && e.msg.meta.path === '/')).toBe(true)
   })
 
+  it('puts the configured IP and the client name in meta of requests and events', () => {
+    for (const kind of ['request', 'event'] as const) {
+      const s = sim(graph([node('C', 'client', { rate: 0, kind, ip: '10.0.0.9', name: 'Web' }), node('D', 'database')], [edge('C', 'D')]))
+      const sent = sentFrom(s, 'C')
+      s.runAction('C', 'send1')
+      s.advance(100)
+      expect(sent[0].msg.meta).toMatchObject({ clientId: 'C', clientIp: '10.0.0.9', clientName: 'Web' })
+    }
+  })
+
+  it('has an IP text field that defaults to empty', () => {
+    expect(client.config.ip).toMatchObject({ type: 'text', label: 'IP', default: '' })
+  })
+
   it('burst sends burstSize over 1s', () => {
     const s = sim(graph([node('C', 'client', { rate: 0, burstSize: 20 }), node('D', 'database')], [edge('C', 'D')]))
     const sent = sentFrom(s, 'C')

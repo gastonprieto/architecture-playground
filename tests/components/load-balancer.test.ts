@@ -97,6 +97,82 @@ describe('load balancer', () => {
     expect(sent).toHaveLength(20)
   })
 
+  it('ip-hash hashes the client IP: same IP → same target, even from different clients', () => {
+    const g = lbGraph({ algorithm: 'ip-hash' }, [{}, {}, {}], { burstSize: 5, ip: '10.0.0.7' })
+    g.nodes.push(node('C2', 'client', { rate: 0, burstSize: 5, ip: '10.0.0.7' }))
+    g.edges.push(edge('C2', 'LB'))
+    const s = sim(g)
+    const sent = sentFrom(s, 'LB')
+    s.runAction('C', 'burst')
+    s.runAction('C2', 'burst')
+    s.advance(10_000)
+    expect(sent).toHaveLength(10)
+    expect(new Set(sent.map((e) => e.to)).size).toBe(1)
+  })
+
+  it('ip-hash: 10.0.0.1 and 10.0.0.2 land on different targets (D3 and D1 of three)', () => {
+    const g = lbGraph({ algorithm: 'ip-hash' }, [{}, {}, {}], { ip: '10.0.0.1' })
+    g.nodes.push(node('C2', 'client', { rate: 0, ip: '10.0.0.2' }))
+    g.edges.push(edge('C2', 'LB'))
+    const s = sim(g)
+    const sent = sentFrom(s, 'LB')
+    s.runAction('C', 'send1')
+    s.runAction('C2', 'send1')
+    s.advance(5000)
+    const to = (ip: string) => sent.find((e) => e.msg.meta.clientIp === ip)?.to
+    expect(to('10.0.0.1')).toBe('D3')
+    expect(to('10.0.0.2')).toBe('D1')
+  })
+
+  it('ip-hash with an empty IP falls back to the clientId', () => {
+    const route = (clientConfig: Record<string, unknown>) => {
+      const s = sim(lbGraph({ algorithm: 'ip-hash' }, [{}, {}, {}], clientConfig))
+      const sent = sentFrom(s, 'LB')
+      s.runAction('C', 'send1')
+      s.advance(5000)
+      return sent.map((e) => e.to)
+    }
+    expect(route({ ip: '' })).toEqual(route({}))
+    expect(route({ ip: '' })).toHaveLength(1)
+  })
+
+  it('ip-hash labels each forwarded request "<ip> → <target name>"', () => {
+    const g = lbGraph({ algorithm: 'ip-hash' }, [{ name: 'Srv A' }, { name: 'Srv B' }, { name: 'Srv C' }], { ip: '10.0.0.1' })
+    const s = sim(g)
+    const labels: { text: string; tone: string }[] = []
+    s.on('node:label', (p) => {
+      if (p.nodeId === 'LB') labels.push({ text: p.text, tone: p.tone })
+    })
+    s.runAction('C', 'send1')
+    s.advance(5000)
+    expect(labels).toEqual([{ text: '10.0.0.1 → Srv C', tone: 'hc' }])
+  })
+
+  it('ip-hash label uses the client name when the client has no IP', () => {
+    const g = lbGraph({ algorithm: 'ip-hash' }, [{ name: 'Srv A' }], { ip: '', name: 'Navegador' })
+    const s = sim(g)
+    const labels: string[] = []
+    s.on('node:label', (p) => {
+      if (p.nodeId === 'LB') labels.push(p.text)
+    })
+    s.runAction('C', 'send1')
+    s.advance(5000)
+    expect(labels).toEqual(['Navegador → Srv A'])
+  })
+
+  it('other algorithms emit no mapping label', () => {
+    for (const algorithm of ['round-robin', 'least-connections', 'random', 'weighted']) {
+      const s = sim(lbGraph({ algorithm }, [{}, {}], { ip: '10.0.0.1', burstSize: 4 }))
+      const labels: string[] = []
+      s.on('node:label', (p) => {
+        if (p.nodeId === 'LB') labels.push(p.text)
+      })
+      s.runAction('C', 'burst')
+      s.advance(5000)
+      expect(labels).toEqual([])
+    }
+  })
+
   it('weighted by capacity 3,1 gives about 75/25 over 400 requests', () => {
     const s = sim(
       lbGraph({ algorithm: 'weighted' }, [{ capacity: 3, queueMax: 500 }, { capacity: 1, queueMax: 500 }], { burstSize: 200 }),

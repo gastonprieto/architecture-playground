@@ -71,7 +71,7 @@ type MessageKind = 'request' | 'message' | 'event' | 'response'
 interface Message {
   id: string
   kind: MessageKind
-  meta: { path?: string; eventType?: string; clientId?: string; [k: string]: unknown }
+  meta: { path?: string; eventType?: string; clientId?: string; clientIp?: string; clientName?: string; [k: string]: unknown }
   trail: NodeId[]        // camino recorrido; los requests vuelven por acá
   createdAt: number      // simTime
   status?: 'ok' | 'error'
@@ -147,8 +147,8 @@ Fuera del MVP: latencia por arista, jitter, timeouts, retries con backoff en el 
 
 | Tipo | Label (UI) | Comportamiento |
 |---|---|---|
-| `client` | Cliente | Genera requests o eventos con `rate` (req/s) y un **mix** de `path`/`eventType` configurable. Acciones manuales: "enviar 1" y "ráfaga de N". Recibe respuestas y alimenta métricas de latencia. |
-| `load-balancer` | Load Balancer | Reparte cada request a **una** salida según algoritmo: `round-robin`, `least-connections`, `random`, `ip-hash` (por `clientId`), `weighted` (pondera por la `capacity` del destino). Toggle de **health checks**: si está activo, saca de rotación las salidas caídas; si no, les sigue mandando y fallan. |
+| `client` | Cliente | Genera requests o eventos con `rate` (req/s) y un **mix** de `path`/`eventType` configurable. Tiene una **IP** (texto; al soltarlo desde la paleta se le asigna la siguiente libre `10.0.0.N`; los presets la fijan) que viaja en `meta.clientIp` junto a `clientId` y `clientName`. Acciones manuales: "enviar 1" y "ráfaga de N". Recibe respuestas y alimenta métricas de latencia. |
+| `load-balancer` | Load Balancer | Reparte cada request a **una** salida según algoritmo: `round-robin`, `least-connections`, `random`, `ip-hash` (hashea `meta.clientIp`; si está vacía, `clientId`; y emite el label `"<ip> → <destino>"` por cada request, con el nombre del cliente si no tiene IP), `weighted` (pondera por la `capacity` del destino). Toggle de **health checks**: si está activo, saca de rotación las salidas caídas; si no, les sigue mandando y fallan. |
 | `reverse-proxy` | Reverse Proxy | Elige la salida cuya regla matchee `path` (prefijo más largo gana; una arista sin regla equivale a `/`). Sin match → `404`. Features opcionales en config: `auth` (rechaza % con `401`), `rateLimit` (req/s → `429`), `cache` (hit rate → responde él). |
 | `service` | Servicio | Sin salidas: procesa y responde. Con salidas: procesa y llama a sus dependencias en modo `parallel` (default) o `sequential`; responde cuando vuelven todas, error si alguna falla. Si una salida es Queue o Broker, solo espera el `202`/ack. |
 | `database` | Base de datos | Procesa (query) y responde. |

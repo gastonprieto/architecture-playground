@@ -81,6 +81,27 @@ describe('presets', () => {
     expect(paths['web'].every((x) => x === '/static')).toBe(true)
   })
 
+  it('every preset client has an explicit, unique IP', () => {
+    for (const p of presets) {
+      const ips = p.graph.nodes.filter((n) => n.type === 'client').map((n) => n.config.ip)
+      for (const ip of ips) expect(ip).toMatch(/^10\.0\.0\.\d+$/)
+      expect(new Set(ips).size).toBe(ips.length)
+    }
+  })
+
+  it('load-balancer: with ip-hash, the two clients hash to different servers', () => {
+    const p = preset('load-balancer')
+    const graph = { ...p.graph, nodes: p.graph.nodes.map((n) => (n.id === 'lb' ? { ...n, config: { ...n.config, algorithm: 'ip-hash' } } : n)) }
+    const sim = new Simulation(graph, { seed: 1, registry: defaultRegistry })
+    const targets: Record<string, Set<string>> = {}
+    sim.on('message:sent', (e) => {
+      if (e.from === 'lb' && e.msg.kind === 'request') (targets[e.msg.meta.clientId!] ??= new Set()).add(e.to)
+    })
+    sim.advance(10_000)
+    expect([...targets['web']]).toEqual(['srv-3'])
+    expect([...targets['mobile']]).toEqual(['srv-1'])
+  })
+
   it('every preset survives parseGraph(serializeGraph(g))', () => {
     for (const p of presets) expect(parseGraph(serializeGraph(p.graph))).toEqual({ ok: true, graph: p.graph })
   })

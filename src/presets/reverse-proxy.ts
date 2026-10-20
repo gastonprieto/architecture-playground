@@ -11,8 +11,8 @@ export function reverseProxyPreset(lang: Lang): PresetShape {
     description,
     graph: {
       nodes: [
-        node('web-client', 'client', 0, ROW, text('nodes.web'), { rate: 3, mix }),
-        node('mobile', 'client', 0, 2 * ROW, text('nodes.mobile'), { rate: 3, mix }),
+        node('web-client', 'client', 0, ROW, text('nodes.web'), { rate: 3, mix, ip: '10.0.0.1' }),
+        node('mobile', 'client', 0, 2 * ROW, text('nodes.mobile'), { rate: 3, mix, ip: '10.0.0.2' }),
         node('proxy', 'reverse-proxy', 1, 1.5 * ROW, text('nodes.proxy')),
         node('usuarios', 'service', 2, 0, text('nodes.users')),
         node('ordenes', 'service', 2, ROW, text('nodes.orders')),

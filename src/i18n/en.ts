@@ -98,6 +98,7 @@ export const en: Dict = {
     client: {
       label: 'Client',
       fields: {
+        ip: 'IP',
         kind: 'Type',
         rate: 'Rate',
         mix: 'Mix (path / event)',
