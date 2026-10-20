@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Graph } from '../../src/engine/types'
 import { presets } from '../../src/presets'
 import { decodeHash, encodeHash } from '../../src/persistence/hash'
-import { initialGraph } from '../../src/persistence/initial'
+import { clearLocationHash, initialGraph } from '../../src/persistence/initial'
 import { parseGraph, serializeGraph } from '../../src/persistence/serialize'
 import { loadLocal, saveLocal } from '../../src/persistence/storage'
 
@@ -86,5 +86,23 @@ describe('initialGraph', () => {
     expect(initialGraph('')).toEqual(g)
     expect(initialGraph(encodeHash(other))).toEqual(other)
     expect(initialGraph('#g=garbage')).toEqual(g)
+  })
+
+  it('reports a successful hash load so the caller can clear the hash (once only)', () => {
+    vi.stubGlobal('localStorage', mem())
+    const loaded = vi.fn()
+    initialGraph('', loaded)
+    initialGraph('#g=garbage', loaded)
+    expect(loaded).not.toHaveBeenCalled()
+    expect(initialGraph(encodeHash(other), loaded)).toEqual(other)
+    expect(loaded).toHaveBeenCalledTimes(1)
+  })
+
+  it('clearLocationHash replaces the URL with path + query, without the hash', () => {
+    const replaceState = vi.fn()
+    vi.stubGlobal('history', { replaceState })
+    vi.stubGlobal('location', { pathname: '/architecture-playground/', search: '?x=1', hash: '#g=abc' })
+    clearLocationHash()
+    expect(replaceState).toHaveBeenCalledWith(null, '', '/architecture-playground/?x=1')
   })
 })

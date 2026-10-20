@@ -19,7 +19,10 @@ export interface EditorState {
   updateNodeConfig(id: NodeId, patch: Record<string, unknown>): void
   setEdgeRule(id: EdgeId, rule: EdgeRule | undefined): void
   select(sel: Selection): void
+  /** Replace the whole graph and clear history (app boot). */
   loadGraph(graph: Graph): void
+  /** Replace the whole graph as one undoable step (presets, import). */
+  replaceGraph(graph: Graph): void
   undo(): void
   redo(): void
 }
@@ -126,6 +129,10 @@ export const useEditor = create<EditorState>((set, get) => {
 
     loadGraph(graph) {
       set({ graph, selection: null, past: [], future: [], dragBase: null })
+    },
+
+    replaceGraph(graph) {
+      commit(graph, get().graph, { selection: null })
     },
 
     undo() {

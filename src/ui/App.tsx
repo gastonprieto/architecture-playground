@@ -1,7 +1,7 @@
 import { ReactFlowProvider } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useEffect, useRef } from 'react'
-import { initialGraph } from '../persistence/initial'
+import { clearLocationHash, initialGraph } from '../persistence/initial'
 import { saveLocal } from '../persistence/storage'
 import { Canvas } from './canvas/Canvas'
 import { Inspector } from './Inspector'
@@ -21,7 +21,8 @@ function usePersistence() {
   useEffect(() => {
     if (!loaded.current) {
       loaded.current = true
-      useEditor.getState().loadGraph(initialGraph())
+      // A shared link is loaded once; after that the local copy is the source of truth.
+      useEditor.getState().loadGraph(initialGraph(undefined, clearLocationHash))
     }
     let timer: ReturnType<typeof setTimeout> | undefined
     const flush = () => {

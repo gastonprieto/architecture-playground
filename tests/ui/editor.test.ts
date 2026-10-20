@@ -87,6 +87,24 @@ describe('editor store', () => {
     expect(s().future).toHaveLength(0)
   })
 
+  it('replaceGraph (presets/import) keeps the previous graph undoable', () => {
+    const a = s().addNode('client', { x: 0, y: 0 })
+    const before = s().graph
+    s().undo()
+    expect(s().future).toHaveLength(1)
+    s().redo()
+    s().select({ kind: 'node', id: a })
+    const preset = { nodes: [{ id: 'p', type: 'service', position: { x: 0, y: 0 }, config: {} }], edges: [] }
+    s().replaceGraph(preset)
+    expect(s().graph).toEqual(preset)
+    expect(s().selection).toBeNull()
+    expect(s().future).toHaveLength(0)
+    s().undo()
+    expect(s().graph).toBe(before)
+    s().redo()
+    expect(s().graph).toEqual(preset)
+  })
+
   const pos = () => s().graph.nodes[0].position
 
   it('a drag then commit undoes in a single step to the pre-drag position', () => {

@@ -11,6 +11,8 @@ import { useEditor } from './store/editor'
 const TOAST_MS = 2500
 const FIT_VIEW_OPTIONS = { padding: 0.15 }
 const EXPORT_FILENAME = 'arquitectura.json'
+/** Some browsers start the download asynchronously; keep the blob URL alive a while. */
+const REVOKE_URL_MS = 1000
 
 /** Keyboard shortcuts are ignored while typing in a form control. */
 function isTyping(target: EventTarget | null): boolean {
@@ -47,10 +49,10 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const { toast, show } = useToast()
   const { toggle, step, reset, setSpeed } = api
 
-  /** Replace the graph, restart the simulation and frame the new graph. */
+  /** Replace the graph (undoable), restart the simulation and frame the new graph. */
   const load = useCallback(
     (g: Graph) => {
-      useEditor.getState().loadGraph(g)
+      useEditor.getState().replaceGraph(g)
       reset()
       // React Flow queues the fit until the new nodes are measured.
       void fitView(FIT_VIEW_OPTIONS)
@@ -98,7 +100,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     document.body.appendChild(a)
     a.click()
     a.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 0)
+    setTimeout(() => URL.revokeObjectURL(url), REVOKE_URL_MS)
   }
 
   const onImport = async (e: ChangeEvent<HTMLInputElement>) => {
