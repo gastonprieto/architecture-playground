@@ -57,7 +57,7 @@ function setup(opts: Opts = {}) {
   const pending = () => Object.keys(s.nodeState<CacheAsideState>('S').cachePending)
   /** The same graph without the cache. */
   const removeCache = () => s.setGraph({ nodes: g.nodes.filter((n) => n.id !== 'K'), edges: g.edges.filter((e) => e.target !== 'K') })
-  return { s, responses, log, send, pending, removeCache, keys: () => s.nodeState<CacheState>('K').keys.map((k) => k.key) }
+  return { s, g, responses, log, send, pending, removeCache, keys: () => s.nodeState<CacheState>('K').keys.map((k) => k.key) }
 }
 
 describe('Servicio: automatic cache-aside', () => {
@@ -168,5 +168,20 @@ describe('Servicio: automatic cache-aside', () => {
     expect(t.s.nodeStats('T').ok).toBe(1)
     t.send()
     expect(t.s.nodeStats('T').ok).toBe(1)
+  })
+
+  it('only requests use cache-aside: an event calls every output as before (no get/set)', () => {
+    const t = setup()
+    t.s.setGraph({
+      nodes: t.g.nodes.map((n) => (n.id === 'C' ? node('C', 'client', { kind: 'event', mix: [{ value: 'Ev', weight: 1 }] }) : n)),
+      edges: t.g.edges,
+    })
+    t.s.runAction('C', 'send1')
+    t.s.advance(6000)
+    t.s.runAction('C', 'send1')
+    t.s.advance(6000)
+    // Before cache-aside an event went to every output, the Cache included, as a plain message.
+    expect(t.log().sort()).toEqual(['D', 'D', 'K:-', 'K:-'])
+    expect(t.keys()).toEqual([])
   })
 })

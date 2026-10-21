@@ -118,10 +118,19 @@ export const reverseProxy = defineComponent<ReverseProxyConfig, ReverseProxyStat
     cacheablePaths: { type: 'list', label: 'Paths cacheables', default: ['/static'], showIf: CACHE_ON },
   },
   initialState: () => ({ window: [], issue: {}, store: {}, keys: [], hits: 0, misses: 0 }),
-  onConfig(ctx) {
+  onConfig(ctx, prev) {
     ensureState(ctx.state)
+    // A new cache mode starts its hit % from scratch.
+    if (prev && (prev.cache ?? 'off') !== (ctx.config.cache ?? 'off')) {
+      ctx.state.hits = 0
+      ctx.state.misses = 0
+    }
     if (ctx.config.cache !== 'keys') ctx.state.keys.length = 0
-    else cacheTrim(ctx.state.keys, ctx.config.capacity)
+    else {
+      // Keys whose path is no longer cacheable would never be looked up again: drop them.
+      ctx.state.keys = ctx.state.keys.filter((e) => isCacheable(e.key, ctx.config.cacheablePaths))
+      cacheTrim(ctx.state.keys, ctx.config.capacity)
+    }
   },
   onMessage(msg, ctx) {
     const { rateLimit } = ctx.config

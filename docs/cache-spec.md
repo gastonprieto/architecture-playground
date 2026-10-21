@@ -31,7 +31,7 @@ Campo **"Modo"**:
 - **En modo Aleatorio,** `set` responde 200 sin guardar nada.
 - **Grafos viejos:** una Cache sin `mode` se migra a **Aleatorio** al cargar, con el mismo `hitRate`. Así se comporta como antes.
 
-Se mantienen `processingTime` (default 50) y el toggle Activo. Antes la Cache no tenía `up`; se agrega con default `true`. Si está caída responde 503, como cualquier componente con procesamiento.
+Se mantienen `processingTime` (default 50) y el toggle Activo. Antes la Cache no tenía `up`; se agrega con default `true`. Si está caída responde 503, como cualquier componente con procesamiento. Al apagarla (Activo off) **pierde todas sus claves**, como un Redis que se reinicia (igual que `session memory`). Cambiar el Modo pone en cero el hit %.
 
 ### 2.3 Estado visible
 

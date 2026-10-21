@@ -95,8 +95,13 @@ function lookup(ctx: CacheCtx, key: string): boolean {
 }
 
 function store(ctx: CacheCtx, key: string): void {
-  if (ctx.config.mode === 'random') return
+  if (ctx.config.mode === 'random' || ctx.config.up === false) return
   cacheStore(ctx.state.keys, key, ctx.now, ctx.config.capacity, ctx.config.ttl)
+}
+
+/** The keys live in memory: while Activo is off they are gone (like a restarted Redis). Idempotent. */
+function forgetKeysIfDown(ctx: CacheCtx): void {
+  if (ctx.config.up === false && (ctx.state.keys?.length ?? 0) > 0) ctx.state.keys = []
 }
 
 export const cache = defineComponent<CacheConfig, CacheState>({
@@ -123,10 +128,19 @@ export const cache = defineComponent<CacheConfig, CacheState>({
   // `capacity` counts keys: the lookup itself has unlimited slots and no queue, so it never queues or rejects (only when down).
   processingConfig: (c) => ({ up: c.up, processingTime: c.processingTime }),
   initialState: () => ({ keys: [], hits: 0, misses: 0 }),
-  onConfig(ctx) {
+  onConfig(ctx, prev) {
     ctx.state.keys ??= []
+    // A new mode starts its hit % from scratch.
+    if (prev && (prev.mode ?? 'keys') !== (ctx.config.mode ?? 'keys')) {
+      ctx.state.hits = 0
+      ctx.state.misses = 0
+    }
     if (ctx.config.mode === 'random') ctx.state.keys.length = 0
     else cacheTrim(ctx.state.keys, ctx.config.capacity)
+    forgetKeysIfDown(ctx)
+  },
+  onTick(ctx) {
+    forgetKeysIfDown(ctx)
   },
   onMessage(msg, ctx) {
     ctx.process(msg, () => {

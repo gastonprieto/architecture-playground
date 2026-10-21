@@ -198,10 +198,10 @@ export const es = {
         onEvent: { syntax: 'on event [Tipo]:', text: 'Atiende eventos de un Broker con ese tipo. Sin tipo es el default.' },
         onMessage: { syntax: 'on message:', text: 'Atiende los mensajes de una Cola.' },
         call: { syntax: 'call Destino /path', text: 'Llama a un Servicio, Load Balancer o Reverse Proxy y espera la respuesta.' },
-        query: { syntax: 'query Destino', text: 'Consulta una Base de datos o Cache y espera la respuesta.' },
+        query: { syntax: 'query Destino', text: 'Consulta una Base de datos o Cache y espera la respuesta. Contra una Cache hoja en Claves reales solo lee (nunca la llena): para cache-aside usá cache Destino:.' },
         cache: {
           syntax: 'cache Destino:',
-          text: 'Pide la clave (el path) a una Cache conectada. HIT: se saltea el bloque. MISS: corre el bloque y, si salió bien, guarda la clave sin esperar. Si el bloque falla, no guarda. Cache caída: 503, o el modificador (or continue corre el bloque sin guardar).',
+          text: 'Pide la clave (el path) a una Cache conectada sin salidas (hoja). HIT: se saltea el bloque. MISS: corre el bloque y, si salió bien, guarda la clave sin esperar. Si el bloque falla, no guarda. Cache caída: 503, o el modificador (or continue corre el bloque sin guardar). Con una Cache read-through (con salidas), cada MISS lee la base dos veces.',
           example: 'cache Cache:\n  query Base de datos\nreply 200',
         },
         enqueue: { syntax: 'enqueue Cola', text: 'Encola en una Cola; espera solo su 202.' },
@@ -404,7 +404,8 @@ export const es = {
           'Claves reales: guarda cada clave. Llena, sale la usada hace más tiempo (LRU; un HIT la renueva). Con TTL, una clave vencida es MISS y se borra.',
           'Aleatorio: HIT con probabilidad Hit rate, sin guardar nada.',
           'En el nodo: 🔑 N son las claves guardadas y hit % es el porcentaje real de HITs.',
-          'Caída: `503`. Un servicio con cache-aside la ignora y sigue como MISS.',
+          'Caída: `503`. Un servicio con cache-aside la ignora y sigue como MISS. Al apagarla pierde todas sus claves, como un Redis que se reinicia.',
+          'El paso `cache X:` del DSL va contra una Cache hoja: si la Cache tiene salidas (read-through), cada MISS lee la base dos veces (la Cache y el bloque).',
         ],
         fields: {
           mode: 'Claves reales guarda cada path; Aleatorio acierta al azar.',

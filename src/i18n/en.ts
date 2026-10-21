@@ -195,10 +195,10 @@ export const en: Dict = {
         onEvent: { syntax: 'on event [Type]:', text: 'Handles events of that type from a Broker. No type is the default.' },
         onMessage: { syntax: 'on message:', text: 'Handles the messages from a Queue.' },
         call: { syntax: 'call Target /path', text: 'Calls a Service, Load Balancer or Reverse Proxy and waits for the response.' },
-        query: { syntax: 'query Target', text: 'Queries a Database or Cache and waits for the response.' },
+        query: { syntax: 'query Target', text: 'Queries a Database or Cache and waits for the response. On a leaf Cache in Real keys it only reads (it never fills it): for cache-aside use cache Target:.' },
         cache: {
           syntax: 'cache Target:',
-          text: 'Asks a connected Cache for the key (the path). HIT: the block is skipped. MISS: the block runs and, if it went well, the key is stored without waiting. If the block fails, nothing is stored. Cache down: 503, or the modifier (or continue runs the block without storing).',
+          text: 'Asks a connected Cache with no outputs (a leaf) for the key (the path). HIT: the block is skipped. MISS: the block runs and, if it went well, the key is stored without waiting. If the block fails, nothing is stored. Cache down: 503, or the modifier (or continue runs the block without storing). With a read-through Cache (one with outputs), every MISS reads the database twice.',
           example: 'cache Cache:\n  query Database\nreply 200',
         },
         enqueue: { syntax: 'enqueue Queue', text: 'Enqueues into a Queue; waits only for its 202.' },
@@ -401,7 +401,8 @@ export const en: Dict = {
           'Real keys: stores each key. When full, the least recently used one leaves (LRU; a HIT refreshes it). With a TTL, an expired key is a MISS and is removed.',
           'Random: a HIT with probability Hit rate, storing nothing.',
           'On the node: 🔑 N is the stored keys and hit % is the real share of HITs.',
-          'Down: `503`. A service doing cache-aside ignores it and goes on as a MISS.',
+          'Down: `503`. A service doing cache-aside ignores it and goes on as a MISS. Turning it off loses every key, like a restarted Redis.',
+          'The DSL `cache X:` step targets a leaf Cache: if the Cache has outputs (read-through), every MISS reads the database twice (the Cache and the block).',
         ],
         fields: {
           mode: 'Real keys stores each path; Random hits by chance.',

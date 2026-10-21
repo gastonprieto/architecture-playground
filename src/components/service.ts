@@ -49,8 +49,8 @@ export const service = defineComponent<ServiceConfig, DependencyState & Behavior
     }
     ctx.process(msg, () => {
       const done = (ok: boolean) => ctx.reply(msg, ok ? { status: 'ok', code: 200 } : { status: 'error', code: 502 })
-      // With a leaf Cache: cache-aside (cache spec §3); otherwise call every output, as always.
-      if (!cacheAside(ctx, msg, ctx.config.mode, done)) callDependencies(ctx, msg, ctx.config.mode, done)
+      // A request with a leaf Cache: cache-aside (cache spec §3); otherwise call every output, as always.
+      if (msg.kind !== 'request' || !cacheAside(ctx, msg, ctx.config.mode, done)) callDependencies(ctx, msg, ctx.config.mode, done)
     })
   },
   /** `session memory` forgets its sessions as soon as Activo goes off, even while paused. */

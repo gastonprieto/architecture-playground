@@ -452,6 +452,24 @@ describe('reverse proxy edge cache (cache-spec §5)', () => {
     expect(s.nodeState<EdgeState>('P').keys).toEqual([])
   })
 
+  it('narrowing the cacheable paths drops stored keys that no longer pass; a cache mode change resets hit/miss', () => {
+    const g = edgeGraph({ cache: 'keys', cacheablePaths: [] }, ['/static/a', '/api/b'])
+    const s = sim(g)
+    send(s, 0)
+    send(s, 1)
+    send(s, 0)
+    expect(s.nodeState<EdgeState>('P').keys.map((k) => k.key)).toEqual(['/api/b', '/static/a'])
+    const withConfig = (c: Record<string, unknown>): Graph => ({
+      ...g,
+      nodes: g.nodes.map((n) => (n.id === 'P' ? { ...n, config: { ...n.config, ...c } } : n)),
+    })
+    s.setGraph(withConfig({ cacheablePaths: ['/static'] }))
+    expect(s.nodeState<EdgeState>('P').keys.map((k) => k.key)).toEqual(['/static/a'])
+    expect(s.nodeState<EdgeState>('P')).toMatchObject({ hits: 1, misses: 2 })
+    s.setGraph(withConfig({ cacheablePaths: ['/static'], cache: 'random' }))
+    expect(s.nodeState<EdgeState>('P')).toMatchObject({ hits: 0, misses: 0 })
+  })
+
   it('order: the rate limit runs before the cache (a 429 is not a HIT)', () => {
     const s = sim(proxyGraph({ rateLimit: 1, cache: 'random', hitRate: 1, cacheablePaths: [] }, [['S1', undefined]], { burstSize: 2 }))
     const res = clientResponses(s, 'C')

@@ -172,6 +172,43 @@ describe('cache: leaf (no outputs)', () => {
     expect(t.keys()).toEqual(['/c'])
   })
 
+  it('changing the mode resets the hit/miss counters', () => {
+    const t = setup()
+    t.send({ cacheOp: 'set', path: '/a' })
+    t.send({ cacheOp: 'get', path: '/a' })
+    t.send({ cacheOp: 'get', path: '/b' })
+    expect([t.cacheState().hits, t.cacheState().misses]).toEqual([1, 1])
+    const withK = (c: Record<string, unknown>) => t.s.setGraph({ ...t.g, nodes: t.g.nodes.map((n) => (n.id === 'K' ? { ...n, config: c } : n)) })
+    withK({ mode: 'keys', capacity: 10 })
+    expect([t.cacheState().hits, t.cacheState().misses]).toEqual([1, 1])
+    withK({ mode: 'random' })
+    expect([t.cacheState().hits, t.cacheState().misses]).toEqual([0, 0])
+  })
+
+  it('Activo off forgets every key (like a restarted Redis), also while paused; idempotent', () => {
+    const t = setup()
+    t.send({ cacheOp: 'set', path: '/a' })
+    expect(t.keys()).toEqual(['/a'])
+    const withK = (c: Record<string, unknown>) => t.s.setGraph({ ...t.g, nodes: t.g.nodes.map((n) => (n.id === 'K' ? { ...n, config: c } : n)) })
+    withK({ up: false })
+    expect(t.keys()).toEqual([])
+    withK({ up: false })
+    t.s.advance(1000)
+    expect(t.keys()).toEqual([])
+    withK({ up: true })
+    expect(t.send({ cacheOp: 'get', path: '/a' }).meta.cacheHit).toBe(false)
+  })
+
+  it('a key that arrives while down (read-through response) is dropped on the next tick', () => {
+    const t = setup()
+    t.s.nodeState<CacheState>('K').keys.push({ key: '/x', at: 0 })
+    const withK = (c: Record<string, unknown>) => t.s.setGraph({ ...t.g, nodes: t.g.nodes.map((n) => (n.id === 'K' ? { ...n, config: c } : n)) })
+    withK({ up: false })
+    t.s.nodeState<CacheState>('K').keys.push({ key: '/late', at: 0 })
+    t.s.advance(200)
+    expect(t.keys()).toEqual([])
+  })
+
   it('TTL is measured in sim time: an expired key is a MISS and is removed', () => {
     const t = setup({ ttl: 3000 })
     const RT = 2 * HOP_MS + 50 // one round trip: 1250 ms

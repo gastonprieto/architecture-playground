@@ -364,10 +364,11 @@ describe('cache preset (cache-spec §7)', () => {
     expect((en.graph.nodes.find((n) => n.id === 'client')!.config.mix as { value: string }[])[9].value).toBe('/products/10')
   })
 
-  /** 30 s at seed 1 with the demo traffic; `capacity` overrides the Cache's. */
-  function run30(capacity?: number) {
+  /** 30 s at seed 1 with the demo traffic; `capacity` overrides the Cache's, `behavior` the Servicio's. */
+  function run30(capacity?: number, behavior?: string) {
     const graph = withDemoTraffic(cacheOf())
     if (capacity !== undefined) graph.nodes = graph.nodes.map((n) => (n.id === 'cache' ? { ...n, config: { ...n.config, capacity } } : n))
+    if (behavior !== undefined) graph.nodes = graph.nodes.map((n) => (n.id === 'service' ? { ...n, config: { ...n.config, behavior } } : n))
     const sim = new Simulation(graph, { seed: 1, registry: defaultRegistry })
     let sent = 0
     let dbRequests = 0
@@ -402,6 +403,25 @@ describe('cache preset (cache-spec §7)', () => {
     expect(r.lateHit).toBeGreaterThan(r.earlyHit)
     expect(r.keys).toBe(5)
     expect(r.clientCodes.every((c) => c === 200)).toBe(true)
+  })
+
+  it('30 s: the documented `cache Cache:` DSL pasted into the Servicio works the same, with no 503s', () => {
+    const dsl = 'on request:\n  cache Cache:\n    query Base de datos\n  reply 200\n'
+    expect(compileBehavior(dsl, [{ name: 'Cache', type: 'cache' }, { name: 'Base de datos', type: 'database' }]).errors).toEqual([])
+    const r = run30(undefined, dsl)
+    expect(r.clientCodes.length).toBeGreaterThan(100)
+    expect(r.clientCodes.filter((c) => c !== 200)).toEqual([])
+    expect(r.dbRequests).toBeLessThan(0.7 * r.sent)
+  })
+
+  it('the Servicio has headroom at the demo rate and beyond: all 200 at 8 req/s', () => {
+    const graph = withDemoTraffic(cacheOf())
+    graph.nodes = graph.nodes.map((n) => (n.id === 'client' ? { ...n, config: { ...n.config, rate: 8 } } : n))
+    const sim = new Simulation(graph, { seed: 1, registry: defaultRegistry })
+    const codes = responsesByClient(sim)
+    sim.advance(30_000)
+    expect(codes.client.length).toBeGreaterThan(200)
+    expect(codes.client.every((m) => m.code === 200)).toBe(true)
   })
 
   it('30 s: with capacity 10 the hit % is higher and, once warm, the database almost idle', () => {

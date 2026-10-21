@@ -17,13 +17,15 @@ export function cachePreset(lang: Lang): PresetShape {
     id: 'cache',
     name,
     description,
-    demoRates: { client: 3 },
+    demoRates: { client: 5 },
     graph: {
       nodes: [
         node('client', 'client', 0, 0.5 * ROW, text('nodes.client'), { rate: 0, mix, ip: '10.0.0.1', color: CLIENT_COLORS[0] }),
-        node('service', 'service', 1, 0.5 * ROW, text('nodes.service')),
+        // Headroom: the Servicio never saturates, so the database is what the cache relieves.
+        node('service', 'service', 1, 0.5 * ROW, text('nodes.service'), { processingTime: 100, capacity: 20, queueMax: 50 }),
         node('cache', 'cache', 2, 0, text('nodes.cache'), { mode: 'keys', capacity: 5 }),
-        node('db', 'database', 2, ROW, text('nodes.db'), { kind: 'relational' }),
+        // A small database: with capacity 5 its queue shows, with 10 it is relieved.
+        node('db', 'database', 2, ROW, text('nodes.db'), { kind: 'relational', capacity: 2, queueMax: 20 }),
       ],
       edges: [edge('client', 'service'), edge('service', 'cache'), edge('service', 'db')],
     },
