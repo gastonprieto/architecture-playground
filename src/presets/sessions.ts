@@ -36,7 +36,12 @@ export function sessionsPreset(lang: Lang): PresetShape {
         ip: `10.0.0.${i + 1}`,
         color: CLIENT_COLORS[i],
       }),
-      node(`lb-${lane}`, 'load-balancer', 1, y + ROW, text(`nodes.lb.${lane}`), { algorithm: 'round-robin', sticky: false }),
+      node(`lb-${lane}`, 'load-balancer', 1, y + ROW, text(`nodes.lb.${lane}`), {
+        algorithm: 'round-robin',
+        sticky: false,
+        // With sticky on and a server off, its users get one 401 and log in elsewhere (not endless 503s).
+        healthChecks: true,
+      }),
       ...[1, 2, 3].map((n) =>
         node(`${lane}-${n}`, 'service', 2, y + (n - 1) * ROW, text(`nodes.server.${lane}`, { n }), { capacity: 4, behavior: dsl[lane] }),
       ),
@@ -46,8 +51,10 @@ export function sessionsPreset(lang: Lang): PresetShape {
     id: 'sessions',
     name,
     description,
-    // Clients start idle (0 req/s). At 1.5 req/s a user's next request leaves after its cookie came back.
-    demoRates: { 'client-mem': 1.5, 'client-store': 1.5, 'client-jwt': 1.5 },
+    // Clients start idle (0 req/s). At 1 req/s each of the 5 users sends every 5 s, after the cookie of its
+    // login came back even in the store lane (~4 s round trip with the database), so the store ends up with
+    // exactly one session per user.
+    demoRates: { 'client-mem': 1, 'client-store': 1, 'client-jwt': 1 },
     graph: {
       nodes: [
         ...nodes,

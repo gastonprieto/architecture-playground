@@ -242,7 +242,7 @@ export const en: Dict = {
           'With no output connected, the message is dropped.',
           'Spreads its messages over its Users, in turn. Each user keeps its own session cookie: it gets it in the login response and sends it in its next requests.',
           'A `401` session-lost (its cookie does not exist where it was looked up) clears that user\'s cookie: the next request logs in again. A `401` unauthenticated (no credentials sent) changes nothing.',
-          'On the node, 🍪 logged-in/N counts the users holding a cookie.',
+          'On the node, 🍪 logged-in/N counts the users holding a cookie (shown with more than one user, or when someone is logged in).',
         ],
         fields: {
           ip: 'Address the Load Balancer\'s IP Hash hashes; empty, it uses the client id.',
@@ -273,6 +273,8 @@ export const en: Dict = {
           'If an output is a Queue or a Broker, it only waits for its `202`.',
           'With a valid Behavior (DSL), it does what the DSL says instead of all of the above.',
           'The `session memory | jwt | <Database>` step checks the user\'s session before going on. With `memory` the sessions live in the service (🍪 N) and are lost if it goes down; behind a LB without sticky, another server does not know them and answers `401`.',
+          'A user\'s requests that already left without a cookie, before the login one came back, each log in: for a while there can be more sessions than users.',
+          'Sessions never expire: old ones pile up in the 🍪 counter of services and databases.',
         ],
         fields: {
           mode: 'Parallel calls every output at once; Sequential, one at a time, stopping at the first error.',
@@ -295,6 +297,7 @@ export const en: Dict = {
           'Type: Relational (🗄️), Key-value (🗝️) or Document (📄). Changing it applies its suggested processing time, unless you edited it.',
           'It can store the sessions of services that use `session <Database>`: it answers `200` if the session exists (or it created it) and `404` if not. On the node, 🍪 N counts the stored sessions.',
           'Key-value is volatile: if it goes down and comes back up, it loses its sessions and users get `401` until they log in again. Relational and document keep them.',
+          'Sessions never expire: old ones pile up in 🍪 N.',
         ],
         fields: {
           kind: 'Relational (🗄️, 300 ms), key-value (🗝️, 20 ms) or document (📄, 80 ms). Key-value keeps everything in memory: if it restarts, it loses its sessions.',
@@ -497,7 +500,7 @@ export const en: Dict = {
     sessions: {
       name: 'Sessions',
       description:
-        "Where the user's session lives. Three identical lanes: 5 logged-in users behind a round-robin Load Balancer without sticky. Top, session in the server's memory: each request lands on another server and gets a 401. Middle, a shared key-value store: any server works (turn it off and on: the sessions are lost). Bottom, JWT: needs no store and no sticky. Try turning on Sticky sessions on the top LB.",
+        "Where the user's session lives. Three identical lanes: 5 users with login behind a round-robin Load Balancer without sticky. Top, session in the server's memory: most requests land on another server and get a 401. Middle, a shared key-value store: any server works (turn it off and on: the sessions are lost). Bottom, JWT: needs no store and no sticky. Try turning on Sticky sessions on the top LB.",
       nodes: {
         client: { mem: 'Memory client', store: 'Store client', jwt: 'JWT client' },
         lb: { mem: 'Memory LB', store: 'Store LB', jwt: 'JWT LB' },

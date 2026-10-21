@@ -76,6 +76,17 @@ function setup(store: Store, opts: Opts = {}) {
 
 const summary = (m: Message | undefined) => m && { status: m.status, code: m.code, setSession: m.meta.setSession, authError: m.meta.authError }
 
+describe('session: database request meta', () => {
+  it('carries only identity, color and the session op: no credentials, user or IP', () => {
+    const t = setup('database', { client: { users: 2, ip: '10.0.0.9', color: '#3b82f6' } })
+    t.send()
+    t.s.advance(5_000)
+    const meta = t.arrivalsAt('Sesiones')[0].msg.meta
+    expect(Object.keys(meta).sort()).toEqual(['clientColor', 'clientId', 'clientName', 'sessionId', 'sessionOp'])
+    expect(meta).toMatchObject({ clientId: 'C', clientColor: '#3b82f6', sessionOp: 'create' })
+  })
+})
+
 describe('session: parse', () => {
   it('memory, jwt and a database target (quoted or not), with or modifiers', () => {
     const { program, errors } = parseBehavior(

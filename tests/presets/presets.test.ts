@@ -250,7 +250,7 @@ describe('sessions preset', () => {
     const cfg = (id: string) => p.graph.nodes.find((n) => n.id === id)!.config
     for (const lane of ['mem', 'store', 'jwt']) {
       expect(cfg(`client-${lane}`)).toMatchObject({ users: 5, auth: 'login', rate: 0 })
-      expect(cfg(`lb-${lane}`)).toMatchObject({ algorithm: 'round-robin', sticky: false })
+      expect(cfg(`lb-${lane}`)).toMatchObject({ algorithm: 'round-robin', sticky: false, healthChecks: true })
       for (const i of [1, 2, 3]) expect(p.graph.edges.some((e) => e.source === `lb-${lane}` && e.target === `${lane}-${i}`)).toBe(true)
     }
     expect(cfg('mem-1').behavior).toContain('session memory')
@@ -279,8 +279,36 @@ describe('sessions preset', () => {
     expect(lost[LANES.mem] ?? 0).toBeGreaterThan(5)
     expect(lost[LANES.store] ?? 0).toBe(0)
     expect(lost[LANES.jwt] ?? 0).toBe(0)
-    for (const id of Object.values(LANES)) expect(ok[id] ?? 0, id).toBeGreaterThan(10)
-    expect((sim.nodeState('sessions-db') as { sessions: string[] }).sessions.length).toBeGreaterThan(0)
+    for (const id of Object.values(LANES)) expect(ok[id] ?? 0, id).toBeGreaterThan(5)
+    // Each user's next request leaves after its login cookie came back: one stored session per user.
+    expect((sim.nodeState('sessions-db') as { sessions: string[] }).sessions).toHaveLength(5)
+  })
+
+  it('sticky on and a memory server off: its users get one session-lost 401, log in elsewhere, no lasting 503s', () => {
+    const p = preset('sessions')
+    const traffic = withDemoTraffic(p)
+    const sticky = { ...traffic, nodes: traffic.nodes.map((n) => (n.id === 'lb-mem' ? { ...n, config: { ...n.config, sticky: true } } : n)) }
+    const sim = new Simulation(sticky, { seed: 1, registry: defaultRegistry })
+    const byUser: Record<number, Message[]> = {}
+    sim.on('message:arrived', (e) => {
+      if (e.at === 'client-mem' && e.msg.kind === 'response' && sim.now > 10_000) (byUser[e.msg.meta.userIndex!] ??= []).push(e.msg)
+    })
+    sim.advance(10_000)
+    const pinned = Object.entries((sim.nodeState('lb-mem') as { sticky: Record<string, string> }).sticky)
+    const onFirst = pinned.filter(([, server]) => server === 'mem-1').length
+    expect(onFirst).toBeGreaterThan(0)
+    sim.setGraph({ ...sticky, nodes: sticky.nodes.map((n) => (n.id === 'mem-1' ? { ...n, config: { ...n.config, up: false } } : n)) })
+    sim.advance(20_000)
+    const all = Object.values(byUser).flat()
+    const lost = all.filter((m) => m.code === 401 && m.meta.authError === 'session-lost')
+    // At most one 401 per user that was pinned to the dead server (plus requests already on the wire).
+    expect(lost.length).toBeGreaterThanOrEqual(onFirst)
+    expect(lost.length).toBeLessThanOrEqual(2 * onFirst)
+    // Only a request already on its way to the server when it went off may get a 503.
+    expect(all.filter((m) => m.code === 503 && m.createdAt >= 10_000)).toEqual([])
+    // Every user ends logged in again, and the last 10 s are clean.
+    expect((sim.nodeState('client-mem') as { cookies: (string | null)[] }).cookies.every(Boolean)).toBe(true)
+    expect(all.filter((m) => m.status === 'error' && m.createdAt > 20_000)).toEqual([])
   })
 })
 

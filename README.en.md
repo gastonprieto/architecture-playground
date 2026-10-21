@@ -51,7 +51,7 @@ The full reference (in Spanish) is in [docs/dsl-spec.md](docs/dsl-spec.md).
 
 You can show where a user's session lives and who authenticates:
 
-- **Client**: has **Users** (each with its own cookie) and **Authentication** (with login or no credentials). The node shows 🍪 logged-in/N.
+- **Client**: has **Users** (each with its own cookie) and **Authentication** (with login or no credentials). With more than one user, the node shows 🍪 logged-in/N.
 - **`session` DSL step**: `session memory` (on the server), `session <Database>` (in a shared database) or `session jwt` (in the token, which cannot be revoked). A cookie the server does not know gets a `401` and the user logs in again.
 - **Database**: has a **Type** (relational, key-value or document). Key-value is fast but volatile: if it restarts, it loses the sessions.
 - **Load Balancer**: **Sticky sessions** sends each user to the server that gave it the cookie.

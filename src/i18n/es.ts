@@ -245,7 +245,7 @@ export const es = {
           'Sin salida conectada, el mensaje se descarta.',
           'Reparte sus mensajes entre sus Usuarios, en orden. Cada usuario guarda su propia cookie de sesión: la recibe en la respuesta del login y la manda en sus próximos requests.',
           'Un `401` session-lost (su cookie no existe donde la buscaron) le borra la cookie a ese usuario: el próximo request vuelve a loguearse. Un `401` unauthenticated (no mandó credenciales) no cambia nada.',
-          'En el nodo, 🍪 logueados/N cuenta los usuarios con cookie.',
+          'En el nodo, 🍪 logueados/N cuenta los usuarios con cookie (se muestra con más de un usuario o cuando alguno está logueado).',
         ],
         fields: {
           ip: 'Dirección que hashea el IP Hash del Load Balancer; vacía, usa el id del cliente.',
@@ -276,6 +276,8 @@ export const es = {
           'Si una salida es una Cola o un Broker, solo espera su `202`.',
           'Con un Comportamiento (DSL) válido, hace lo que dice el DSL en lugar de todo lo anterior.',
           'El paso `session memory | jwt | <Base>` verifica la sesión del usuario antes de seguir. Con `memory` las sesiones viven en el servicio (🍪 N) y se pierden si se apaga; detrás de un LB sin sticky, otro servidor no las conoce y responde `401`.',
+          'Los requests de un usuario que ya salieron sin cookie, antes de que vuelva la del login, se loguean cada uno: por un rato puede haber más sesiones que usuarios.',
+          'Las sesiones no expiran: las viejas se acumulan en el contador 🍪 de servicios y bases.',
         ],
         fields: {
           mode: 'Paralelo llama a todas las salidas a la vez; Secuencial, de a una y corta en el primer error.',
@@ -298,6 +300,7 @@ export const es = {
           'Tipo: Relacional (🗄️), Clave-valor (🗝️) o Documental (📄). Al cambiarlo se aplica su tiempo de proceso sugerido, salvo que lo hayas editado.',
           'Puede guardar las sesiones de los servicios que usan `session <Base>`: responde `200` si la sesión existe (o la creó) y `404` si no. En el nodo, 🍪 N cuenta las sesiones guardadas.',
           'La clave-valor es volátil: si se apaga y se vuelve a prender, pierde sus sesiones y los usuarios reciben `401` hasta loguearse de nuevo. Relacional y documental las conservan.',
+          'Las sesiones no expiran: las viejas se acumulan en 🍪 N.',
         ],
         fields: {
           kind: 'Relacional (🗄️, 300 ms), clave-valor (🗝️, 20 ms) o documental (📄, 80 ms). La clave-valor guarda todo en memoria: si se reinicia, pierde las sesiones.',
@@ -502,7 +505,7 @@ export const es = {
     sessions: {
       name: 'Sesiones',
       description:
-        'Dónde vive la sesión del usuario. Tres carriles iguales: 5 usuarios con login detrás de un Load Balancer round robin sin sticky. Arriba, sesión en memoria del servidor: cada request cae en otro servidor y recibe 401. En el medio, un store clave-valor compartido: funciona con cualquier servidor (apagalo y prendelo: se pierden las sesiones). Abajo, JWT: no necesita store ni sticky. Probá prender Sticky sessions en el LB de arriba.',
+        'Dónde vive la sesión del usuario. Tres carriles iguales: 5 usuarios con login detrás de un Load Balancer round robin sin sticky. Arriba, sesión en memoria del servidor: muchos requests caen en otro servidor y reciben 401. En el medio, un store clave-valor compartido: funciona con cualquier servidor (apagalo y prendelo: se pierden las sesiones). Abajo, JWT: no necesita store ni sticky. Probá prender Sticky sessions en el LB de arriba.',
       nodes: {
         client: { mem: 'Cliente memoria', store: 'Cliente store', jwt: 'Cliente JWT' },
         lb: { mem: 'LB memoria', store: 'LB store', jwt: 'LB JWT' },

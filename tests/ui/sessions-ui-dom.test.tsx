@@ -141,8 +141,8 @@ describe('🍪 counters', () => {
     expect(screen.queryByText('🍪 0')).toBeNull()
   })
 
-  it('no counter for a client without credentials and nobody logged in', () => {
-    render(<NodeStatsSlot nodeId="cx" kind="client" config={{ users: 2, auth: 'none' }} />)
+  it('no counter for a single-user client with nobody logged in', () => {
+    render(<NodeStatsSlot nodeId="cx" kind="client" config={{ users: 1, auth: 'login' }} />)
     expect(screen.queryByText(/🍪/)).toBeNull()
   })
 })

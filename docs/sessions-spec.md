@@ -28,7 +28,7 @@ Permite modelar **dónde vive la sesión de un usuario** y **quién autentica**,
 - Si la respuesta es un **401 con `meta.authError = 'session-lost'`**, el Cliente borra la cookie de ese usuario. Su próximo request vuelve a loguearse, porque manda credenciales sin cookie.
 - Un 401 `unauthenticated` no cambia nada: el Cliente sin credenciales sigue recibiendo 401.
 
-**Contador:** el nodo Cliente muestra **"🍪 logueados/N"** cuando hay al menos un usuario logueado o la autenticación es "Con login".
+**Contador:** el nodo Cliente muestra **"🍪 logueados/N"** cuando hay al menos un usuario logueado o tiene más de un usuario (Usuarios > 1). Un Cliente de un solo usuario sin cookie no muestra nada, para no ensuciar los grafos que no usan sesiones.
 
 ## 3. Motor: respuesta con meta
 
@@ -99,7 +99,9 @@ session <Base de datos>      # nombre de una base conectada (comillas opcionales
 
 ## 6. Servicio con `session memory`
 
-El nodo muestra **🍪 N** con las sesiones que tiene en memoria.
+El nodo muestra **🍪 N** con las sesiones que tiene en memoria (solo en Servicio: Worker y Suscriptor nunca atienden requests, así que nunca guardan sesiones).
+
+**Sin expiración:** las sesiones viejas no se borran nunca (no hay TTL), así que los contadores 🍪 de servicios y bases solo crecen. Y los requests que ya salieron sin cookie antes de que vuelva la del login se loguean cada uno por su lado, así que la cuenta puede pasar momentáneamente la cantidad de usuarios.
 
 ## 7. Load Balancer: sticky sessions
 
@@ -135,12 +137,12 @@ El orden en el proxy sigue siendo: rate limit → auth → cache → rutear.
   - LB: Sticky sessions.
   - Proxy: Autenticación.
 - **Ícono del nodo:** se puede derivar del config, con `iconFor(config)` opcional en `ComponentDef`. La paleta usa el ícono base.
-- **Contadores 🍪:** en Cliente (logueados/N), Servicio con `session memory` y Base de datos.
+- **Contadores 🍪:** en Cliente (logueados/N, si hay alguien logueado o Usuarios > 1), Servicio con `session memory` y Base de datos (si guarda sesiones).
 - **Info ⓘ:** se actualiza para Cliente, Base de datos, LB, Proxy, Servicio, Worker y Suscriptor (paso `session`). La referencia del DSL suma `session`, y el panel cuenta la limitación de JWT (no revocable).
 
 ## 10. Presets
 
-- **"Sesiones" (nuevo):** tres carriles. Cada uno tiene un Cliente con 5 usuarios con login, un LB round robin sin sticky y 3 servicios. Son 5 y no 6 a propósito: con un número de usuarios múltiplo de los servidores, el round robin del Cliente y el del LB se alinean y cada usuario cae siempre en el mismo servidor (sticky por casualidad), así que el carril de memoria no mostraría ningún 401:
+- **"Sesiones" (nuevo):** tres carriles. Cada uno tiene un Cliente con 5 usuarios con login, un LB round robin sin sticky y con health checks, y 3 servicios. Los health checks están prendidos para que, con sticky y un servidor apagado, sus usuarios reciban un 401 `session-lost` y se vuelvan a loguear en otro (en lugar de 503 sin fin). La tasa de demo es 1 req/s por cliente: cada usuario manda su próximo request después de que volvió la cookie de su login, también en el carril store (que tarda más por la ida y vuelta a la base), así el store termina con exactamente una sesión por usuario. Son 5 y no 6 a propósito: con un número de usuarios múltiplo de los servidores, el round robin del Cliente y el del LB se alinean y cada usuario cae siempre en el mismo servidor (sticky por casualidad), así que el carril de memoria no mostraría ningún 401:
   1. **Memoria:** `session memory`.
   2. **Store:** `session Sesiones`, contra una Base de datos clave-valor compartida llamada "Sesiones" / "Sessions".
   3. **JWT:** `session jwt`.

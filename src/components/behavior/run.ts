@@ -283,7 +283,10 @@ function sessionStep(run: Run, step: Extract<Step, { kind: 'session' }>, then: (
     return
   }
   const id = cookie ?? `sid:${msg.id}`
-  const child = ctx.newMessage('request', { ...msg.meta, sessionOp: cookie === undefined ? 'create' : 'check', sessionId: id }, msg)
+  // Only who it is for (identity and color, to paint the packet) plus the operation: no credentials, user or IP.
+  const meta: Message['meta'] = { sessionOp: cookie === undefined ? 'create' : 'check', sessionId: id }
+  for (const k of ['clientId', 'clientName', 'clientColor'] as const) if (msg.meta[k] !== undefined) meta[k] = msg.meta[k]
+  const child = ctx.newMessage('request', meta, msg)
   ctx.state.behaviorPending[child.id] = {
     target,
     next: (_ok, res) => {

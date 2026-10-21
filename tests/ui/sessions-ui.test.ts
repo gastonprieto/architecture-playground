@@ -7,6 +7,12 @@ describe('usesSessionMemory', () => {
     expect(usesSessionMemory('on request:\n  session memory\n')).toBe(true)
     expect(usesSessionMemory('on request:\n  parallel:\n    session memory\n    wait 10\n')).toBe(true)
   })
+  it('answers the same for the same text (memoized)', () => {
+    const text = 'on request:\n  session memory\n  reply 201\n'
+    expect(usesSessionMemory(text)).toBe(true)
+    expect(usesSessionMemory(text)).toBe(true)
+    expect(usesSessionMemory(text.replace('memory', 'jwt'))).toBe(false)
+  })
   it('is false for jwt, a database, blank or non-text', () => {
     expect(usesSessionMemory('on request:\n  session jwt\n')).toBe(false)
     expect(usesSessionMemory('on request:\n  session Sesiones\n')).toBe(false)
@@ -17,19 +23,22 @@ describe('usesSessionMemory', () => {
 })
 
 describe('cookieCounter', () => {
-  it('client: logged/N with login, or when someone is logged in', () => {
+  it('client: logged/N with more than one user, or when someone is logged in', () => {
     expect(cookieCounter('client', { users: 5, auth: 'login' }, { cookies: 2 })).toBe('🍪 2/5')
     expect(cookieCounter('client', { users: 5, auth: 'login' }, undefined)).toBe('🍪 0/5')
-    expect(cookieCounter('client', {}, undefined)).toBe('🍪 0/1')
-    expect(cookieCounter('client', { users: 3, auth: 'none' }, { cookies: 0 })).toBeNull()
-    expect(cookieCounter('client', { users: 3, auth: 'none' }, { cookies: 1 })).toBe('🍪 1/3')
+    expect(cookieCounter('client', { users: 3, auth: 'none' }, { cookies: 0 })).toBe('🍪 0/3')
+    // A single user without a cookie (every preset client, the default) shows nothing.
+    expect(cookieCounter('client', {}, undefined)).toBeNull()
+    expect(cookieCounter('client', { users: 1, auth: 'login' }, { cookies: 0 })).toBeNull()
+    expect(cookieCounter('client', { users: 1, auth: 'login' }, { cookies: 1 })).toBe('🍪 1/1')
   })
-  it('service, worker and subscriber: N when the DSL uses session memory or N > 0', () => {
+  it('service: N when the DSL uses session memory or N > 0; never on workers or subscribers', () => {
     const mem = { behavior: 'on request:\n  session memory\n' }
     expect(cookieCounter('service', mem, undefined)).toBe('🍪 0')
     expect(cookieCounter('service', mem, { sessions: 4 })).toBe('🍪 4')
-    expect(cookieCounter('worker', { behavior: '' }, { sessions: 0 })).toBeNull()
-    expect(cookieCounter('subscriber', { behavior: '' }, { sessions: 2 })).toBe('🍪 2')
+    expect(cookieCounter('service', { behavior: '' }, { sessions: 2 })).toBe('🍪 2')
+    expect(cookieCounter('worker', mem, { sessions: 0 })).toBeNull()
+    expect(cookieCounter('subscriber', mem, { sessions: 2 })).toBeNull()
     expect(cookieCounter('service', { behavior: 'on request:\n  session jwt\n' }, { sessions: 0 })).toBeNull()
   })
   it('database: only when it holds sessions', () => {

@@ -10,28 +10,37 @@ import type { UiState } from './runtime/useSimulation'
 const hasMemory = (steps: Step[]): boolean =>
   steps.some((s) => (s.kind === 'session' && s.store.kind === 'memory') || (s.kind === 'parallel' && hasMemory(s.steps)))
 
-/** Whether a behavior text has a `session memory` step (parse only: a typo elsewhere still counts). */
+/** Parsed answers per behavior text; cleared when it grows past MEMO_MAX (texts are edited, not many). */
+const memo = new Map<string, boolean>()
+const MEMO_MAX = 200
+
+/** Whether a behavior text has a `session memory` step (parse only: a typo elsewhere still counts). Memoized. */
 export function usesSessionMemory(text: unknown): boolean {
   if (typeof text !== 'string' || !text.includes('session')) return false
-  return parseBehavior(text).program.handlers.some((h) => hasMemory(h.steps))
+  const known = memo.get(text)
+  if (known !== undefined) return known
+  const found = parseBehavior(text).program.handlers.some((h) => hasMemory(h.steps))
+  if (memo.size >= MEMO_MAX) memo.clear()
+  memo.set(text, found)
+  return found
 }
-
-const BEHAVIOR_TYPES = new Set(['service', 'worker', 'subscriber'])
 
 /**
  * The 🍪 counter of a node, or null when it shows none:
- * - Cliente: "🍪 logged/N" with login, or while some user still holds a cookie.
- * - Servicio, Worker, Suscriptor: "🍪 N" when the DSL keeps sessions in memory (or it still holds some).
+ * - Cliente: "🍪 logged/N" when it has more than one user, or while some user holds a cookie.
+ * - Servicio: "🍪 N" when the DSL keeps sessions in memory (or it still holds some). Workers and
+ *   subscribers never serve requests, so they never hold sessions.
  * - Base de datos: "🍪 N" while it holds sessions.
  */
 export function cookieCounter(kind: string, config: Record<string, unknown>, ui: UiState | undefined): string | null {
   if (kind === 'client') {
     const logged = ui?.cookies ?? 0
-    return config.auth !== 'none' || logged > 0 ? `🍪 ${logged}/${userCount(config as { users: number })}` : null
+    const users = userCount(config as { users: number })
+    return logged > 0 || users > 1 ? `🍪 ${logged}/${users}` : null
   }
   const n = ui?.sessions ?? 0
   if (kind === 'database') return n > 0 ? `🍪 ${n}` : null
-  if (BEHAVIOR_TYPES.has(kind)) return n > 0 || usesSessionMemory(config.behavior) ? `🍪 ${n}` : null
+  if (kind === 'service') return n > 0 || usesSessionMemory(config.behavior) ? `🍪 ${n}` : null
   return null
 }
 
