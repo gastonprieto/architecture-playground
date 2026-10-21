@@ -12,6 +12,9 @@ type TargetVerb = keyof typeof TARGET_TYPES
 /** `session <name>` may only target a database (memory and jwt need no output). */
 const SESSION_TYPES = ['database'] as const
 
+/** `cache <name>:` may only target a Cache. */
+const CACHE_TYPES = ['cache'] as const
+
 /**
  * Names compare after NFC normalization (an accent typed decomposed matches a composed one), trimming
  * and collapsing inner whitespace (the parser joins words with one space).
@@ -35,7 +38,10 @@ export function validateBehavior(program: Program, outputs: BehaviorOutput[]): D
   function checkSteps(steps: Step[]): void {
     for (const step of steps) {
       if (step.kind === 'parallel') checkSteps(step.steps)
-      else if (step.kind === 'publish') {
+      else if (step.kind === 'cache') {
+        checkTarget('cache', step.target, step.line)
+        checkSteps(step.steps)
+      } else if (step.kind === 'publish') {
         if (!hasBroker) errors.push({ line: step.line, code: 'no-broker' })
       } else if (step.kind === 'call' || step.kind === 'query' || step.kind === 'enqueue') {
         checkTarget(step.kind, step.target, step.line)
@@ -45,7 +51,7 @@ export function validateBehavior(program: Program, outputs: BehaviorOutput[]): D
     }
   }
 
-  function checkTarget(verb: TargetVerb | 'session', target: string, line: number): void {
+  function checkTarget(verb: TargetVerb | 'session' | 'cache', target: string, line: number): void {
     const name = normalizeName(target)
     const matches = outputs.filter((o) => normalizeName(o.name) === name)
     if (matches.length === 0) {
@@ -54,7 +60,7 @@ export function validateBehavior(program: Program, outputs: BehaviorOutput[]): D
       errors.push({ line, code: 'ambiguous-target', params: { target: name } })
     } else {
       const type = matches[0].type
-      const allowed: readonly string[] = verb === 'session' ? SESSION_TYPES : TARGET_TYPES[verb]
+      const allowed: readonly string[] = verb === 'session' ? SESSION_TYPES : verb === 'cache' ? CACHE_TYPES : TARGET_TYPES[verb]
       if (allowed.includes(type)) return
       // A broker is reached with `publish` (it takes the event type, not the broker's name).
       const suggestion =

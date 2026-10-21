@@ -22,6 +22,7 @@ const SAMPLES: Record<DslErrorCode, DslError> = {
   'no-broker': { line: 1, code: 'no-broker' },
   'nowait-with-or': { line: 1, code: 'nowait-with-or' },
   'session-nowait': { line: 1, code: 'session-nowait' },
+  'cache-nowait': { line: 1, code: 'cache-nowait' },
 }
 
 describe('dslErrorText', () => {

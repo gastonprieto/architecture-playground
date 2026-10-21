@@ -8,7 +8,7 @@ import type { UiState } from './runtime/useSimulation'
  */
 
 const hasMemory = (steps: Step[]): boolean =>
-  steps.some((s) => (s.kind === 'session' && s.store.kind === 'memory') || (s.kind === 'parallel' && hasMemory(s.steps)))
+  steps.some((s) => (s.kind === 'session' && s.store.kind === 'memory') || ((s.kind === 'parallel' || s.kind === 'cache') && hasMemory(s.steps)))
 
 /** Parsed answers per behavior text; cleared when it grows past MEMO_MAX (texts are edited, not many). */
 const memo = new Map<string, boolean>()

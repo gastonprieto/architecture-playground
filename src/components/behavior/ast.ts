@@ -13,6 +13,11 @@ export type Step =
   | { kind: 'reply'; line: number; code: number }
   /** Where the session lives (docs/sessions-spec.md §4). `mod` is never `nowait`. */
   | { kind: 'session'; line: number; store: SessionStore; mod?: Mod }
+  /**
+   * Cache-aside block (docs/cache-spec.md §4): get the key from `target`; on a miss run `steps` and,
+   * if they end without error, set the key. `mod` (never `nowait`) applies when the cache fails.
+   */
+  | { kind: 'cache'; line: number; target: string; mod?: Mod; steps: Step[] }
 
 /** `memory` and `jwt` are keywords; any other target names a connected database. */
 export type SessionStore = { kind: 'memory' } | { kind: 'jwt' } | { kind: 'database'; target: string }
@@ -45,6 +50,7 @@ export type DslErrorCode =
   | 'no-broker'
   | 'nowait-with-or'
   | 'session-nowait'
+  | 'cache-nowait'
 
 /** A code plus params; the UI translates it. `line` is 1-based. */
 export interface DslError {

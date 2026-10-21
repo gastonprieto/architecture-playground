@@ -1,5 +1,6 @@
 import { behaviorField, defineComponent, processingFields } from '../engine/registry'
 import { activeProgram, forgetSessionsIfDown, handleBehaviorResponse, initialBehaviorState, runBehavior, sweepBehaviorPending, type BehaviorState } from './behavior/run'
+import { cacheAside, handleCacheAsideResponse, initialCacheAsideState, sweepCacheAsidePending, type CacheAsideState } from './shared/cacheAside'
 import {
   callDependencies,
   handleDependencyResponse,
@@ -19,7 +20,7 @@ export interface ServiceConfig {
   behavior: string
 }
 
-export const service = defineComponent<ServiceConfig, DependencyState & BehaviorState>({
+export const service = defineComponent<ServiceConfig, DependencyState & BehaviorState & CacheAsideState>({
   type: 'service',
   label: 'Servicio',
   icon: '⚙️',
@@ -37,19 +38,20 @@ export const service = defineComponent<ServiceConfig, DependencyState & Behavior
     },
     behavior: behaviorField,
   },
-  initialState: () => ({ ...initialDependencyState(), ...initialBehaviorState() }),
+  initialState: () => ({ ...initialDependencyState(), ...initialBehaviorState(), ...initialCacheAsideState() }),
   onMessage(msg, ctx) {
     sweepBehaviorPending(ctx)
+    sweepCacheAsidePending(ctx)
     const program = activeProgram(ctx)
     if (program) {
       ctx.occupy(msg, (release) => runBehavior(ctx, program, msg, release))
       return
     }
-    ctx.process(msg, () =>
-      callDependencies(ctx, msg, ctx.config.mode, (ok) =>
-        ctx.reply(msg, ok ? { status: 'ok', code: 200 } : { status: 'error', code: 502 }),
-      ),
-    )
+    ctx.process(msg, () => {
+      const done = (ok: boolean) => ctx.reply(msg, ok ? { status: 'ok', code: 200 } : { status: 'error', code: 502 })
+      // With a leaf Cache: cache-aside (cache spec §3); otherwise call every output, as always.
+      if (!cacheAside(ctx, msg, ctx.config.mode, done)) callDependencies(ctx, msg, ctx.config.mode, done)
+    })
   },
   /** `session memory` forgets its sessions as soon as Activo goes off, even while paused. */
   onConfig(ctx) {
@@ -58,9 +60,10 @@ export const service = defineComponent<ServiceConfig, DependencyState & Behavior
   /** Fails DSL children sent to a node that was deleted, so their run frees its slot. */
   onTick(ctx) {
     sweepBehaviorPending(ctx)
+    sweepCacheAsidePending(ctx)
     forgetSessionsIfDown(ctx)
   },
   onResponse(res, ctx) {
-    if (!handleBehaviorResponse(res, ctx) && !handleDependencyResponse(res, ctx)) ctx.forwardResponse(res)
+    if (!handleBehaviorResponse(res, ctx) && !handleCacheAsideResponse(res, ctx) && !handleDependencyResponse(res, ctx)) ctx.forwardResponse(res)
   },
 })

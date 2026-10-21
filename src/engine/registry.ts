@@ -62,6 +62,8 @@ export interface Ctx<C = any, S = any> {
   state: S
   outputs(): OutEdge[]
   peer(id: NodeId): { type: string; config: Record<string, unknown> } | undefined
+  /** How many outgoing connections node `id` has (0 for a missing node), e.g. to tell a leaf Cache. */
+  peerOutputCount(id: NodeId): number
   /** Fresh id, empty trail, createdAt = now, parentId = parent?.id. */
   newMessage(kind: MessageKind, meta: Message['meta'], parent?: Message): Message
   /** Appends this node to msg.trail. */

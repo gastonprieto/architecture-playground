@@ -23,7 +23,7 @@ interface Token {
   quoted: boolean
 }
 
-const STEP_KEYWORDS = new Set(['call', 'query', 'enqueue', 'publish', 'parallel', 'parallel:', 'wait', 'fail', 'reply', 'session'])
+const STEP_KEYWORDS = new Set(['call', 'query', 'enqueue', 'publish', 'parallel', 'parallel:', 'wait', 'fail', 'reply', 'session', 'cache', 'cache:'])
 
 function scan(text: string, errors: DslError[]): Line[] {
   const lines: Line[] = []
@@ -186,6 +186,9 @@ class Parser {
         return this.reply(l, tokens)
       case 'session':
         return this.session(l, tokens)
+      case 'cache':
+      case 'cache:':
+        return this.cache(l)
       default:
         if (word === 'on') this.error(l.line, 'indent')
         else this.error(l.line, 'unknown-keyword', { word: tokens[0].text })
@@ -290,6 +293,29 @@ class Parser {
     const store: SessionStore = keyword ? { kind: keyword } : { kind: 'database', target }
     const mod = this.mod(l, tokens, next)
     return { kind: 'session', line: l.line, store, ...(mod && { mod }) }
+  }
+
+  /**
+   * `cache <target> [or …]:` plus a mandatory block. The colon closes the line (it may touch the
+   * target or a modifier code). The block decides on a miss, so the step always waits: no `nowait`.
+   */
+  private cache(l: Line): Step | null {
+    const hasColon = l.text.endsWith(':')
+    const tokens = tokenize(hasColon ? l.text.slice(0, -1) : l.text)
+    const { target, next } = readTarget(tokens, 1)
+    let valid = true
+    if (target === '') {
+      this.error(l.line, 'missing-target')
+      valid = false
+    } else if (tokens.slice(next).some((t) => !t.quoted && t.text === 'nowait')) {
+      this.error(l.line, 'cache-nowait')
+      valid = false
+    }
+    const mod = valid ? this.mod(l, tokens, next) : undefined
+    if (valid && !hasColon) this.error(l.line, 'missing-colon')
+    // The block is read even for a broken header, so its lines don't report errors of their own.
+    const steps = this.block(l, valid && hasColon)
+    return valid ? { kind: 'cache', line: l.line, target, ...(mod && { mod }), steps } : null
   }
 
   /** Reads an optional modifier from tokens[i…]; reports leftovers and `nowait` mixed with `or`. */

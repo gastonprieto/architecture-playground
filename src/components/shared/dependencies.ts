@@ -29,6 +29,7 @@ export const initialDependencyState = (): DependencyState => ({ pending: {} })
  * each output except DLQs (queues and brokers included: they answer 202). `parallel` sends all at
  * once and finishes when all answered; `sequential` sends one at a time and stops at the first
  * error. `done(ok)` gets ok only if every child answered ok. No outputs → `done(true)` synchronously.
+ * `outputs` narrows the dependencies (default: every output of the node).
  *
  * The owning component must route responses through `handleDependencyResponse` in its onResponse.
  */
@@ -37,8 +38,9 @@ export function callDependencies(
   msg: Message,
   mode: DependencyMode,
   done: (ok: boolean) => void,
+  outputs: OutEdge[] = ctx.outputs(),
 ): void {
-  const targets = ctx.outputs().filter((o) => o.targetType !== 'dlq')
+  const targets = outputs.filter((o) => o.targetType !== 'dlq')
   if (targets.length === 0) {
     done(true)
     return

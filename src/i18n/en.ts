@@ -175,6 +175,7 @@ export const en: Dict = {
       'no-broker': 'publish needs a connected Broker',
       'nowait-with-or': 'nowait cannot be combined with or: nowait already ignores the result',
       'session-nowait': 'session does not take nowait: the session is checked before going on',
+      'cache-nowait': 'cache does not take nowait: the block depends on whether the key was there',
     },
     examples: {
       service: '# Example: change the names to your outputs\' names\non request:\n  query Database\n  call Payments /charges or reply 402\n  reply 201\n',

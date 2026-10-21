@@ -1,6 +1,7 @@
 import type { Ctx } from '../../engine/registry'
 import { matchesPath } from '../../engine/rules'
 import type { Message, NodeId } from '../../engine/types'
+import { cacheOpMeta } from '../shared/cacheAside'
 import type { Handler, Mod, Program, Step } from './ast'
 import { behaviorTargets, type BehaviorTarget } from './outputs'
 import { parseBehavior } from './parse'
@@ -222,7 +223,61 @@ function runStep(run: Run, step: Step, then: (o: Outcome) => void): void {
       return
     case 'session':
       sessionStep(run, step, then)
+      return
+    case 'cache':
+      cacheStep(run, step, then)
   }
+}
+
+/** Default status when the Cache of a `cache` step does not answer (down, queue full, gone). */
+const CACHE_FAILED = 503
+
+/** The key a `cache` step uses: the request path, the event type, or the message id. */
+function stepCacheKey(msg: Message): string {
+  if (msg.kind === 'request') return typeof msg.meta.path === 'string' && msg.meta.path !== '' ? msg.meta.path : '/'
+  if (msg.kind === 'event') return typeof msg.meta.eventType === 'string' && msg.meta.eventType !== '' ? msg.meta.eventType : '/'
+  return msg.id
+}
+
+/**
+ * docs/cache-spec.md §4. `get` the key: a HIT skips the block; a MISS runs it and, if it ends
+ * without error, `set`s the key (waiting for the answer, whatever it is) and goes on. A block that
+ * fails propagates its failure and a `reply` inside it ends the handler: no set either way. A failed
+ * Cache is a step failure (503, or the modifier); `or continue` runs the block as a miss, without set.
+ */
+function cacheStep(run: Run, step: Extract<Step, { kind: 'cache' }>, then: (o: Outcome) => void): void {
+  const { ctx, msg } = run
+  const key = stepCacheKey(msg)
+  const target = resolve(ctx, step.target)
+  const send = (to: NodeId, op: 'get' | 'set', next: ChildResult) => {
+    const child = ctx.newMessage('request', cacheOpMeta(msg, op, key), msg)
+    ctx.state.behaviorPending[child.id] = {
+      target: to,
+      next: (ok, res) => {
+        if (!run.finished) next(ok, res)
+      },
+    }
+    ctx.send(to, child)
+  }
+  const runBlock = (set: boolean) =>
+    runSteps(run, step.steps, 0, (o) => {
+      if (o === 'failed' || !set || target === undefined) then(o)
+      else send(target, 'set', () => then('next'))
+    })
+  const failed = () => {
+    if (step.mod?.kind === 'orContinue') runBlock(false)
+    else if (step.mod?.kind === 'orReply') end(run, step.mod.code)
+    else end(run, CACHE_FAILED)
+  }
+  if (target === undefined) {
+    failed()
+    return
+  }
+  send(target, 'get', (ok, res) => {
+    if (ok) then('next')
+    else if (res?.code === 404) runBlock(true)
+    else failed()
+  })
 }
 
 /** Default status when a session store does not answer (down, queue full, gone). */

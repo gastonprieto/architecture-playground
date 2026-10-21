@@ -178,6 +178,7 @@ export const es = {
       'no-broker': 'publish necesita un Broker conectado',
       'nowait-with-or': 'nowait no se combina con or: nowait ya ignora el resultado',
       'session-nowait': 'session no admite nowait: la sesión se verifica antes de seguir',
+      'cache-nowait': 'cache no admite nowait: el bloque depende de si la clave estaba',
     },
     examples: {
       service: '# Ejemplo: cambiá los nombres por los de tus salidas\non request:\n  query Base de datos\n  call Pagos /cobros or reply 402\n  reply 201\n',
