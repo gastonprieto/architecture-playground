@@ -46,9 +46,22 @@ export interface CellsView {
 /**
  * Queue/DLQ items and broker lanes, copied so React sees new references (components mutate in
  * place). Only the head is copied: a long buffer costs the same as a short one. `cookies` (Cliente:
- * users logged in) and `sessions` (Servicio/Worker/Suscriptor in memory, Base de datos) are counts.
+ * users logged in) and `sessions` (Servicio/Worker/Suscriptor in memory, Base de datos) are counts,
+ * and so are the cache ones (Cache, Reverse Proxy): stored keys, HITs and MISSes.
  */
-export type UiState = { items?: CellsView; lanes?: Record<NodeId, CellsView>; cookies?: number; sessions?: number }
+export type UiState = {
+  items?: CellsView
+  lanes?: Record<NodeId, CellsView>
+  cookies?: number
+  sessions?: number
+  cacheKeys?: number
+  cacheHits?: number
+  cacheMisses?: number
+}
+
+type CacheCounts = { keys: unknown[]; hits: number; misses: number }
+const isCacheState = (s: { keys?: unknown; hits?: unknown; misses?: unknown }): s is CacheCounts =>
+  Array.isArray(s.keys) && typeof s.hits === 'number' && typeof s.misses === 'number'
 
 const sigOf = (arr: Message[]) => `${arr.length}:${arr[0]?.id ?? ''}:${arr[arr.length - 1]?.id ?? ''}`
 
@@ -57,7 +70,7 @@ const loggedIn = (cookies: unknown[]) => cookies.filter(Boolean).length
 /** A cheap fingerprint of the drawable parts of a component state, or null if it has none. */
 export function uiSignature(state: unknown): string | null {
   if (typeof state !== 'object' || state === null) return null
-  const s = state as { items?: unknown; lanes?: unknown; cookies?: unknown; sessions?: unknown }
+  const s = state as { items?: unknown; lanes?: unknown; cookies?: unknown; sessions?: unknown; keys?: unknown; hits?: unknown; misses?: unknown }
   if (Array.isArray(s.items)) return sigOf(s.items as Message[])
   if (typeof s.lanes === 'object' && s.lanes !== null) {
     return Object.entries(s.lanes as Record<string, Message[]>)
@@ -66,19 +79,21 @@ export function uiSignature(state: unknown): string | null {
   }
   if (Array.isArray(s.cookies)) return `c:${loggedIn(s.cookies)}`
   if (Array.isArray(s.sessions)) return `s:${s.sessions.length}`
+  if (isCacheState(s)) return `k:${s.keys.length}:${s.hits}:${s.misses}`
   return null
 }
 
 const view = (arr: Message[]): CellsView => ({ head: arr.slice(0, UI_CELLS), total: arr.length })
 
 export function uiCopy(state: unknown): UiState {
-  const s = state as { items?: Message[]; lanes?: Record<NodeId, Message[]>; cookies?: unknown[]; sessions?: unknown[] }
+  const s = state as { items?: Message[]; lanes?: Record<NodeId, Message[]>; cookies?: unknown[]; sessions?: unknown[]; keys?: unknown; hits?: unknown; misses?: unknown }
   if (Array.isArray(s.items)) return { items: view(s.items) }
   if (typeof s.lanes === 'object' && s.lanes !== null) {
     return { lanes: Object.fromEntries(Object.entries(s.lanes).map(([k, v]) => [k, view(v)])) }
   }
   if (Array.isArray(s.cookies)) return { cookies: loggedIn(s.cookies) }
   if (Array.isArray(s.sessions)) return { sessions: s.sessions.length }
+  if (isCacheState(s)) return { cacheKeys: s.keys.length, cacheHits: s.hits, cacheMisses: s.misses }
   return {}
 }
 

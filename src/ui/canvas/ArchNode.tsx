@@ -9,6 +9,7 @@ import { ZERO_STATS, useRuntime } from '../runtime/runtimeStore'
 import { UI_CELLS, type CellsView, type UiState } from '../runtime/useSimulation'
 import { useEditor } from '../store/editor'
 import { cookieCounter } from '../sessions'
+import { cacheCounters } from '../cacheCounters'
 import { useBehaviorStatus } from '../useBehaviorStatus'
 import { packetStyle } from './PacketLayer'
 
@@ -72,6 +73,7 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
   const hasBehavior = defaultRegistry.get(kind)?.config.behavior?.type === 'behavior'
   const lanes = ui?.lanes ? Object.entries(ui.lanes).filter(([id]) => nodes?.some((n) => n.id === id)) : []
   const cookies = cookieCounter(kind, config, ui)
+  const cacheView = cacheCounters(kind, config, ui)
   return (
     <div className="node-stats">
       <div className="node-counters">
@@ -80,6 +82,16 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
         {cookies && (
           <span className="node-cookies" title={t(kind === 'client' ? 'node.loggedIn' : 'node.sessions')}>
             {cookies}
+          </span>
+        )}
+        {cacheView.keys && (
+          <span className="node-keys" title={t('node.cacheKeys')}>
+            {cacheView.keys}
+          </span>
+        )}
+        {cacheView.hit && (
+          <span className="node-hit" title={t('node.hitRate')}>
+            {cacheView.hit}
           </span>
         )}
         {stats.inFlight > 0 && <span title={t('node.inFlight')}>⏳ {compact(stats.inFlight)}</span>}

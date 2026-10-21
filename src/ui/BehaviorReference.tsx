@@ -15,7 +15,10 @@ export function BehaviorReference() {
               <th scope="row">
                 <code>{r.syntax}</code>
               </th>
-              <td>{r.text}</td>
+              <td>
+                {r.text}
+                {r.example && <pre className="dsl-ref-row-example">{r.example}</pre>}
+              </td>
             </tr>
           ))}
         </tbody>

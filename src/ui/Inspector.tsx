@@ -9,6 +9,7 @@ import { actionLabel, colorName, componentLabel, fieldLabel, optionLabel, unknow
 import { BehaviorField } from './fields/BehaviorField'
 import { BooleanField } from './fields/BooleanField'
 import { ColorField } from './fields/ColorField'
+import { ListField } from './fields/ListField'
 import { MixField, type MixRow } from './fields/MixField'
 import { NumberField } from './fields/NumberField'
 import { SelectField } from './fields/SelectField'
@@ -34,6 +35,7 @@ interface FieldControlProps {
 
 function FieldControl({ nodeId, def, fieldKey, field, value, onChange }: FieldControlProps) {
   const lang = useLang((s) => s.lang)
+  const t = useT()
   const label = fieldLabel(lang, def, fieldKey)
   switch (field.type) {
     case 'number':
@@ -59,9 +61,9 @@ function FieldControl({ nodeId, def, fieldKey, field, value, onChange }: FieldCo
     case 'mix':
       return <MixField label={label} value={Array.isArray(value) ? (value as MixRow[]) : field.default} onChange={onChange} />
     case 'list': {
-      // Minimal editor: comma-separated values.
+      // Every list field so far (cacheable paths) treats an empty list as "all".
       const list = Array.isArray(value) ? (value as unknown[]).map(String) : field.default
-      return <TextField label={label} value={list.join(', ')} onChange={(v) => onChange(v.split(',').map((x) => x.trim()))} />
+      return <ListField label={label} hint={t('widgets.listEmptyAll')} value={list} onChange={onChange} />
     }
     case 'behavior':
       return <BehaviorField nodeId={nodeId} label={label} value={typeof value === 'string' ? value : field.default} />

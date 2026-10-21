@@ -154,4 +154,50 @@ describe('Inspector: conditional fields', () => {
     expect(screen.getByLabelText('Hit rate', { selector: 'input[type=number]' })).toBeTruthy()
     expect(screen.queryByLabelText('TTL', { selector: 'input[type=number]' })).toBeNull()
   })
+
+  const loadProxy = (config: Record<string, unknown>) =>
+    act(() => useEditor.getState().loadGraph({ nodes: [{ id: 'p1', type: 'reverse-proxy', position: { x: 0, y: 0 }, config: { name: 'Proxy', ...config } }], edges: [] }))
+  const proxyConfig = () => useEditor.getState().graph.nodes[0].config
+
+  it('a proxy with its cache off hides every cache field; each mode shows its own (notEquals for the paths)', () => {
+    loadProxy({ cache: 'off' })
+    render(<Inspector />)
+    select({ kind: 'node', id: 'p1' })
+    expect(screen.queryByRole('group', { name: 'Paths cacheables' })).toBeNull()
+    expect(screen.queryByLabelText('Hit rate', { selector: 'input[type=number]' })).toBeNull()
+    fireEvent.change(screen.getByLabelText('Cache'), { target: { value: 'random' } })
+    expect(screen.getByLabelText('Hit rate', { selector: 'input[type=number]' })).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Paths cacheables' })).toBeTruthy()
+    expect(screen.queryByLabelText('Capacidad', { selector: 'input[type=number]' })).toBeNull()
+    fireEvent.change(screen.getByLabelText('Cache'), { target: { value: 'keys' } })
+    expect(screen.getByLabelText('Capacidad', { selector: 'input[type=number]' })).toBeTruthy()
+    expect(screen.getByLabelText('TTL', { selector: 'input[type=number]' })).toBeTruthy()
+    expect(screen.queryByLabelText('Hit rate', { selector: 'input[type=number]' })).toBeNull()
+  })
+
+  it('the cacheable paths list edits rows (Agregar / Quitar) and says that empty means all', () => {
+    loadProxy({ cache: 'keys', cacheablePaths: ['/static'] })
+    render(<Inspector />)
+    select({ kind: 'node', id: 'p1' })
+    const group = screen.getByRole('group', { name: 'Paths cacheables' })
+    expect(group.textContent).toContain('vacío = todos')
+    const row1 = screen.getByLabelText('Valor 1') as HTMLInputElement
+    expect(row1.value).toBe('/static')
+    expect(screen.queryByLabelText('Peso 1')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar' }))
+    expect(proxyConfig().cacheablePaths).toEqual(['/static', ''])
+    fireEvent.change(screen.getByLabelText('Valor 2'), { target: { value: '/img' } })
+    expect(proxyConfig().cacheablePaths).toEqual(['/static', '/img'])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Quitar' })[0])
+    expect(proxyConfig().cacheablePaths).toEqual(['/img'])
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar' }))
+    expect(proxyConfig().cacheablePaths).toEqual([])
+  })
+
+  it('a proxy without cacheablePaths shows the default /static row', () => {
+    loadProxy({ cache: 'keys' })
+    render(<Inspector />)
+    select({ kind: 'node', id: 'p1' })
+    expect((screen.getByLabelText('Valor 1') as HTMLInputElement).value).toBe('/static')
+  })
 })

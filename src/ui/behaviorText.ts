@@ -38,6 +38,7 @@ const REFERENCE_KEYS = [
   'onMessage',
   'call',
   'query',
+  'cache',
   'enqueue',
   'publish',
   'parallel',
@@ -51,9 +52,13 @@ const REFERENCE_KEYS = [
 ] as const
 
 /** Keyword table of the reference: English syntax (placeholders translated) and what it does. */
-export const referenceRows = (lang: Lang): { key: string; syntax: string; text: string }[] =>
-  REFERENCE_KEYS.map((key) => ({
-    key,
-    syntax: translate(lang, `behavior.ref.rows.${key}.syntax`),
-    text: translate(lang, `behavior.ref.rows.${key}.text`),
-  }))
+export const referenceRows = (lang: Lang): { key: string; syntax: string; text: string; example?: string }[] =>
+  REFERENCE_KEYS.map((key) => {
+    const example = lookup(lang, `behavior.ref.rows.${key}.example`)
+    return {
+      key,
+      syntax: translate(lang, `behavior.ref.rows.${key}.syntax`),
+      text: translate(lang, `behavior.ref.rows.${key}.text`),
+      ...(example ? { example } : {}),
+    }
+  })

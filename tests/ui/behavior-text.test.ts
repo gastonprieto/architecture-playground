@@ -97,9 +97,19 @@ describe('examples and reference', () => {
     const es = referenceRows('es')
     const en = referenceRows('en')
     const all = es.map((r) => r.syntax).join(' ')
-    for (const kw of ['on request', 'on event', 'on message', 'call', 'query', 'enqueue', 'publish', 'parallel:', 'wait', 'fail', 'reply', 'session', 'nowait', 'or reply', 'or continue'])
+    for (const kw of ['on request', 'on event', 'on message', 'call', 'query', 'cache', 'enqueue', 'publish', 'parallel:', 'wait', 'fail', 'reply', 'session', 'nowait', 'or reply', 'or continue'])
       expect(all).toContain(kw)
     expect(en.length).toBe(es.length)
     es.forEach((r, i) => expect(r.text).not.toBe(en[i].text))
+  })
+
+  it('the cache row carries a 3-line example in each language', () => {
+    for (const [lang, syntax] of [['es', 'cache Destino:'], ['en', 'cache Target:']] as const) {
+      const row = referenceRows(lang).find((r) => r.key === 'cache')!
+      expect(row.syntax).toBe(syntax)
+      expect(row.example?.split('\n')).toHaveLength(3)
+      expect(row.example).toMatch(/^cache Cache:\n  query /)
+    }
+    expect(referenceRows('es').find((r) => r.key === 'query')!.example).toBeUndefined()
   })
 })

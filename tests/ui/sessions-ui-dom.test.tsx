@@ -147,7 +147,38 @@ describe('🍪 counters', () => {
   })
 })
 
+describe('🔑 / hit % counters (cache-spec §2.3)', () => {
+  it('a Cache and a keys-mode proxy show their keys and real hit %', () => {
+    act(() =>
+      useRuntime.setState({
+        states: { k1: { cacheKeys: 4, cacheHits: 1, cacheMisses: 3 }, p1: { cacheKeys: 2, cacheHits: 2, cacheMisses: 2 }, p2: { cacheKeys: 0, cacheHits: 5, cacheMisses: 0 } },
+      }),
+    )
+    render(
+      <>
+        <NodeStatsSlot nodeId="k1" kind="cache" config={{ mode: 'keys' }} />
+        <NodeStatsSlot nodeId="p1" kind="reverse-proxy" config={{ cache: 'keys' }} />
+        <NodeStatsSlot nodeId="p2" kind="reverse-proxy" config={{ cache: 'random' }} />
+      </>,
+    )
+    expect(screen.getByText('🔑 4').getAttribute('title')).toBe('Claves guardadas')
+    expect(screen.getByText('hit 25%').getAttribute('title')).toBe('Hit % real: HITs / (HITs + MISSes)')
+    expect(screen.getByText('🔑 2')).toBeTruthy()
+    expect(screen.getByText('hit 50%')).toBeTruthy()
+    expect(screen.queryByText('hit 100%')).toBeNull()
+  })
+})
+
 describe('info texts', () => {
+  it('Servicio explains automatic cache-aside and the DSL reference has the cache step with its example', () => {
+    renderWith('s1')
+    fireEvent.click(within(inspector()).getByRole('button', { name: 'Cómo funciona Servicio' }))
+    const dialog = screen.getByRole('dialog', { name: 'Servicio' })
+    expect(dialog.textContent).toMatch(/Cache-aside automático/)
+    expect(within(dialog).getByText('cache Destino:')).toBeTruthy()
+    expect(dialog.querySelector('.dsl-ref-row-example')!.textContent).toBe('cache Cache:\n  query Base de datos\nreply 200')
+  })
+
   it('the DSL reference mentions that a JWT cannot be revoked', () => {
     renderWith('s1')
     fireEvent.click(within(inspector()).getByRole('button', { name: 'Cómo funciona Servicio' }))
