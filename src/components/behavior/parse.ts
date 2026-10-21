@@ -27,7 +27,9 @@ const STEP_KEYWORDS = new Set(['call', 'query', 'enqueue', 'publish', 'parallel'
 
 function scan(text: string, errors: DslError[]): Line[] {
   const lines: Line[] = []
-  text.split(/\r\n|\r|\n/).forEach((raw, i) => {
+  // Pasted text: a leading BOM is dropped and curly double quotes count as straight ones.
+  const clean = text.replace(/^\uFEFF/, '').replace(/[\u201C\u201D]/g, '"')
+  clean.split(/\r\n|\r|\n/).forEach((raw, i) => {
     const line = i + 1
     let content = stripComment(raw).trimEnd()
     if (content.trim() === '') return

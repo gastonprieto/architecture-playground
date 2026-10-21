@@ -284,3 +284,18 @@ describe('parseBehavior: quoted event types in handlers', () => {
     expect(codes(parseBehavior('on event Order Created:\n  reply 200\n').errors)).toEqual([['unknown-keyword', 1]])
   })
 })
+
+describe('parse: pasted text', () => {
+  it('a leading BOM is ignored', () => {
+    const { program, errors } = parseBehavior('\uFEFFon request:\n  reply 201\n')
+    expect(errors).toEqual([])
+    expect(program.handlers[0].on).toBe('request')
+  })
+
+  it('curly quotes count as straight quotes', () => {
+    const curly = parseBehavior('on request:\n  query \u201cBD Stock\u201d\n  call \u201cMis Pagos\u201d /x # \u201ccomentario\u201d\n')
+    const straight = parseBehavior('on request:\n  query "BD Stock"\n  call "Mis Pagos" /x\n')
+    expect(curly.errors).toEqual([])
+    expect(curly.program).toEqual(straight.program)
+  })
+})

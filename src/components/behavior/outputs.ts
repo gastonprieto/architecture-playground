@@ -1,3 +1,4 @@
+import { defaultConfig, type ComponentDef } from '../../engine/registry'
 import type { Graph, NodeId } from '../../engine/types'
 import type { BehaviorOutput, DslError } from './ast'
 import { compileBehavior } from './compile'
@@ -24,14 +25,23 @@ export function behaviorTargets(links: readonly { target: NodeId; targetType: st
   return list
 }
 
-/** The outputs of `nodeId` in an editor graph, as the engine will see them. */
-export function graphBehaviorOutputs(graph: Graph, nodeId: NodeId): BehaviorOutput[] {
+/**
+ * The outputs of `nodeId` in an editor graph, as the engine will see them: a target's name falls back
+ * to its type's default (the engine merges `defaultConfig` under each node's config).
+ */
+export function graphBehaviorOutputs(graph: Graph, nodeId: NodeId, registry: { get(type: string): ComponentDef | undefined }): BehaviorOutput[] {
   const byId = new Map(graph.nodes.map((n) => [n.id, n]))
   const links = graph.edges.flatMap((e) => {
     const t = e.source === nodeId ? byId.get(e.target) : undefined
     return t ? [{ target: t.id, targetType: t.type }] : []
   })
-  return behaviorTargets(links, (id) => byId.get(id)?.config.name).map(({ name, type }) => ({ name, type }))
+  const nameOf = (id: NodeId) => {
+    const n = byId.get(id)
+    if (!n) return undefined
+    const def = registry.get(n.type)
+    return (def ? { ...defaultConfig(def), ...n.config } : n.config).name
+  }
+  return behaviorTargets(links, nameOf).map(({ name, type }) => ({ name, type }))
 }
 
 export type BehaviorStatus = { kind: 'default' } | { kind: 'active'; handlers: number } | { kind: 'errors'; errors: DslError[] }

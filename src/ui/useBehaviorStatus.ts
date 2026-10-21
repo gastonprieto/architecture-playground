@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { behaviorStatus, graphBehaviorOutputs, type BehaviorOutput, type BehaviorStatus } from '../components/behavior'
+import { defaultRegistry } from '../components/index'
 import type { NodeId } from '../engine/types'
 import { useEditor } from './store/editor'
 
@@ -11,7 +12,7 @@ const isBlank = (text: unknown) => typeof text !== 'string' || text.trim() === '
  * `text` is blank: a blank behavior needs no outputs.
  */
 function useBehaviorOutputs(nodeId: NodeId, text: unknown): BehaviorOutput[] {
-  const key = useEditor((s) => (isBlank(text) ? '[]' : JSON.stringify(graphBehaviorOutputs(s.graph, nodeId))))
+  const key = useEditor((s) => (isBlank(text) ? '[]' : JSON.stringify(graphBehaviorOutputs(s.graph, nodeId, defaultRegistry))))
   return useMemo(() => JSON.parse(key) as BehaviorOutput[], [key])
 }
 

@@ -89,6 +89,15 @@ describe('validateBehavior', () => {
     expect(errors[0].params).toMatchObject({ verb: 'call', target: 'Base de datos', suggestion: 'query' })
   })
 
+  it('call/query/enqueue to a Broker suggests publish', () => {
+    const errors = validate('on request:\n  call Broker /x\n  query Broker\n')
+    expect(codes(errors)).toEqual([
+      ['wrong-verb', 2],
+      ['wrong-verb', 3],
+    ])
+    expect(errors.map((e) => e.params?.suggestion)).toEqual(['publish', 'publish'])
+  })
+
   it('wrong-verb inside parallel', () => {
     expect(codes(validate('on request:\n  parallel:\n    call Cache /x\n'))).toEqual([['wrong-verb', 3]])
   })

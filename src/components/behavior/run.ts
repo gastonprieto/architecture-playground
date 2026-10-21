@@ -22,8 +22,11 @@ type ChildResult = (ok: boolean) => void
 
 /** State a component must hold to run behaviors. */
 export interface BehaviorState {
-  /** Child request id → its continuation (a no-op for `nowait`; ignored once the handler ended). */
-  behaviorPending: Record<string, ChildResult>
+  /**
+   * Child request id → the node it was sent to and its continuation (a no-op for `nowait`; ignored
+   * once the handler ended).
+   */
+  behaviorPending: Record<string, { target: NodeId; next: ChildResult }>
   /** Last compile, keyed by the DSL text and the outputs it was validated against. */
   behaviorCache?: { key: string; program: Program | null }
 }
@@ -59,11 +62,28 @@ export function activeProgram(ctx: BehaviorCtx): Program | null {
  */
 export function handleBehaviorResponse(res: Message, ctx: BehaviorCtx): boolean {
   const pending = ctx.state.behaviorPending
-  const next = res.replyTo === undefined ? undefined : pending[res.replyTo]
-  if (!next) return false
-  delete pending[res.replyTo!]
-  next(res.status === 'ok')
-  return true
+  const entry = res.replyTo === undefined ? undefined : pending[res.replyTo]
+  if (entry) {
+    delete pending[res.replyTo!]
+    entry.next(res.status === 'ok')
+  }
+  sweepBehaviorPending(ctx)
+  return entry !== undefined
+}
+
+/**
+ * Fails every pending child whose target node no longer exists (it was deleted from the graph): its
+ * response would never come, and the run would hold its capacity slot forever. Components call this
+ * on every message, response and tick.
+ */
+export function sweepBehaviorPending(ctx: BehaviorCtx): void {
+  const pending = ctx.state.behaviorPending
+  for (const id of Object.keys(pending)) {
+    const entry = pending[id]
+    if (!entry || ctx.peer(entry.target)) continue
+    delete pending[id]
+    entry.next(false)
+  }
 }
 
 interface Run {
@@ -221,7 +241,7 @@ function childStep(run: Run, mod: Mod | undefined, then: (o: Outcome) => void, s
     }
     const child = ctx.newMessage('request', meta, run.msg)
     remaining++
-    ctx.state.behaviorPending[child.id] = nowait ? () => {} : settle
+    ctx.state.behaviorPending[child.id] = { target, next: nowait ? () => {} : settle }
     ctx.send(target, child)
   })
   if (nowait) then('next')

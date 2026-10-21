@@ -1,5 +1,5 @@
 import { behaviorField, defineComponent, processingFields } from '../engine/registry'
-import { activeProgram, handleBehaviorResponse, initialBehaviorState, runBehavior, type BehaviorState } from './behavior/run'
+import { activeProgram, handleBehaviorResponse, initialBehaviorState, runBehavior, sweepBehaviorPending, type BehaviorState } from './behavior/run'
 
 export interface SubscriberConfig {
   name: string
@@ -25,6 +25,7 @@ export const subscriber = defineComponent<SubscriberConfig, BehaviorState>({
   },
   initialState: initialBehaviorState,
   onMessage(msg, ctx) {
+    sweepBehaviorPending(ctx)
     const program = activeProgram(ctx)
     if (program) {
       ctx.occupy(msg, (release) => runBehavior(ctx, program, msg, release))
@@ -36,6 +37,10 @@ export const subscriber = defineComponent<SubscriberConfig, BehaviorState>({
       if (!emits) return
       for (const out of ctx.outputs()) ctx.send(out.target, ctx.newMessage('event', { ...msg.meta, eventType: emits }, msg))
     })
+  },
+  /** Fails DSL children sent to a node that was deleted, so their run frees its slot. */
+  onTick(ctx) {
+    sweepBehaviorPending(ctx)
   },
   onResponse(res, ctx) {
     if (!handleBehaviorResponse(res, ctx)) ctx.forwardResponse(res)

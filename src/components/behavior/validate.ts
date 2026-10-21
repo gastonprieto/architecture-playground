@@ -50,9 +50,9 @@ export function validateBehavior(program: Program, outputs: BehaviorOutput[]): D
     } else {
       const type = matches[0].type
       if ((TARGET_TYPES[verb] as readonly string[]).includes(type)) return
-      const suggestion = (Object.keys(TARGET_TYPES) as TargetVerb[]).find((v) =>
-        (TARGET_TYPES[v] as readonly string[]).includes(type),
-      )
+      // A broker is reached with `publish` (it takes the event type, not the broker's name).
+      const suggestion =
+        type === 'broker' ? 'publish' : (Object.keys(TARGET_TYPES) as TargetVerb[]).find((v) => (TARGET_TYPES[v] as readonly string[]).includes(type))
       errors.push({ line, code: 'wrong-verb', params: { verb, target: name, type, ...(suggestion && { suggestion }) } })
     }
   }

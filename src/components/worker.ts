@@ -1,5 +1,5 @@
 import { behaviorField, defineComponent, processingFields } from '../engine/registry'
-import { activeProgram, handleBehaviorResponse, initialBehaviorState, runBehavior, type BehaviorState } from './behavior/run'
+import { activeProgram, handleBehaviorResponse, initialBehaviorState, runBehavior, sweepBehaviorPending, type BehaviorState } from './behavior/run'
 import { callDependencies, handleDependencyResponse, initialDependencyState, type DependencyState } from './shared/dependencies'
 
 export interface WorkerConfig {
@@ -26,6 +26,7 @@ export const worker = defineComponent<WorkerConfig, DependencyState & BehaviorSt
   },
   initialState: () => ({ ...initialDependencyState(), ...initialBehaviorState() }),
   onMessage(msg, ctx) {
+    sweepBehaviorPending(ctx)
     const program = activeProgram(ctx)
     if (program) {
       ctx.occupy(msg, (release) => runBehavior(ctx, program, msg, release))
@@ -38,6 +39,10 @@ export const worker = defineComponent<WorkerConfig, DependencyState & BehaviorSt
         ctx.reply(msg, success ? { status: 'ok', code: 200 } : { status: 'error', code: 500 })
       }),
     )
+  },
+  /** Fails DSL children sent to a node that was deleted, so their run frees its slot. */
+  onTick(ctx) {
+    sweepBehaviorPending(ctx)
   },
   onResponse(res, ctx) {
     if (!handleBehaviorResponse(res, ctx) && !handleDependencyResponse(res, ctx)) ctx.forwardResponse(res)

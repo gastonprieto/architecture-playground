@@ -460,3 +460,44 @@ describe('behavior field', () => {
     expect(t.responses('C').map((e) => e.msg.code)).toEqual([200])
   })
 })
+
+describe('behavior: target removed while a child is pending', () => {
+  const g0 = (behavior: string) =>
+    graph(
+      [client(), svc('S', behavior, { capacity: 1 }), svc('T', '', { processingTime: 3000 }), svc('T2', '')],
+      [edge('C', 'S'), edge('S', 'T')],
+    )
+
+  it('the pending child fails at once (502), the slot is freed and the next request is served', () => {
+    const t = run(g0('on request:\n  call T /x\n  reply 201'))
+    t.send()
+    t.s.advance(2000) // child reached T at 1300; T busy until 4300
+    expect(t.s.nodeStats('S').inFlight).toBe(1)
+    // Delete T and wire S to a new node also named T.
+    const { nodes, edges } = g0('on request:\n  call T /x\n  reply 201')
+    t.s.setGraph({
+      nodes: nodes.filter((n) => n.id !== 'T').map((n) => (n.id === 'T2' ? { ...n, config: { ...n.config, name: 'T' } } : n)),
+      edges: [edges[0], edge('S', 'T2')],
+    })
+    t.s.advance(200)
+    expect(t.s.nodeStats('S').inFlight).toBe(0)
+    expect(t.repliesFrom('S').map((e) => e.msg.code)).toEqual([502])
+    t.s.advance(1000)
+    expect(codesAt(t.responses('C'))[0].slice(0, 2)).toEqual(['error', 502])
+    t.send()
+    t.s.advance(5000)
+    expect(t.responses('C').map((e) => e.msg.code)).toEqual([502, 201])
+    expect(t.arrivals('T2')).toHaveLength(1)
+  })
+
+  it('`or continue` goes on when the target is deleted', () => {
+    const t = run(g0('on request:\n  call T /x or continue\n  reply 201'))
+    t.send()
+    t.s.advance(2000)
+    const { nodes, edges } = g0('')
+    t.s.setGraph({ nodes: nodes.filter((n) => n.id !== 'T').map((n) => (n.id === 'S' ? { ...n, config: { ...n.config, capacity: 1, behavior: 'on request:\n  call T /x or continue\n  reply 201' } } : n)), edges: [edges[0]] })
+    t.s.advance(200)
+    expect(t.repliesFrom('S').map((e) => e.msg.code)).toEqual([201])
+    expect(t.s.nodeStats('S').inFlight).toBe(0)
+  })
+})

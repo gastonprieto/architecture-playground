@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { behaviorStatus, behaviorTargets, graphBehaviorOutputs } from '../../../src/components/behavior/outputs'
+import { defaultRegistry } from '../../../src/components/index'
+import { Simulation } from '../../../src/engine/simulation'
 import type { Graph } from '../../../src/engine/types'
 
 const node = (id: string, type: string, name?: unknown) => ({ id, type, position: { x: 0, y: 0 }, config: name === undefined ? {} : { name } })
@@ -36,11 +38,39 @@ describe('graphBehaviorOutputs', () => {
         { id: 'e5', source: 's', target: 'gone' },
       ],
     }
-    expect(graphBehaviorOutputs(graph, 's')).toEqual([
+    expect(graphBehaviorOutputs(graph, 's', defaultRegistry)).toEqual([
       { name: 'Base de datos', type: 'database' },
       { name: 'Pagos', type: 'service' },
     ])
-    expect(graphBehaviorOutputs(graph, 'db')).toEqual([])
+    expect(graphBehaviorOutputs(graph, 'db', defaultRegistry)).toEqual([])
+  })
+})
+
+describe('graphBehaviorOutputs and the engine agree', () => {
+  it('a target with no config.name gets its type default name, as in the engine', () => {
+    const graph: Graph = {
+      nodes: [
+        { id: 'c', type: 'client', position: { x: 0, y: 0 }, config: { rate: 0 } },
+        { id: 's', type: 'service', position: { x: 0, y: 0 }, config: { name: 'S', processingTime: 100, behavior: 'on request:\n  query Base de datos\n  reply 201\n' } },
+        node('db', 'database'),
+      ],
+      edges: [
+        { id: 'e0', source: 'c', target: 's' },
+        { id: 'e1', source: 's', target: 'db' },
+      ],
+    }
+    const outs = graphBehaviorOutputs(graph, 's', defaultRegistry)
+    expect(outs).toEqual([{ name: 'Base de datos', type: 'database' }])
+    expect(behaviorStatus(graph.nodes[1].config.behavior, outs).kind).toBe('active')
+    // The engine sees the same name, so the DSL runs (201, not the default 200).
+    const sim = new Simulation(graph, { seed: 1, registry: defaultRegistry })
+    const codes: number[] = []
+    sim.on('message:arrived', (p) => {
+      if (p.at === 'c' && p.msg.kind === 'response') codes.push(p.msg.code!)
+    })
+    sim.runAction('c', 'send1')
+    sim.advance(5000)
+    expect(codes).toEqual([201])
   })
 })
 
