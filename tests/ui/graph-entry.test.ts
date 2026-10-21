@@ -43,3 +43,51 @@ describe('migrateGraph (authFailRate → auth, sessions spec §8)', () => {
     expect(out.nodes[1].config).toEqual({ auth: 'credentials' })
   })
 })
+
+describe('migrateGraph (cache-spec §2.2 Cache mode, §5 proxy cacheHitRate)', () => {
+  it('a Cache without mode becomes random, keeping its hitRate', () => {
+    const g: Graph = { nodes: [node('K', 'cache', { name: 'K', hitRate: 0.6 }), node('L', 'cache', {})], edges: [] }
+    const out = migrateGraph(g)
+    expect(out.nodes.map((n) => n.config)).toEqual([{ name: 'K', hitRate: 0.6, mode: 'random' }, { mode: 'random' }])
+    expect('mode' in g.nodes[0].config).toBe(false)
+  })
+
+  it('a Cache with a mode is left alone', () => {
+    const g: Graph = { nodes: [node('K', 'cache', { mode: 'keys', capacity: 5 })], edges: [] }
+    expect(migrateGraph(g)).toBe(g)
+  })
+
+  it('a proxy cacheHitRate > 0 becomes a random edge cache over every path; the old field is dropped', () => {
+    const g: Graph = { nodes: [node('P', 'reverse-proxy', { name: 'P', cacheHitRate: 0.3, rateLimit: 2 })], edges: [] }
+    expect(migrateGraph(g).nodes[0].config).toEqual({ name: 'P', rateLimit: 2, cache: 'random', hitRate: 0.3, cacheablePaths: [] })
+    expect(g.nodes[0].config.cacheHitRate).toBe(0.3)
+  })
+
+  it('a proxy cacheHitRate of 0 (or not a number) becomes cache off, keeping a cache already set', () => {
+    const g: Graph = {
+      nodes: [node('P', 'reverse-proxy', { cacheHitRate: 0 }), node('Q', 'reverse-proxy', { cacheHitRate: 'x', cache: 'keys' })],
+      edges: [],
+    }
+    expect(migrateGraph(g).nodes.map((n) => n.config)).toEqual([{ cache: 'off' }, { cache: 'keys' }])
+  })
+
+  it('both proxy migrations compose on the same node', () => {
+    const g: Graph = { nodes: [node('P', 'reverse-proxy', { authFailRate: 0.5, cacheHitRate: 0.2 })], edges: [] }
+    expect(migrateGraph(g).nodes[0].config).toEqual({ auth: 'credentials', cache: 'random', hitRate: 0.2, cacheablePaths: [] })
+  })
+
+  it('is idempotent: migrating a migrated graph returns it unchanged (same object)', () => {
+    const g: Graph = {
+      nodes: [
+        node('K', 'cache', { hitRate: 0.6 }),
+        node('P', 'reverse-proxy', { authFailRate: 0.5, cacheHitRate: 0.2 }),
+        node('S', 'service', { cacheHitRate: 1 }),
+      ],
+      edges: [],
+    }
+    const once = migrateGraph(g)
+    expect(migrateGraph(once)).toBe(once)
+    expect(once.nodes[2].config).toEqual({ cacheHitRate: 1 })
+    expect(prepareGraph(prepareGraph(g))).toEqual(prepareGraph(g))
+  })
+})

@@ -1,10 +1,12 @@
 import type { EdgeId, EdgeRule, Message, MessageKind, NodeId } from './types'
 
-/** Show a field only while another field of the same config has this value (the UI hides it otherwise). */
-export interface FieldCondition {
-  field: string
-  equals: string | boolean | number
-}
+type FieldValue = string | boolean | number
+
+/**
+ * Show a field only while another field of the same config has this value (`equals`) or any value
+ * but this one (`notEquals`); the UI hides it otherwise.
+ */
+export type FieldCondition = { field: string; equals: FieldValue } | { field: string; notEquals: FieldValue }
 
 type FieldKind =
   | { type: 'number'; label: string; default: number; min: number; max: number; step?: number; unit?: string }
@@ -29,7 +31,7 @@ export function fieldVisible(field: Field, config: Record<string, unknown>, def?
   const cond = field.showIf
   if (!cond) return true
   const value = cond.field in config ? config[cond.field] : def?.config[cond.field]?.default
-  return value === cond.equals
+  return 'equals' in cond ? value === cond.equals : value !== cond.notEquals
 }
 
 export type Tone = 'req' | 'ok' | 'slow' | 'err' | 'hc' | 'redis' | 'db'

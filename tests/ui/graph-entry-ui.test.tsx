@@ -9,11 +9,12 @@ import { STORAGE_KEY } from '../../src/persistence/storage'
 import App from '../../src/ui/App'
 import { useEditor } from '../../src/ui/store/editor'
 
-/** An old graph: a Reverse Proxy with the removed "Rechazo auth" field. */
+/** An old graph: a Reverse Proxy with the removed "Rechazo auth" and "Cache hit" fields, and a Cache without mode. */
 const legacy: Graph = {
   nodes: [
     { id: 'C', type: 'client', position: { x: 0, y: 0 }, config: { name: 'C' } },
-    { id: 'P', type: 'reverse-proxy', position: { x: 200, y: 0 }, config: { name: 'P', authFailRate: 0.25 } },
+    { id: 'P', type: 'reverse-proxy', position: { x: 200, y: 0 }, config: { name: 'P', authFailRate: 0.25, cacheHitRate: 0.4 } },
+    { id: 'K', type: 'cache', position: { x: 400, y: 0 }, config: { name: 'K', hitRate: 0.6 } },
   ],
   edges: [{ id: 'C-P', source: 'C', target: 'P' }],
 }
@@ -57,11 +58,14 @@ const migrated = () => {
   const c = proxyConfig()!
   expect(c.auth).toBe('credentials')
   expect('authFailRate' in c).toBe(false)
+  // Cache spec §5 and §2.2 run on the same path.
+  expect([c.cache, c.hitRate, c.cacheablePaths, 'cacheHitRate' in c]).toEqual(['random', 0.4, [], false])
+  expect(useEditor.getState().graph.nodes.find((n) => n.id === 'K')!.config).toMatchObject({ mode: 'random', hitRate: 0.6 })
   // The client backfill still runs on the same path.
   expect(useEditor.getState().graph.nodes.find((n) => n.id === 'C')!.config.ip).toBe('10.0.0.1')
 }
 
-describe('authFailRate migration at every graph entry (Review Focus 5)', () => {
+describe('authFailRate / cacheHitRate / Cache mode migration at every graph entry', () => {
   it('boot from localStorage', () => {
     localStorage.setItem(STORAGE_KEY, serializeGraph(legacy))
     render(<App />)

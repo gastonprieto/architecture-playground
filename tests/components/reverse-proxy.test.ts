@@ -60,7 +60,16 @@ describe('reverse proxy', () => {
       options: [{ value: 'none' }, { value: 'credentials' }, { value: 'jwt' }],
     })
     expect(d.config.rateLimit).toMatchObject({ type: 'number', label: 'Rate limit', default: 0, min: 0, max: 100, unit: 'req/s' })
-    expect(d.config.cacheHitRate).toMatchObject({ type: 'number', label: 'Cache hit', default: 0, min: 0, max: 1 })
+    expect(d.config.cacheHitRate).toBeUndefined()
+    expect(d.config.cache).toMatchObject({
+      type: 'select',
+      default: 'off',
+      options: [{ value: 'off' }, { value: 'random' }, { value: 'keys' }],
+    })
+    expect(d.config.hitRate).toMatchObject({ type: 'number', default: 0.8, min: 0, max: 1, showIf: { field: 'cache', equals: 'random' } })
+    expect(d.config.capacity).toMatchObject({ type: 'number', default: 50, min: 1, max: 1000, showIf: { field: 'cache', equals: 'keys' } })
+    expect(d.config.ttl).toMatchObject({ type: 'number', default: 0, min: 0, max: 600000, showIf: { field: 'cache', equals: 'keys' } })
+    expect(d.config.cacheablePaths).toMatchObject({ type: 'list', default: ['/static'], showIf: { field: 'cache', notEquals: 'off' } })
   })
 
   it('routes to the longest matching prefix', () => {
@@ -119,8 +128,8 @@ describe('reverse proxy', () => {
     expect(res.map((r) => r.code)).toEqual([200, 200])
   })
 
-  it('cacheHitRate 1 → no request reaches a service, replies 200', () => {
-    const s = sim(proxyGraph({ cacheHitRate: 1 }, [['S1', undefined]], { burstSize: 5 }))
+  it('random edge cache with hitRate 1 over every path → no request reaches a service, replies 200 HIT', () => {
+    const s = sim(proxyGraph({ cache: 'random', hitRate: 1, cacheablePaths: [] }, [['S1', undefined]], { burstSize: 5 }))
     const res = clientResponses(s, 'C')
     const sent = sentFrom(s, 'P')
     const labels: string[] = []
@@ -129,6 +138,7 @@ describe('reverse proxy', () => {
     s.advance(5000)
     expect(sent).toHaveLength(0)
     expect(res.map((r) => r.code)).toEqual([200, 200, 200, 200, 200])
+    expect(res.every((r) => r.meta.cacheHit === true)).toBe(true)
     expect(s.nodeStats('S1').ok).toBe(0)
     expect(labels).toEqual(Array(5).fill('P:HIT:redis'))
   })
@@ -267,7 +277,7 @@ describe('reverse proxy auth (sessions spec §8)', () => {
   })
 
   it('jwt: a cache hit after auth also issues the token', () => {
-    const s = sim(proxyGraph({ auth: 'jwt', cacheHitRate: 1 }, [['S1', undefined]]))
+    const s = sim(proxyGraph({ auth: 'jwt', cache: 'random', hitRate: 1, cacheablePaths: [] }, [['S1', undefined]]))
     const res = clientResponses(s, 'C')
     s.runAction('C', 'send1')
     s.advance(5000)
@@ -298,5 +308,186 @@ describe('reverse proxy auth (sessions spec §8)', () => {
     s.runAction('C', 'send1')
     s.advance(5000)
     expect(sent.filter((m) => m.kind === 'event')).toHaveLength(1)
+  })
+})
+
+/** One client per path (each sends only that path) → P → S1 (catch-all) and S2 on /pagos. */
+function edgeGraph(proxyConfig: Record<string, unknown>, paths: string[]): Graph {
+  const clients = paths.map((p, i) => node(`C${i}`, 'client', { rate: 0, ...mixOf(p) }))
+  return {
+    nodes: [...clients, node('P', 'reverse-proxy', proxyConfig), node('S1', 'service'), node('S2', 'service')],
+    edges: [...clients.map((c) => edge(c.id, 'P')), edge('P', 'S1'), edge('P', 'S2', prefix('/pagos'))],
+  }
+}
+
+interface EdgeState {
+  keys: { key: string }[]
+  hits: number
+  misses: number
+}
+
+describe('reverse proxy edge cache (cache-spec §5)', () => {
+  /** Sends one request from client `i` and lets it finish. */
+  const send = (s: Simulation, i: number) => {
+    s.runAction(`C${i}`, 'send1')
+    s.advance(3000)
+  }
+
+  it('cache off (default) never answers from the proxy, even for /static', () => {
+    const s = sim(edgeGraph({}, ['/static/a']))
+    const sent = sentFrom(s, 'P')
+    for (let i = 0; i < 3; i++) send(s, 0)
+    expect(sent).toHaveLength(3)
+  })
+
+  it('cacheable paths: only requests whose path starts with a prefix use the cache', () => {
+    const s = sim(edgeGraph({ cache: 'random', hitRate: 1, cacheablePaths: ['/static', '/img'] }, ['/static/app.js', '/img/1', '/pagos/1', '/stat']))
+    const sent = sentFrom(s, 'P')
+    for (let i = 0; i < 4; i++) send(s, i)
+    expect(sent.map((e) => e.msg.meta.path)).toEqual(['/pagos/1', '/stat'])
+  })
+
+  it('an empty cacheable list means every path', () => {
+    const s = sim(edgeGraph({ cache: 'random', hitRate: 1, cacheablePaths: [] }, ['/static/a', '/pagos/1']))
+    const sent = sentFrom(s, 'P')
+    send(s, 0)
+    send(s, 1)
+    expect(sent).toHaveLength(0)
+  })
+
+  it('a missing cacheablePaths uses the default /static', () => {
+    const s = sim(edgeGraph({ cache: 'random', hitRate: 1 }, ['/static/a', '/pagos/1']))
+    const sent = sentFrom(s, 'P')
+    send(s, 0)
+    send(s, 1)
+    expect(sent.map((e) => e.msg.meta.path)).toEqual(['/pagos/1'])
+  })
+
+  it('random hitRate 0 always routes and counts misses', () => {
+    const s = sim(edgeGraph({ cache: 'random', hitRate: 0, cacheablePaths: [] }, ['/a']))
+    const sent = sentFrom(s, 'P')
+    for (let i = 0; i < 3; i++) send(s, 0)
+    expect(sent).toHaveLength(3)
+    expect(s.nodeState<EdgeState>('P')).toMatchObject({ hits: 0, misses: 3 })
+  })
+
+  it('keys: warm-up — the first request is a miss that routes, then hits answered at the proxy', () => {
+    const s = sim(edgeGraph({ cache: 'keys', cacheablePaths: ['/static'] }, ['/static/a']))
+    const sent = sentFrom(s, 'P')
+    const res = clientResponses(s, 'C0')
+    const labels: string[] = []
+    s.on('node:label', (p) => labels.push(`${p.nodeId}:${p.text}`))
+    for (let i = 0; i < 3; i++) send(s, 0)
+    expect(sent).toHaveLength(1)
+    expect(res.map((r) => [r.code, r.meta.cacheHit])).toEqual([
+      [200, undefined],
+      [200, true],
+      [200, true],
+    ])
+    expect(labels.filter((l) => l.startsWith('P:'))).toEqual(['P:HIT', 'P:HIT'])
+    const st = s.nodeState<EdgeState>('P')
+    expect(st.keys.map((k) => k.key)).toEqual(['/static/a'])
+    expect([st.hits, st.misses]).toEqual([2, 1])
+    // The forwarded request is forgotten once its response went back.
+    expect(s.nodeState<{ store: Record<string, string> }>('P').store).toEqual({})
+  })
+
+  it('keys: an error response is not stored', () => {
+    const g = edgeGraph({ cache: 'keys', cacheablePaths: [] }, ['/a'])
+    g.nodes = g.nodes.map((n) => (n.id === 'S1' ? { ...n, config: { up: false } } : n))
+    const s = sim(g)
+    const sent = sentFrom(s, 'P')
+    send(s, 0)
+    send(s, 0)
+    expect(sent).toHaveLength(2)
+    expect(s.nodeState<EdgeState>('P').keys).toEqual([])
+  })
+
+  it('keys: a non-cacheable path is never stored nor counted', () => {
+    const s = sim(edgeGraph({ cache: 'keys', cacheablePaths: ['/static'] }, ['/pagos/1']))
+    const sent = sentFrom(s, 'P')
+    send(s, 0)
+    send(s, 0)
+    expect(sent).toHaveLength(2)
+    expect(s.nodeState<EdgeState>('P')).toMatchObject({ keys: [], hits: 0, misses: 0 })
+  })
+
+  it('keys: LRU — capacity 2 evicts the least recently used key; a hit refreshes recency', () => {
+    const s = sim(edgeGraph({ cache: 'keys', capacity: 2, cacheablePaths: [] }, ['/a', '/b', '/c']))
+    const sent = sentFrom(s, 'P')
+    send(s, 0) // miss a → [a]
+    send(s, 1) // miss b → [a, b]
+    send(s, 0) // hit a → [b, a]
+    send(s, 2) // miss c → evicts b → [a, c]
+    send(s, 0) // hit a
+    send(s, 1) // miss b again
+    expect(sent.map((e) => e.msg.meta.path)).toEqual(['/a', '/b', '/c', '/b'])
+    expect(s.nodeState<EdgeState>('P').keys.map((k) => k.key)).toEqual(['/a', '/b'])
+    expect(s.nodeState<EdgeState>('P').keys.length).toBeLessThanOrEqual(2)
+  })
+
+  it('keys: TTL — a key expires ttl ms after it was stored (sim time)', () => {
+    const s = sim(edgeGraph({ cache: 'keys', ttl: 4000, cacheablePaths: [] }, ['/a']))
+    const sent = sentFrom(s, 'P')
+    send(s, 0) // miss, stored when the response passes back (< 3 s)
+    send(s, 0) // within ttl → hit
+    expect(sent).toHaveLength(1)
+    s.advance(5000)
+    send(s, 0) // expired → miss, routes again
+    expect(sent).toHaveLength(2)
+  })
+
+  it('keys: lowering the capacity trims keys; turning the cache off clears them', () => {
+    const g = edgeGraph({ cache: 'keys', capacity: 3, cacheablePaths: [] }, ['/a', '/b', '/c'])
+    const s = sim(g)
+    for (let i = 0; i < 3; i++) send(s, i)
+    expect(s.nodeState<EdgeState>('P').keys).toHaveLength(3)
+    const withConfig = (c: Record<string, unknown>): Graph => ({
+      ...g,
+      nodes: g.nodes.map((n) => (n.id === 'P' ? { ...n, config: { ...n.config, ...c } } : n)),
+    })
+    s.setGraph(withConfig({ capacity: 1 }))
+    expect(s.nodeState<EdgeState>('P').keys.map((k) => k.key)).toEqual(['/c'])
+    s.setGraph(withConfig({ cache: 'off' }))
+    expect(s.nodeState<EdgeState>('P').keys).toEqual([])
+  })
+
+  it('order: the rate limit runs before the cache (a 429 is not a HIT)', () => {
+    const s = sim(proxyGraph({ rateLimit: 1, cache: 'random', hitRate: 1, cacheablePaths: [] }, [['S1', undefined]], { burstSize: 2 }))
+    const res = clientResponses(s, 'C')
+    s.runAction('C', 'burst')
+    s.advance(5000)
+    expect(res.map((r) => r.code).sort()).toEqual([200, 429])
+  })
+
+  it('order: auth runs before the cache (a 401 is not a HIT)', () => {
+    const s = sim(proxyGraph({ auth: 'credentials', cache: 'random', hitRate: 1, cacheablePaths: [] }, [['S1', undefined]], { auth: 'none' }))
+    const res = clientResponses(s, 'C')
+    s.runAction('C', 'send1')
+    s.advance(5000)
+    expect(res.map((r) => r.code)).toEqual([401])
+  })
+
+  it('order: the cache runs before routing (a HIT for an unroutable path is still 200)', () => {
+    const s = sim(proxyGraph({ cache: 'random', hitRate: 1, cacheablePaths: [] }, [['S1', prefix('/x')]], mixOf('/otra')))
+    const res = clientResponses(s, 'C')
+    s.runAction('C', 'send1')
+    s.advance(5000)
+    expect(res.map((r) => r.code)).toEqual([200])
+  })
+
+  it('keys + jwt: a miss stores the key and still issues the token; the next request hits with no new token needed', () => {
+    const s = sim(proxyGraph({ auth: 'jwt', cache: 'keys', cacheablePaths: [] }, [['S1', undefined]], mixOf('/a')))
+    const res = clientResponses(s, 'C')
+    const sent = sentFrom(s, 'P')
+    s.runAction('C', 'send1')
+    s.advance(3000)
+    s.runAction('C', 'send1')
+    s.advance(3000)
+    expect(sent).toHaveLength(1)
+    expect(res[0].meta.setSession).toBe(`jwt:${sent[0].msg.id}`)
+    expect(res[1].code).toBe(200)
+    expect(res[1].meta.cacheHit).toBe(true)
+    expect(s.nodeState<{ issue: Record<string, true> }>('P').issue).toEqual({})
   })
 })

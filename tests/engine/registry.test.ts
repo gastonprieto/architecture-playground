@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Registry, defaultConfig, defineComponent, fieldVisible, processingFields } from '../../src/engine/registry'
+import { Registry, defaultConfig, defineComponent, fieldVisible, processingFields, type Field } from '../../src/engine/registry'
 
 const make = (type: string, label = type) =>
   defineComponent({
@@ -100,5 +100,13 @@ describe('list fields and showIf', () => {
   it('fieldVisible falls back to the controlling field default when the config lacks it', () => {
     expect(fieldVisible(def.config.on, {}, def)).toBe(true)
     expect(fieldVisible(def.config.paths, {}, def)).toBe(false)
+  })
+
+  it('fieldVisible supports notEquals (shown while the controlling field has any other value)', () => {
+    const f: Field = { type: 'list', label: 'X', default: [], showIf: { field: 'mode', notEquals: 'a' } }
+    expect(fieldVisible(f, { mode: 'a' })).toBe(false)
+    expect(fieldVisible(f, { mode: 'b' })).toBe(true)
+    expect(fieldVisible(f, {}, def)).toBe(false)
+    expect(fieldVisible(f, { mode: 'b' }, def)).toBe(true)
   })
 })
