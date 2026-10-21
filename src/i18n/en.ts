@@ -500,5 +500,34 @@ export const en: Dict = {
         site: 'Web',
       },
     },
+    'purchase-order': {
+      name: 'Purchase order',
+      description:
+        'The same purchase in two styles. Top, orchestration: Orders calls Inventory, Payments and Emails, waits for each one and only then responds 201. Bottom, choreography: Orders saves the order, publishes OrderCreated and responds 202 right away; each service reacts to the event on its own. Open the Behavior (DSL) of each node to see its steps.',
+      eventType: 'OrderCreated',
+      comments: {
+        orchestration: '# Orchestration: Orders coordinates every step',
+        choreography: '# Choreography: Orders announces and waits for nobody',
+      },
+      paths: {
+        orders: '/orders',
+        reserve: '/reservations',
+        charge: '/charges',
+        send: '/send',
+      },
+      nodes: {
+        clientOrchestration: 'Orchestration client',
+        clientChoreography: 'Choreography client',
+        orders: 'Orders',
+        stock: 'Inventory',
+        payments: 'Payments',
+        mails: 'Emails',
+        broker: 'Broker',
+        ordersDb: 'Orders DB',
+        stockDb: 'Inventory DB',
+        paymentsDb: 'Payments DB',
+        mailsDb: 'Emails DB',
+      },
+    },
   },
 }

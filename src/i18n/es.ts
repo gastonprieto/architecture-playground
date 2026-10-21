@@ -505,6 +505,35 @@ export const es = {
         site: 'Web',
       },
     },
+    'purchase-order': {
+      name: 'Orden de compra',
+      description:
+        'La misma compra en dos estilos. Arriba, orquestación: Órdenes llama a Stock, Pagos y Mails, espera a cada uno y recién ahí responde 201. Abajo, coreografía: Órdenes guarda la orden, publica OrdenCreada y responde 202 al toque; cada servicio reacciona al evento por su cuenta. Abrí el Comportamiento (DSL) de cada nodo para ver sus pasos.',
+      eventType: 'OrdenCreada',
+      comments: {
+        orchestration: '# Orquestación: Órdenes coordina cada paso',
+        choreography: '# Coreografía: Órdenes avisa y no espera a nadie',
+      },
+      paths: {
+        orders: '/ordenes',
+        reserve: '/reservas',
+        charge: '/cobros',
+        send: '/enviar',
+      },
+      nodes: {
+        clientOrchestration: 'Cliente orquestación',
+        clientChoreography: 'Cliente coreografía',
+        orders: 'Órdenes',
+        stock: 'Stock',
+        payments: 'Pagos',
+        mails: 'Mails',
+        broker: 'Broker',
+        ordersDb: 'BD Órdenes',
+        stockDb: 'BD Stock',
+        paymentsDb: 'BD Pagos',
+        mailsDb: 'BD Mails',
+      },
+    },
   },
 }
 
