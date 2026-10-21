@@ -1,0 +1,56 @@
+import type { BehaviorOutput, DslError, Program, Step } from './ast'
+
+/** Component types each verb may target. `publish` instead needs at least one connected broker. */
+const TARGET_TYPES = {
+  call: ['service', 'load-balancer', 'reverse-proxy'],
+  query: ['database', 'cache'],
+  enqueue: ['queue'],
+} as const
+
+type TargetVerb = keyof typeof TARGET_TYPES
+
+/** Names compare after trimming and collapsing inner whitespace (the parser joins words with one space). */
+const normalize = (name: string) => name.trim().replace(/\s+/g, ' ')
+
+/** Pure check of a parsed program against the node's connected outputs. */
+export function validateBehavior(program: Program, outputs: BehaviorOutput[]): DslError[] {
+  const errors: DslError[] = []
+  const hasBroker = outputs.some((o) => o.type === 'broker')
+
+  const seen = new Set<string>()
+  for (const h of program.handlers) {
+    const key = `${h.on} ${h.on === 'request' ? (h.prefix ?? '') : h.on === 'event' ? (h.eventType ?? '') : ''}`
+    if (seen.has(key)) errors.push({ line: h.line, code: 'duplicate-handler', params: { on: h.on } })
+    seen.add(key)
+    checkSteps(h.steps)
+  }
+  return errors
+
+  function checkSteps(steps: Step[]): void {
+    for (const step of steps) {
+      if (step.kind === 'parallel') checkSteps(step.steps)
+      else if (step.kind === 'publish') {
+        if (!hasBroker) errors.push({ line: step.line, code: 'no-broker' })
+      } else if (step.kind === 'call' || step.kind === 'query' || step.kind === 'enqueue') {
+        checkTarget(step.kind, step.target, step.line)
+      }
+    }
+  }
+
+  function checkTarget(verb: TargetVerb, target: string, line: number): void {
+    const name = normalize(target)
+    const matches = outputs.filter((o) => normalize(o.name) === name)
+    if (matches.length === 0) {
+      errors.push({ line, code: 'not-connected', params: { target: name } })
+    } else if (matches.length > 1) {
+      errors.push({ line, code: 'ambiguous-target', params: { target: name } })
+    } else {
+      const type = matches[0].type
+      if ((TARGET_TYPES[verb] as readonly string[]).includes(type)) return
+      const suggestion = (Object.keys(TARGET_TYPES) as TargetVerb[]).find((v) =>
+        (TARGET_TYPES[v] as readonly string[]).includes(type),
+      )
+      errors.push({ line, code: 'wrong-verb', params: { verb, target: name, type, ...(suggestion && { suggestion }) } })
+    }
+  }
+}
