@@ -6,7 +6,7 @@ import { clearLocationHash, initialGraph } from '../persistence/initial'
 import { saveLocal } from '../persistence/storage'
 import { Canvas } from './canvas/Canvas'
 import { BehaviorEditorDialog } from './BehaviorEditor'
-import { backfillClients } from './clientColor'
+import { prepareGraph } from './graphEntry'
 import { InfoDialog } from './InfoDialog'
 import { Inspector } from './Inspector'
 import { MetricsBar } from './MetricsBar'
@@ -28,7 +28,7 @@ function usePersistence() {
     if (!loaded.current) {
       loaded.current = true
       // A shared link is loaded once; after that the local copy is the source of truth.
-      useEditor.getState().loadGraph(backfillClients(initialGraph(useLang.getState().lang, undefined, clearLocationHash)))
+      useEditor.getState().loadGraph(prepareGraph(initialGraph(useLang.getState().lang, undefined, clearLocationHash)))
     }
     let timer: ReturnType<typeof setTimeout> | undefined
     const flush = () => {

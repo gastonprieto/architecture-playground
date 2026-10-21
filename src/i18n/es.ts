@@ -298,7 +298,7 @@ export const es = {
     },
     'load-balancer': {
       label: 'Load Balancer',
-      fields: { algorithm: 'Algoritmo', healthChecks: 'Health checks' },
+      fields: { algorithm: 'Algoritmo', healthChecks: 'Health checks', sticky: 'Sticky sessions' },
       options: {
         algorithm: {
           'round-robin': 'Round Robin',
@@ -317,28 +317,33 @@ export const es = {
           'IP Hash: misma IP del cliente, mismo destino; muestra "IP → servidor".',
           'Weighted: en proporción a los pesos de cada conexión (editables en el inspector); si todas las disponibles tienen peso 0, reparte parejo.',
           'Sin destinos disponibles: `503`.',
+          'Sticky sessions: un request con una cookie de sesión conocida va al servidor que la emitió; si ya no está disponible, elige el algoritmo.',
         ],
         fields: {
           algorithm: 'Cómo elige el destino de cada request.',
           healthChecks: 'Saca de rotación los destinos caídos; apagado, les sigue mandando y fallan con `503`.',
+          sticky: 'Recuerda qué servidor emitió cada cookie de sesión y le manda ahí los requests de ese usuario. Manda sobre el algoritmo, IP Hash incluido.',
         },
         tip: 'Tirá un servidor con los health checks apagados y después prendelos: los errores desaparecen.',
       },
     },
     'reverse-proxy': {
       label: 'Reverse Proxy',
-      fields: { authFailRate: 'Rechazo auth', rateLimit: 'Rate limit', cacheHitRate: 'Cache hit' },
+      fields: { auth: 'Autenticación', rateLimit: 'Rate limit', cacheHitRate: 'Cache hit' },
+      options: {
+        auth: { none: 'Ninguna', credentials: 'Credenciales', jwt: 'JWT' },
+      },
       info: {
         summary: 'La puerta de entrada: enruta cada request según el prefijo de su path.',
         behavior: [
           'Gana la regla con el prefijo más largo; una conexión sin regla equivale a `/`.',
           'Ningún prefijo coincide: `404`.',
           'Rate limit superado: `429`.',
-          'Rechazo de auth: `401`.',
+          'Autenticación sin credenciales ni cookie: `401`. En JWT, a quien entra con credenciales le emite el token en la respuesta.',
           'Cache hit: responde él mismo con `200` (HIT).',
         ],
         fields: {
-          authFailRate: 'Fracción de requests que rechaza por auth (0 a 1).',
+          auth: 'Ninguna deja pasar todo. Credenciales exige credenciales o cookie. JWT exige credenciales o un token `jwt:`, y emite el token al loguear.',
           rateLimit: 'Máximo de requests por segundo; 0 es sin límite.',
           cacheHitRate: 'Fracción de requests que responde desde su cache (0 a 1).',
         },

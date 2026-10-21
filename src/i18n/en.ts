@@ -295,7 +295,7 @@ export const en: Dict = {
     },
     'load-balancer': {
       label: 'Load Balancer',
-      fields: { algorithm: 'Algorithm', healthChecks: 'Health checks' },
+      fields: { algorithm: 'Algorithm', healthChecks: 'Health checks', sticky: 'Sticky sessions' },
       options: {
         algorithm: {
           'round-robin': 'Round Robin',
@@ -314,28 +314,33 @@ export const en: Dict = {
           'IP Hash: same client IP, same target; shows "IP → server".',
           'Weighted: in proportion to each connection\'s weight (editable in the inspector); if every available one has weight 0, it splits equally.',
           'No targets available: `503`.',
+          'Sticky sessions: a request with a known session cookie goes to the server that issued it; if that one is no longer available, the algorithm picks.',
         ],
         fields: {
           algorithm: 'How it picks the target of each request.',
           healthChecks: 'Takes down targets out of rotation; off, it keeps sending to them and they fail with `503`.',
+          sticky: 'Remembers which server issued each session cookie and sends that user\'s requests there. It wins over the algorithm, IP Hash included.',
         },
         tip: 'Take a server down with health checks off, then turn them on: the errors go away.',
       },
     },
     'reverse-proxy': {
       label: 'Reverse Proxy',
-      fields: { authFailRate: 'Auth rejection', rateLimit: 'Rate limit', cacheHitRate: 'Cache hit' },
+      fields: { auth: 'Authentication', rateLimit: 'Rate limit', cacheHitRate: 'Cache hit' },
+      options: {
+        auth: { none: 'None', credentials: 'Credentials', jwt: 'JWT' },
+      },
       info: {
         summary: 'The front door: routes each request by the prefix of its path.',
         behavior: [
           'The rule with the longest prefix wins; a connection with no rule counts as `/`.',
           'No prefix matches: `404`.',
           'Rate limit exceeded: `429`.',
-          'Auth rejection: `401`.',
+          'Authentication with no credentials and no cookie: `401`. With JWT, whoever comes in with credentials gets the token in the response.',
           'Cache hit: it responds itself with `200` (HIT).',
         ],
         fields: {
-          authFailRate: 'Share of requests it rejects on auth (0 to 1).',
+          auth: 'None lets everything through. Credentials requires credentials or a cookie. JWT requires credentials or a `jwt:` token, and issues the token on login.',
           rateLimit: 'Maximum requests per second; 0 means no limit.',
           cacheHitRate: 'Share of requests it answers from its cache (0 to 1).',
         },

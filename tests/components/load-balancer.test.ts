@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { defaultRegistry } from '../../src/components/index'
 import { Simulation, type SimEvents } from '../../src/engine/simulation'
+import type { ClientState } from '../../src/components/client'
 import type { Graph, GraphEdge, GraphNode, Message } from '../../src/engine/types'
 
 const node = (id: string, type: string, config: Record<string, unknown> = {}): GraphNode => ({
@@ -271,5 +272,138 @@ describe('load balancer', () => {
     const st = s.nodeState<{ inflight: Record<string, number>; pending: Record<string, string> }>('LB')
     expect(Object.values(st.inflight).every((n) => n === 0)).toBe(true)
     expect(st.pending).toEqual({})
+  })
+})
+
+describe('load balancer sticky sessions (sessions spec §7)', () => {
+  const MEMORY = 'on request:\n  session memory\n'
+  /** C (n users) → LB → S1..Sk, each a service with `session memory`. */
+  function lane(lb: Record<string, unknown>, users: number, servers = 3) {
+    const ids = Array.from({ length: servers }, (_, i) => `S${i + 1}`)
+    const g: Graph = {
+      nodes: [
+        node('C', 'client', { rate: 0, users }),
+        node('LB', 'load-balancer', lb),
+        ...ids.map((id) => node(id, 'service', { processingTime: 100, behavior: MEMORY })),
+      ],
+      edges: [edge('C', 'LB'), ...ids.map((id) => edge('LB', id))],
+    }
+    const s = sim(g)
+    const res = clientResponses(s, 'C')
+    const sent = sentFrom(s, 'LB')
+    /** One request every 3 s, so each completes (2.5 s through the LB) before the next. */
+    const run = (n: number) => {
+      for (let i = 0; i < n; i++) {
+        s.runAction('C', 'send1')
+        s.advance(3000)
+      }
+    }
+    /** userIndex → the set of servers its requests went to (from `from` on). */
+    const serversByUser = (from = 0) => {
+      const m = new Map<number, Set<string>>()
+      for (const e of sent.slice(from)) {
+        const k = e.msg.meta.userIndex as number
+        if (!m.has(k)) m.set(k, new Set())
+        m.get(k)!.add(e.to)
+      }
+      return m
+    }
+    return { s, g, res, sent, run, serversByUser }
+  }
+  const lost = (res: Message[]) => res.filter((m) => m.meta.authError === 'session-lost')
+
+  it('has a sticky toggle, off by default', () => {
+    expect(defaultRegistry.get('load-balancer')!.config.sticky).toMatchObject({ type: 'boolean', default: false })
+  })
+
+  it('without sticky, 5 users over 3 servers churn (session-lost)', () => {
+    const t = lane({}, 5)
+    t.run(25)
+    expect(lost(t.res).length).toBeGreaterThan(5)
+  })
+
+  it('with sticky, 5 users stick to the server that logged them in: 0 session-lost', () => {
+    const t = lane({ sticky: true }, 5)
+    t.run(25)
+    expect(lost(t.res)).toEqual([])
+    expect(t.res.filter((m) => m.meta.setSession)).toHaveLength(5)
+    for (const servers of t.serversByUser(5).values()) expect(servers.size).toBe(1)
+  })
+
+  it('with sticky, 6 users stick to their server and have 0 session-lost', () => {
+    const t = lane({ sticky: true }, 6)
+    t.run(30)
+    expect(lost(t.res)).toEqual([])
+    expect(t.serversByUser(6).size).toBe(6)
+    for (const servers of t.serversByUser(6).values()) expect(servers.size).toBe(1)
+  })
+
+  it('sticky wins over ip-hash and weighted when the cookie is known', () => {
+    for (const algorithm of ['ip-hash', 'weighted', 'random', 'least-connections']) {
+      const t = lane({ sticky: true, algorithm }, 5)
+      t.run(25)
+      expect(lost(t.res), algorithm).toEqual([])
+    }
+  })
+
+  it('taking a server down (health checks on) moves its users: one 401 each, then they re-login and stick again', () => {
+    const t = lane({ sticky: true, healthChecks: true }, 6)
+    t.run(12)
+    const before = t.serversByUser(6)
+    const onS1 = [...before.entries()].filter(([, set]) => set.has('S1')).map(([k]) => k)
+    expect(onS1.length).toBeGreaterThan(0)
+
+    const from = t.sent.length
+    const resFrom = t.res.length
+    t.s.setGraph({ ...t.g, nodes: t.g.nodes.map((n) => (n.id === 'S1' ? { ...n, config: { ...n.config, up: false } } : n)) })
+    t.run(30)
+
+    const after = t.res.slice(resFrom)
+    const lostUsers = lost(after).map((m) => m.meta.userIndex).sort()
+    expect(lostUsers).toEqual([...onS1].sort())
+    for (const k of onS1) {
+      const mine = after.filter((m) => m.meta.userIndex === k)
+      expect(mine[0].meta.authError).toBe('session-lost')
+      expect(mine[1].meta.setSession).toMatch(/^sid:/)
+    }
+    const moved = t.serversByUser(from)
+    for (const [k, set] of moved) {
+      expect(set.has('S1'), `user ${k}`).toBe(false)
+      // After the re-login, each moved user stays on one server.
+      if (onS1.includes(k)) {
+        const late = t.sent.slice(from).filter((e) => e.msg.meta.userIndex === k).slice(1)
+        expect(new Set(late.map((e) => e.to)).size).toBe(1)
+      }
+    }
+  })
+
+  it('a map entry pointing at a removed server falls back to the algorithm without crashing (Review Focus 3)', () => {
+    const t = lane({ sticky: true }, 6)
+    t.run(12)
+    const g2: Graph = { nodes: t.g.nodes.filter((n) => n.id !== 'S1'), edges: t.g.edges.filter((e) => e.target !== 'S1') }
+    t.s.setGraph(g2)
+    const from = t.sent.length
+    const resFrom = t.res.length
+    expect(() => t.run(24)).not.toThrow()
+    expect(t.sent.slice(from).every((e) => e.to !== 'S1')).toBe(true)
+    expect(t.res.length - resFrom).toBe(24)
+    // Only the users that were on S1 lose their session, once each.
+    expect(lost(t.res.slice(resFrom)).length).toBe(2)
+  })
+
+  it('a session-lost 401 drops the stale entry from the map', () => {
+    const t = lane({ sticky: true, healthChecks: true }, 6)
+    t.run(12)
+    t.s.setGraph({ ...t.g, nodes: t.g.nodes.map((n) => (n.id === 'S1' ? { ...n, config: { ...n.config, up: false } } : n)) })
+    t.run(30)
+    const map = t.s.nodeState<{ sticky: Record<string, string> }>('LB').sticky
+    const cookies = t.s.nodeState<ClientState>('C').cookies
+    expect(Object.keys(map).sort()).toEqual([...cookies].sort())
+  })
+
+  it('without sticky the LB learns nothing', () => {
+    const t = lane({}, 5)
+    t.run(10)
+    expect(t.s.nodeState<{ sticky: Record<string, string> }>('LB').sticky).toEqual({})
   })
 })
