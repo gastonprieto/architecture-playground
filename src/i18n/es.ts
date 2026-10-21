@@ -575,7 +575,7 @@ export const es = {
     'reverse-proxy': {
       name: 'Reverse Proxy',
       description:
-        'El proxy enruta por prefijo de path a cada servicio; lo que no coincide con ninguna regla va a Web. Además autentica en la puerta: el cliente sin credenciales recibe 401 y nunca llega a un servicio.',
+        'El proxy enruta por prefijo de path a cada servicio; lo que no coincide con ninguna regla va a Web. Además autentica en la puerta: el cliente sin credenciales recibe 401 y nunca llega a un servicio. Y cachea en el borde solo /static (Claves reales): Web se cachea, Pagos nunca.',
       paths: {
         users: '/usuarios',
         orders: '/ordenes',
@@ -591,6 +591,18 @@ export const es = {
         orders: 'Órdenes',
         payments: 'Pagos',
         site: 'Web',
+      },
+    },
+    cache: {
+      name: 'Cache',
+      description:
+        'Cache-aside: el Servicio le pide cada producto a la Cache; si es MISS va a la Base de datos y después guarda la clave. Hay 10 productos y la Cache tiene lugar para 5: mirá 🔑 y hit % en la Cache, y cómo las expulsiones (LRU) siguen mandando requests a la base. Subí la Capacidad a 10: la base casi no recibe nada.',
+      path: '/productos/{n}',
+      nodes: {
+        client: 'Cliente',
+        service: 'Servicio',
+        cache: 'Cache',
+        db: 'Base de datos',
       },
     },
     'purchase-order': {

@@ -7,6 +7,8 @@ import { parseGraph, serializeGraph } from '../../src/persistence/serialize'
 import { getPresets, withDemoTraffic } from '../../src/presets'
 import { CLIENT_COLORS } from '../../src/ui/colors'
 import type { Graph } from '../../src/engine/types'
+import type { CacheState } from '../../src/components/cache'
+import { prepareGraph } from '../../src/ui/graphEntry'
 
 // Behavior is checked on the Spanish presets; the English ones only differ in texts.
 const presets = getPresets('es')
@@ -27,8 +29,8 @@ function responsesByClient(sim: Simulation): Record<string, Message[]> {
 }
 
 describe('presets', () => {
-  it('exposes the six presets with valid, uniquely-id graphs', () => {
-    expect(presets.map((p) => p.id)).toEqual(['load-balancer', 'sessions', 'sync-vs-queue', 'pubsub', 'reverse-proxy', 'purchase-order'])
+  it('exposes the seven presets with valid, uniquely-id graphs', () => {
+    expect(presets.map((p) => p.id)).toEqual(['load-balancer', 'sessions', 'sync-vs-queue', 'pubsub', 'reverse-proxy', 'cache', 'purchase-order'])
     for (const p of presets) {
       const ids = p.graph.nodes.map((n) => n.id)
       expect(new Set(ids).size).toBe(ids.length)
@@ -135,7 +137,7 @@ describe('presets', () => {
     const names = enPresets.flatMap((p) => p.graph.nodes.map((n) => n.config.name))
     for (const name of ['Browser', 'Mobile app', 'Server 1', 'Database', 'Orders', 'Billing', 'Inventory', 'Emails', 'Analytics', 'Users', 'Payments', 'Web'])
       expect(names).toContain(name)
-    expect(enPresets.map((p) => p.name)).toEqual(['Load Balancer', 'Sessions', 'Sync vs queue', 'Pub/sub', 'Reverse Proxy', 'Purchase order'])
+    expect(enPresets.map((p) => p.name)).toEqual(['Load Balancer', 'Sessions', 'Sync vs queue', 'Pub/sub', 'Reverse Proxy', 'Cache', 'Purchase order'])
     expect(enPresets.find((p) => p.id === 'sync-vs-queue')!.description).toMatch(/^The same traffic/)
     for (const [i, p] of enPresets.entries()) {
       const es = presets[i]
@@ -337,5 +339,108 @@ describe('reverse-proxy gateway auth', () => {
 
   it.each(['es', 'en'] as const)('every preset DSL compiles (%s)', (lang) => {
     for (const p of getPresets(lang)) expectDslsCompile(p, `${lang}/${p.id}`)
+  })
+})
+
+describe('cache preset (cache-spec §7)', () => {
+  const cacheOf = (lang: 'es' | 'en' = 'es') => getPresets(lang).find((p) => p.id === 'cache')!
+
+  it('a client mixing 10 product paths at rate 0, a plain Servicio, a keys Cache of 5 and a relational database', () => {
+    const p = cacheOf()
+    expect(p.name).toBe('Cache')
+    const byId = Object.fromEntries(p.graph.nodes.map((n) => [n.id, n]))
+    expect(byId.client.config.rate).toBe(0)
+    expect(p.demoRates.client).toBeGreaterThan(0)
+    expect((byId.client.config.mix as { value: string }[]).map((r) => r.value)).toEqual(Array.from({ length: 10 }, (_, i) => `/productos/${i + 1}`))
+    expect(byId.service.type).toBe('service')
+    expect(byId.service.config.behavior).toBe('')
+    expect(byId.cache.config).toMatchObject({ mode: 'keys', capacity: 5 })
+    expect(byId.db.config.kind).toBe('relational')
+    expect(p.graph.edges.map((e) => e.id)).toEqual(['client-service', 'service-cache', 'service-db'])
+    // Entering the editor keeps the Cache in keys mode (the migration only touches Caches without a mode).
+    expect(prepareGraph(p.graph).nodes.find((n) => n.id === 'cache')!.config.mode).toBe('keys')
+    const en = cacheOf('en')
+    expect(en.name).toBe('Cache')
+    expect((en.graph.nodes.find((n) => n.id === 'client')!.config.mix as { value: string }[])[9].value).toBe('/products/10')
+  })
+
+  /** 30 s at seed 1 with the demo traffic; `capacity` overrides the Cache's. */
+  function run30(capacity?: number) {
+    const graph = withDemoTraffic(cacheOf())
+    if (capacity !== undefined) graph.nodes = graph.nodes.map((n) => (n.id === 'cache' ? { ...n, config: { ...n.config, capacity } } : n))
+    const sim = new Simulation(graph, { seed: 1, registry: defaultRegistry })
+    let sent = 0
+    let dbRequests = 0
+    const clientCodes: number[] = []
+    sim.on('message:sent', (e) => {
+      if (e.from === 'client' && e.msg.kind === 'request') sent++
+    })
+    sim.on('message:arrived', (e) => {
+      if (e.at === 'db' && e.msg.kind === 'request') dbRequests++
+      if (e.at === 'client' && e.msg.kind === 'response') clientCodes.push(e.msg.code ?? 0)
+    })
+    sim.advance(10_000)
+    const early = { ...sim.nodeState<CacheState>('cache') }
+    sim.advance(20_000)
+    const st = sim.nodeState<CacheState>('cache')
+    const rate = (h: number, m: number) => h / Math.max(1, h + m)
+    return {
+      sent,
+      dbRequests,
+      clientCodes,
+      keys: st.keys.length,
+      earlyHit: rate(early.hits, early.misses),
+      lateHit: rate(st.hits - early.hits, st.misses - early.misses),
+      hit: rate(st.hits, st.misses),
+    }
+  }
+
+  it('30 s: the database gets far fewer requests than the client sends, and the hit % rises over time', () => {
+    const r = run30()
+    expect(r.sent).toBeGreaterThan(40)
+    expect(r.dbRequests).toBeLessThan(0.7 * r.sent)
+    expect(r.lateHit).toBeGreaterThan(r.earlyHit)
+    expect(r.keys).toBe(5)
+    expect(r.clientCodes.every((c) => c === 200)).toBe(true)
+  })
+
+  it('30 s: with capacity 10 the hit % is higher and, once warm, the database almost idle', () => {
+    const five = run30()
+    const ten = run30(10)
+    expect(ten.hit).toBeGreaterThan(five.hit)
+    expect(ten.dbRequests).toBeLessThan(0.5 * five.dbRequests)
+    // After the warm-up (10 cold keys, plus repeats requested before their first set landed) nearly every lookup hits.
+    expect(ten.lateHit).toBeGreaterThan(0.95)
+    expect(five.lateHit).toBeLessThan(0.7)
+  })
+})
+
+describe('reverse-proxy edge cache (cache-spec §7)', () => {
+  it('the proxy caches real keys on /static only', () => {
+    const proxy = preset('reverse-proxy').graph.nodes.find((n) => n.id === 'proxy')!
+    expect(proxy.config).toMatchObject({ cache: 'keys', cacheablePaths: ['/static'] })
+  })
+
+  it('30 s: only /static is answered from the proxy cache; Pagos is never answered by it', () => {
+    const sim = run('reverse-proxy')
+    const hitPaths: string[] = []
+    const pagosSent: string[] = []
+    const pagosArrived: string[] = []
+    sim.on('message:arrived', (e) => {
+      if (e.msg.kind === 'response' && e.msg.meta.cacheHit === true && e.at !== 'proxy') hitPaths.push(e.msg.meta.path ?? '')
+      if (e.at === 'pagos' && e.msg.kind === 'request') pagosArrived.push(e.msg.id)
+    })
+    sim.on('message:sent', (e) => {
+      // Requests still in flight at the end are left out.
+      const path = e.msg.meta.path ?? ''
+      if (e.to === 'proxy' && e.msg.kind === 'request' && e.msg.meta.clientId !== 'anon' && path.startsWith('/pagos') && e.msg.createdAt < 28_000) pagosSent.push(e.msg.id)
+    })
+    sim.advance(30_000)
+    expect(hitPaths.length).toBeGreaterThan(5)
+    expect(hitPaths.every((p) => p.startsWith('/static'))).toBe(true)
+    // Every authenticated /pagos request reached Pagos.
+    expect(pagosSent.length).toBeGreaterThan(5)
+    expect(pagosSent.filter((id) => !pagosArrived.includes(id))).toEqual([])
+    expect(sim.nodeState<CacheState>('proxy').keys.map((k) => k.key)).toEqual(['/static'])
   })
 })

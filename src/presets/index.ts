@@ -1,5 +1,6 @@
 import type { Graph } from '../engine/types'
 import type { Lang } from '../i18n'
+import { cachePreset } from './cache'
 import { loadBalancerPreset } from './load-balancer'
 import { pubsubPreset } from './pubsub'
 import { purchaseOrderPreset } from './purchase-order'
@@ -26,7 +27,7 @@ export function withDemoTraffic(preset: Preset): Graph {
   }
 }
 
-const builders = [loadBalancerPreset, sessionsPreset, syncVsQueuePreset, pubsubPreset, reverseProxyPreset, purchaseOrderPreset]
+const builders = [loadBalancerPreset, sessionsPreset, syncVsQueuePreset, pubsubPreset, reverseProxyPreset, cachePreset, purchaseOrderPreset]
 
 /** The presets with their names, descriptions and node names in `lang` (fresh graphs every call). */
 export const getPresets = (lang: Lang): Preset[] => builders.map((build) => build(lang))

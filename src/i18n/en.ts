@@ -570,7 +570,7 @@ export const en: Dict = {
     'reverse-proxy': {
       name: 'Reverse Proxy',
       description:
-        'The proxy routes each path prefix to its service; anything that matches no rule goes to Web. It also authenticates at the door: the client with no credentials gets a 401 and never reaches a service.',
+        'The proxy routes each path prefix to its service; anything that matches no rule goes to Web. It also authenticates at the door: the client with no credentials gets a 401 and never reaches a service. And it caches only /static at the edge (Real keys): Web gets cached, Payments never.',
       paths: {
         users: '/users',
         orders: '/orders',
@@ -586,6 +586,18 @@ export const en: Dict = {
         orders: 'Orders',
         payments: 'Payments',
         site: 'Web',
+      },
+    },
+    cache: {
+      name: 'Cache',
+      description:
+        'Cache-aside: the Service asks the Cache for each product; on a MISS it goes to the Database and then stores the key. There are 10 products and the Cache has room for 5: watch 🔑 and hit % on the Cache, and how evictions (LRU) keep sending requests to the database. Raise the Capacity to 10: the database gets almost nothing.',
+      path: '/products/{n}',
+      nodes: {
+        client: 'Client',
+        service: 'Service',
+        cache: 'Cache',
+        db: 'Database',
       },
     },
     'purchase-order': {
