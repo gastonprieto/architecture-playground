@@ -75,20 +75,20 @@ export class Simulation {
 
   /**
    * Replace the graph while running. Nodes keeping their id and type keep their state and stats
-   * (config is refreshed); other nodes start from initialState. In-flight messages whose target
+   * (config is refreshed and `onConfig` is called); other nodes start from initialState. In-flight messages whose target
    * node or edge disappeared are dropped with reason 'removed' when they arrive.
    */
   setGraph(graph: Graph): void {
     const next = new Map<NodeId, NodeRecord>()
-    const kept: NodeRecord[] = []
+    const kept: { rec: NodeRecord; prevConfig: Record<string, unknown> }[] = []
     for (const gn of graph.nodes) {
       const def = this.registry.get(gn.type)
       const config = def ? { ...defaultConfig(def), ...gn.config } : { ...gn.config }
       const prev = this.nodes.get(gn.id)
       if (prev && prev.type === gn.type) {
+        kept.push({ rec: prev, prevConfig: prev.config })
         prev.config = config
         next.set(gn.id, prev)
-        kept.push(prev)
       } else {
         next.set(gn.id, this.newRecord(gn.id, gn.type, def, config))
       }
@@ -97,7 +97,10 @@ export class Simulation {
     this.edgeList = graph.edges.filter((e) => next.has(e.source) && next.has(e.target))
     this.edges = new Map(this.edgeList.map((e) => [e.id, e]))
     // After the new graph is in place, so rejections reply along the current edges.
-    for (const rec of kept) rec.processor.reconfigure()
+    for (const { rec, prevConfig } of kept) {
+      rec.def?.onConfig?.(this.ctx(rec), prevConfig)
+      rec.processor.reconfigure()
+    }
   }
 
   runAction(nodeId: NodeId, action: string): void {

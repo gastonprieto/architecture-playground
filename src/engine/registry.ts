@@ -68,6 +68,13 @@ export interface ComponentDef<C = any, S = any> {
   onMessage(msg: Message, ctx: Ctx<C, S>): void
   onResponse?(res: Message, ctx: Ctx<C, S>): void
   onTick?(ctx: Ctx<C, S>, dtMs: number): void
+  /**
+   * Called synchronously on every setGraph that keeps this node (same id and type), after its config
+   * was refreshed; `prev` is the config it had before. Runs even while paused (no time passes).
+   */
+  onConfig?(ctx: Ctx<C, S>, prev: C): void
+  /** Icon derived from the config (e.g. the database kind); `icon` is the base one the palette uses. */
+  iconFor?(config: C): string
   actions?: Record<string, { label: string; run(ctx: Ctx<C, S>): void }>
   /** True only for client. */
   recordsMetrics?: boolean

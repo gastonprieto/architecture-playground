@@ -274,6 +274,10 @@ export const es = {
     },
     database: {
       label: 'Base de datos',
+      fields: { kind: 'Tipo' },
+      options: {
+        kind: { relational: 'Relacional', 'key-value': 'Clave-valor', document: 'Documental' },
+      },
       info: {
         summary: 'Recibe queries y responde cuando termina de procesarlas. Es el final del camino: no llama a nadie.',
         behavior: [
@@ -281,6 +285,9 @@ export const es = {
           'Responde `200` al terminar cada una.',
           'Cola llena o base caída: `503`.',
         ],
+        fields: {
+          kind: 'Relacional (🗄️, 300 ms), clave-valor (🗝️, 20 ms) o documental (📄, 80 ms). La clave-valor guarda todo en memoria: si se reinicia, pierde las sesiones.',
+        },
         tip: 'Poné varios servicios contra una sola base y mirá cómo se vuelve el cuello de botella.',
       },
     },

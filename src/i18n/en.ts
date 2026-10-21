@@ -271,6 +271,10 @@ export const en: Dict = {
     },
     database: {
       label: 'Database',
+      fields: { kind: 'Type' },
+      options: {
+        kind: { relational: 'Relational', 'key-value': 'Key-value', document: 'Document' },
+      },
       info: {
         summary: 'Receives queries and responds once it has processed them. It is the end of the line: it calls nobody.',
         behavior: [
@@ -278,6 +282,9 @@ export const en: Dict = {
           'Responds `200` when each one is done.',
           'Queue full or database down: `503`.',
         ],
+        fields: {
+          kind: 'Relational (🗄️, 300 ms), key-value (🗝️, 20 ms) or document (📄, 80 ms). Key-value keeps everything in memory: if it restarts, it loses its sessions.',
+        },
         tip: 'Point several services at a single database and watch it become the bottleneck.',
       },
     },
