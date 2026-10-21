@@ -7,16 +7,19 @@ export interface Pushed {
   msg: Message
 }
 
-/** Concurrent slots a target accepts: its `capacity` config, or 1 when it has none. */
+/**
+ * Concurrent slots a target accepts: the `capacity` its processing reads (not a Cache's key
+ * capacity, see ComponentDef.processingConfig), or 1 when it has none.
+ */
 export function targetCapacity(ctx: Ctx, target: NodeId): number {
-  const c = ctx.peer(target)?.config.capacity
+  const c = ctx.peer(target)?.processing.capacity
   return typeof c === 'number' && c > 0 ? c : 1
 }
 
 /** True if `target` exists, is up and has a free slot according to `inFlight`. */
 export function isFree(ctx: Ctx, target: NodeId, inFlight: Record<NodeId, number>): boolean {
   const peer = ctx.peer(target)
-  if (!peer || peer.config.up === false) return false
+  if (!peer || peer.processing.up === false) return false
   return (inFlight[target] ?? 0) < targetCapacity(ctx, target)
 }
 

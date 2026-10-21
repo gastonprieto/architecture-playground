@@ -39,6 +39,15 @@ export function cacheOpMeta(parent: Message, op: 'get' | 'set', key: string): Me
   return meta
 }
 
+/**
+ * How a cache `get` went, from its response: `hit` / `miss` by `meta.cacheHit` (never by the code);
+ * an error response, or none (the Cache vanished), is a cache `failed`.
+ */
+export function cacheOutcome(res: Message | undefined): 'hit' | 'miss' | 'failed' {
+  if (!res || res.status !== 'ok') return 'failed'
+  return res.meta.cacheHit === true ? 'hit' : 'miss'
+}
+
 function sendCacheOp(ctx: CacheAsideCtx, parent: Message, target: NodeId, op: 'get' | 'set', key: string, next: (res?: Message) => void): void {
   const child = ctx.newMessage('request', cacheOpMeta(parent, op, key), parent)
   ctx.state.cachePending[child.id] = { target, next }
@@ -59,17 +68,17 @@ export function cacheAside(ctx: CacheAsideCtx, msg: Message, mode: DependencyMod
   const leafIds = new Set(caches.map((c) => c.target))
   const key = cacheKeyOf(msg.meta)
   sendCacheOp(ctx, msg, cache, 'get', key, (res) => {
-    if (res?.status === 'ok') {
+    const outcome = cacheOutcome(res)
+    if (outcome === 'hit') {
       done(true)
       return
     }
-    // 404 is a real MISS; anything else (down, queue full, gone) is a failed cache: go on, never set.
-    const miss = res?.code === 404
+    // A failed cache (error response, or gone) is treated as a miss that never sets.
     const others = ctx.outputs().filter((o) => !leafIds.has(o.target))
     callDependencies(ctx, msg, mode, (ok) => {
-      if (!ok || !miss) done(ok)
-      // The set's own outcome does not matter: the data is already there.
-      else sendCacheOp(ctx, msg, cache, 'set', key, () => done(true))
+      // Fire-and-forget: the reply does not wait for the set (its response is consumed, ignored).
+      if (ok && outcome === 'miss' && ctx.peer(cache)) sendCacheOp(ctx, msg, cache, 'set', key, () => {})
+      done(ok)
     }, others)
   })
   return true

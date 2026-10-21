@@ -371,7 +371,7 @@ export const en: Dict = {
       info: {
         summary: 'Stores responses by key (the path) so the database is not hit every time.',
         behavior: [
-          'With no outputs (cache-aside): the service asks it; a HIT answers `200`, a MISS `404`, and the service stores the key after going to the database.',
+          'With no outputs (cache-aside): the service asks it; it answers `200` with HIT or MISS (a MISS is not an error), and after a MISS the service goes to the database and stores the key without waiting.',
           'With outputs (read-through): a MISS is forwarded to its first output and the ok response is stored on the way back.',
           'Real keys: when full, the least recently used key leaves (LRU); with a TTL, an expired key is a MISS.',
           'Random: a HIT with probability Hit rate, storing nothing.',

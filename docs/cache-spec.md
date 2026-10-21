@@ -11,10 +11,10 @@ Hoy la Cache modela **read-through**: la Cache reenvía los MISS a la base. El p
 ### 2.1 Rol según la topología
 
 - **Sin salidas conectadas → hoja (cache-aside).** Responde a operaciones de cache, no reenvía nada:
-  - `meta.cacheOp = 'get'`: **HIT** → 200 con `meta.cacheHit = true` y label "HIT". **MISS** → 404 con `meta.cacheHit = false` y label "MISS".
+  - `meta.cacheOp = 'get'`: **HIT** → 200 con `meta.cacheHit = true` y label "HIT". **MISS** → **200** con `meta.cacheHit = false` y label "MISS". Un MISS es operación normal: no cuenta como error (como `GET` de Redis devolviendo nil).
   - `meta.cacheOp = 'set'`: guarda la clave y responde 200.
   - Un request **sin `cacheOp`** (por ejemplo un `query Cache` escrito a mano) se trata como `get`.
-- **Con salidas → read-through** (compatibilidad con diagramas viejos). Un HIT responde la Cache misma. Un MISS reenvía a su primera salida, y la respuesta que vuelve se **guarda** (en modo claves) y se reenvía hacia atrás.
+- **Con salidas → read-through** (compatibilidad con diagramas viejos). Un HIT responde la Cache misma. Un MISS reenvía a su primera salida, y la respuesta que vuelve se **guarda** (en modo claves) y se reenvía hacia atrás. Al reenviar, la Cache **quita** `cacheOp` del meta (el destino de abajo recibe un request normal).
 
 ### 2.2 Modo
 
@@ -37,6 +37,8 @@ Se mantienen `processingTime` (default 50) y el toggle Activo. Antes la Cache no
 
 El nodo muestra **🔑 N** (claves guardadas, solo en modo claves) y **hit % real** (HITs / (HITs + MISSes) desde el último reset).
 
+Los llamadores distinguen HIT/MISS por `meta.cacheHit`, nunca por el código. Cualquier respuesta de error (503, cola llena) es una **falla de la Cache**.
+
 ## 3. Servicio sin DSL: cache-aside automático
 
 Si un Servicio **sin comportamiento** tiene entre sus salidas al menos una Cache **hoja** (sin salidas):
@@ -46,7 +48,7 @@ Si un Servicio **sin comportamiento** tiene entre sus salidas al menos una Cache
 3. Según la respuesta:
    - **HIT:** responde 200 sin llamar al resto.
    - **MISS:** llama a sus **otras** salidas (las que no son Caches hoja) con el modo de siempre (paralelo o secuencial).
-     - Si todas responden ok, manda `set` a la Cache y responde 200.
+     - Si todas responden ok, manda `set` a la Cache **sin esperar** (fire-and-forget) y responde 200.
      - Si alguna falla, responde 502 y no escribe.
    - **Cache caída (503):** la ignora y sigue como MISS, pero sin `set`. Una cache caída no debe tirar el servicio.
 
@@ -64,7 +66,7 @@ on request /productos:
 - **Sintaxis:** `cache <Destino> [mod]:` seguido de un bloque indentado obligatorio. Los modificadores son `or reply N` / `or continue`. `nowait` no aplica: da el error `cache-nowait`.
 - **Destino:** una Cache conectada. Otro tipo da `wrong-verb` con sugerencia.
 - **HIT:** se saltea el bloque y sigue.
-- **MISS:** corre el bloque. Si termina sin error, hace `set` (esperando el 200) y sigue. Si un paso del bloque falla, el error se propaga como en cualquier paso y no se escribe.
+- **MISS:** corre el bloque. Si termina sin error, manda `set` **sin esperar** (fire-and-forget) y sigue. Si un paso del bloque falla, el error se propaga como en cualquier paso y no se escribe.
 - **Falla de la Cache** (caída o cola llena): falla del paso, 503 por default, o el modificador. Con `or continue` se trata como MISS: corre el bloque y no escribe.
 - **Clave:** el `meta.path` del request que maneja el handler.
 - **En `on event` / `on message`:** la clave es `meta.eventType` o el id del mensaje. Mismo comportamiento, poco común.

@@ -1,7 +1,7 @@
 import type { Ctx } from '../../engine/registry'
 import { matchesPath } from '../../engine/rules'
 import type { Message, NodeId } from '../../engine/types'
-import { cacheOpMeta } from '../shared/cacheAside'
+import { cacheOpMeta, cacheOutcome } from '../shared/cacheAside'
 import type { Handler, Mod, Program, Step } from './ast'
 import { behaviorTargets, type BehaviorTarget } from './outputs'
 import { parseBehavior } from './parse'
@@ -240,8 +240,8 @@ function stepCacheKey(msg: Message): string {
 }
 
 /**
- * docs/cache-spec.md §4. `get` the key: a HIT skips the block; a MISS runs it and, if it ends
- * without error, `set`s the key (waiting for the answer, whatever it is) and goes on. A block that
+ * docs/cache-spec.md §4. `get` the key: a HIT skips the block; a MISS (`meta.cacheHit` false) runs
+ * it and, if it ends without error, sends the `set` without waiting (fire-and-forget) and goes on. A block that
  * fails propagates its failure and a `reply` inside it ends the handler: no set either way. A failed
  * Cache is a step failure (503, or the modifier); `or continue` runs the block as a miss, without set.
  */
@@ -261,8 +261,8 @@ function cacheStep(run: Run, step: Extract<Step, { kind: 'cache' }>, then: (o: O
   }
   const runBlock = (set: boolean) =>
     runSteps(run, step.steps, 0, (o) => {
-      if (o === 'failed' || !set || target === undefined) then(o)
-      else send(target, 'set', () => then('next'))
+      if (o === 'next' && set && target !== undefined && ctx.peer(target)) send(target, 'set', () => {})
+      then(o)
     })
   const failed = () => {
     if (step.mod?.kind === 'orContinue') runBlock(false)
@@ -273,9 +273,10 @@ function cacheStep(run: Run, step: Extract<Step, { kind: 'cache' }>, then: (o: O
     failed()
     return
   }
-  send(target, 'get', (ok, res) => {
-    if (ok) then('next')
-    else if (res?.code === 404) runBlock(true)
+  send(target, 'get', (_ok, res) => {
+    const outcome = cacheOutcome(res)
+    if (outcome === 'hit') then('next')
+    else if (outcome === 'miss') runBlock(true)
     else failed()
   })
 }

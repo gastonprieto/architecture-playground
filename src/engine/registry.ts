@@ -61,7 +61,8 @@ export interface Ctx<C = any, S = any> {
   config: C
   state: S
   outputs(): OutEdge[]
-  peer(id: NodeId): { type: string; config: Record<string, unknown> } | undefined
+  /** `processing`: the config its processing reads (see ComponentDef.processingConfig; usually `config`). */
+  peer(id: NodeId): { type: string; config: Record<string, unknown>; processing: Record<string, unknown> } | undefined
   /** How many outgoing connections node `id` has (0 for a missing node), e.g. to tell a leaf Cache. */
   peerOutputCount(id: NodeId): number
   /** Fresh id, empty trail, createdAt = now, parentId = parent?.id. */

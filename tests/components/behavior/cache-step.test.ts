@@ -120,6 +120,29 @@ describe('cache step: run', () => {
     expect(t.inFlight()).toBe(0)
   })
 
+  it('the set is fire-and-forget: the reply does not wait for it; the key is stored afterwards', () => {
+    const t = setup()
+    const times: number[] = []
+    t.s.on('message:arrived', (p) => {
+      if (p.at === 'C' && p.msg.kind === 'response') times.push(t.s.now)
+    })
+    t.s.runAction('C', 'send1')
+    t.s.advance(3850)
+    // C→S 600, S 100, get 600+50+600, Base 600+100+600, S→C 600.
+    expect(times).toEqual([3850])
+    expect(t.keys()).toEqual([])
+    t.s.advance(3000)
+    expect(t.keys()).toEqual(['/p'])
+    expect(t.inFlight()).toBe(0)
+    expect(Object.keys(t.s.nodeState<{ behaviorPending: object }>('S').behaviorPending)).toEqual([])
+  })
+
+  it('a MISS is not an error: a hand-written `query Cache` succeeds and the cache counts no error', () => {
+    const t = setup({ behavior: 'on request:\n  query Cache\n  reply 201\n' })
+    expect(t.send()).toEqual(['ok', 201])
+    expect(t.s.nodeStats('Cache')).toMatchObject({ errors: 0 })
+  })
+
   it('a hit skips the block', () => {
     const t = setup()
     t.send()
@@ -187,5 +210,33 @@ describe('cache step: run', () => {
     const t = setup({ behavior: 'on request:\n  parallel:\n    cache Cache:\n      query Base\n    wait 10\n  reply 201\n' })
     expect(t.send()).toEqual(['ok', 201])
     expect(t.log.filter((l) => l.startsWith('Cache:set'))).toHaveLength(1)
+  })
+})
+
+describe('cache step: read-through target', () => {
+  it('a downstream 404 coming back through a read-through Cache is a cache failure, not a miss', () => {
+    const g: Graph = {
+      nodes: [
+        node('C', 'client', { mix: [{ value: '/p', weight: 1 }] }),
+        node('S', 'service', { processingTime: 100, behavior: 'on request:\n  cache Cache:\n    query Base\n  reply 201\n' }),
+        node('Cache', 'cache', { processingTime: 50 }),
+        node('Origin', 'service', { processingTime: 100, behavior: 'on request:\n  reply 404\n' }),
+        node('Base', 'database', { processingTime: 100 }),
+      ],
+      edges: [edge('C', 'S'), edge('S', 'Cache'), edge('Cache', 'Origin'), edge('S', 'Base')],
+    }
+    const s = new Simulation(g, { seed: 3, registry: defaultRegistry })
+    const responses: Message[] = []
+    let atOrigin: Message | undefined
+    s.on('message:arrived', (p) => {
+      if (p.at === 'C' && p.msg.kind === 'response') responses.push(p.msg)
+      if (p.at === 'Origin' && p.msg.kind === 'request') atOrigin = p.msg
+    })
+    s.runAction('C', 'send1')
+    s.advance(10_000)
+    expect(responses.map((r) => r.code)).toEqual([503])
+    expect(s.nodeStats('Base').ok).toBe(0)
+    // The read-through cache forwarded a plain request.
+    expect(atOrigin?.meta.cacheOp).toBeUndefined()
   })
 })

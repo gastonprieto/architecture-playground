@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CacheState } from '../../src/components/cache'
+import type { CacheAsideState } from '../../src/components/shared/cacheAside'
 import { defaultRegistry } from '../../src/components/index'
 import { Simulation } from '../../src/engine/simulation'
 import type { Graph, GraphEdge, GraphNode, Message } from '../../src/engine/types'
@@ -53,7 +54,10 @@ function setup(opts: Opts = {}) {
     s.advance(6000)
     return responses[responses.length - 1]
   }
-  return { s, responses, log, send, keys: () => s.nodeState<CacheState>('K').keys.map((k) => k.key) }
+  const pending = () => Object.keys(s.nodeState<CacheAsideState>('S').cachePending)
+  /** The same graph without the cache. */
+  const removeCache = () => s.setGraph({ nodes: g.nodes.filter((n) => n.id !== 'K'), edges: g.edges.filter((e) => e.target !== 'K') })
+  return { s, responses, log, send, pending, removeCache, keys: () => s.nodeState<CacheState>('K').keys.map((k) => k.key) }
 }
 
 describe('Servicio: automatic cache-aside', () => {
@@ -64,6 +68,45 @@ describe('Servicio: automatic cache-aside', () => {
     expect(t.log()).toEqual(['K:get', 'D', 'K:set'])
     expect(t.keys()).toEqual(['/a'])
     expect(t.s.nodeStats('D').ok).toBe(1)
+    // A MISS is a normal answer: the cache counts no error.
+    expect(t.s.nodeStats('K')).toMatchObject({ ok: 2, errors: 0 })
+    expect(t.pending()).toEqual([])
+  })
+
+  it('the set is fire-and-forget: miss latency = get + database round trips only; the key is stored afterwards', () => {
+    const t = setup()
+    t.s.runAction('C', 'send1')
+    // C→S 600, S 100, get 600+50+600, D 600+100+600, S→C 600 = 3850.
+    t.s.advance(3849)
+    expect(t.responses).toHaveLength(0)
+    t.s.advance(1)
+    expect(t.responses.map((r) => [r.code, t.s.now - r.createdAt])).toEqual([[200, 3850]])
+    expect(t.keys()).toEqual([])
+    t.s.advance(3000)
+    expect(t.keys()).toEqual(['/a'])
+    expect(t.pending()).toEqual([])
+  })
+
+  it('a cache deleted while the get is in flight: the database is called, 200, nothing pending', () => {
+    const t = setup()
+    t.s.runAction('C', 'send1')
+    t.s.advance(1000) // the get travels to K (arrives at 1300)
+    t.removeCache()
+    t.s.advance(6000)
+    expect(t.responses.map((r) => r.code)).toEqual([200])
+    expect(t.s.nodeStats('D').ok).toBe(1)
+    expect(t.pending()).toEqual([])
+  })
+
+  it('a cache deleted after the get answered: 200, no set sent, nothing pending', () => {
+    const t = setup()
+    t.s.runAction('C', 'send1')
+    t.s.advance(2200) // the MISS came back at 1950; the database call is in flight
+    t.removeCache()
+    t.s.advance(6000)
+    expect(t.responses.map((r) => r.code)).toEqual([200])
+    expect(t.log()).toEqual(['K:get', 'D'])
+    expect(t.pending()).toEqual([])
   })
 
   it('a hit replies 200 without calling the database', () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { cacheKeyOf, cacheLookup, cacheStore, type CacheEntry, type CacheState } from '../../src/components/cache'
 import { defaultRegistry } from '../../src/components/index'
+import { targetCapacity } from '../../src/components/shared/push'
 import { Registry, defineComponent } from '../../src/engine/registry'
 import { HOP_MS, Simulation } from '../../src/engine/simulation'
 import type { Graph, GraphEdge, GraphNode, Message } from '../../src/engine/types'
@@ -26,6 +27,13 @@ const probe = defineComponent<Record<string, never>, { outbox: Message['meta'][]
     ctx.state.responses.push(res)
   },
   actions: {
+    /** Records targetCapacity of its first output (push-based senders use it). */
+    capacity: {
+      label: 'Capacity',
+      run(ctx) {
+        ctx.state.responses.push({ id: 'cap', kind: 'response', meta: { cap: targetCapacity(ctx, ctx.outputs()[0].target) }, trail: [], createdAt: 0 })
+      },
+    },
     send: {
       label: 'Send',
       run(ctx) {
@@ -119,11 +127,12 @@ describe('cache: pure helpers', () => {
 })
 
 describe('cache: leaf (no outputs)', () => {
-  it('get on an empty cache is a MISS: 404 with cacheHit false', () => {
+  it('get on an empty cache is a MISS: 200 with cacheHit false, not an error', () => {
     const t = setup()
-    expect(brief(t.send({ cacheOp: 'get', path: '/a' }))).toEqual({ status: 'error', code: 404, hit: false })
+    expect(brief(t.send({ cacheOp: 'get', path: '/a' }))).toEqual({ status: 'ok', code: 200, hit: false })
     expect(t.labels).toEqual(['MISS:slow'])
     expect(t.cacheState().misses).toBe(1)
+    expect(t.s.nodeStats('K')).toMatchObject({ ok: 1, errors: 0 })
   })
 
   it('set then get hits (keyed by path); a request without cacheOp is a get', () => {
@@ -132,7 +141,7 @@ describe('cache: leaf (no outputs)', () => {
     expect(t.keys()).toEqual(['/a'])
     expect(brief(t.send({ cacheOp: 'get', path: '/a' }))).toEqual({ status: 'ok', code: 200, hit: true })
     expect(brief(t.send({ path: '/a' }))).toEqual({ status: 'ok', code: 200, hit: true })
-    expect(brief(t.send({ path: '/b' }))).toEqual({ status: 'error', code: 404, hit: false })
+    expect(brief(t.send({ path: '/b' }))).toEqual({ status: 'ok', code: 200, hit: false })
     expect(t.labels).toEqual(['HIT:redis', 'HIT:redis', 'MISS:slow'])
     expect([t.cacheState().hits, t.cacheState().misses]).toEqual([2, 1])
   })
@@ -141,19 +150,19 @@ describe('cache: leaf (no outputs)', () => {
     const t = setup()
     t.send({ cacheOp: 'set', cacheKey: 'x', path: '/a' })
     expect(t.keys()).toEqual(['x'])
-    expect(t.send({ cacheOp: 'get', path: '/a' }).code).toBe(404)
-    expect(t.send({ cacheOp: 'get', cacheKey: 'x', path: '/zzz' }).code).toBe(200)
+    expect(t.send({ cacheOp: 'get', path: '/a' }).meta.cacheHit).toBe(false)
+    expect(t.send({ cacheOp: 'get', cacheKey: 'x', path: '/zzz' }).meta.cacheHit).toBe(true)
   })
 
   it('LRU at capacity: the least recently used key leaves; a get hit refreshes recency', () => {
     const t = setup({ capacity: 2 })
     t.send({ cacheOp: 'set', path: '/a' })
     t.send({ cacheOp: 'set', path: '/b' })
-    expect(t.send({ cacheOp: 'get', path: '/a' }).code).toBe(200)
+    expect(t.send({ cacheOp: 'get', path: '/a' }).meta.cacheHit).toBe(true)
     t.send({ cacheOp: 'set', path: '/c' })
     expect(t.keys().sort()).toEqual(['/a', '/c'])
-    expect(t.send({ cacheOp: 'get', path: '/b' }).code).toBe(404)
-    expect(t.send({ cacheOp: 'get', path: '/a' }).code).toBe(200)
+    expect(t.send({ cacheOp: 'get', path: '/b' }).meta.cacheHit).toBe(false)
+    expect(t.send({ cacheOp: 'get', path: '/a' }).meta.cacheHit).toBe(true)
   })
 
   it('lowering the capacity trims the stored keys right away', () => {
@@ -167,10 +176,10 @@ describe('cache: leaf (no outputs)', () => {
     const t = setup({ ttl: 3000 })
     const RT = 2 * HOP_MS + 50 // one round trip: 1250 ms
     t.send({ cacheOp: 'set', path: '/a' }, RT) // stored at 650
-    expect(t.send({ cacheOp: 'get', path: '/a' }, RT).code).toBe(200) // looked up at 1900
+    expect(t.send({ cacheOp: 'get', path: '/a' }, RT).meta.cacheHit).toBe(true) // looked up at 1900
     expect(t.keys()).toEqual(['/a'])
     t.s.advance(1000)
-    expect(t.send({ cacheOp: 'get', path: '/a' }, RT).code).toBe(404) // looked up at 4150 ≥ 650 + 3000
+    expect(t.send({ cacheOp: 'get', path: '/a' }, RT).meta.cacheHit).toBe(false) // looked up at 4150 ≥ 650 + 3000
     expect(t.keys()).toEqual([])
   })
 
@@ -178,7 +187,7 @@ describe('cache: leaf (no outputs)', () => {
     const t = setup()
     t.send({ cacheOp: 'set', path: '/a' })
     t.s.advance(1_000_000)
-    expect(t.send({ cacheOp: 'get', path: '/a' }).code).toBe(200)
+    expect(t.send({ cacheOp: 'get', path: '/a' }).meta.cacheHit).toBe(true)
   })
 
   it('random mode: hitRate decides, set stores nothing', () => {
@@ -188,7 +197,7 @@ describe('cache: leaf (no outputs)', () => {
     expect(brief(hit.send({ cacheOp: 'get', path: '/never-set' }))).toEqual({ status: 'ok', code: 200, hit: true })
     const miss = setup({ mode: 'random', hitRate: 0 })
     miss.send({ cacheOp: 'set', path: '/a' })
-    expect(brief(miss.send({ cacheOp: 'get', path: '/a' }))).toEqual({ status: 'error', code: 404, hit: false })
+    expect(brief(miss.send({ cacheOp: 'get', path: '/a' }))).toEqual({ status: 'ok', code: 200, hit: false })
   })
 
   it('down → 503 (Activo off)', () => {
@@ -252,5 +261,26 @@ describe('cache: read-through (with outputs)', () => {
     expect(t.send({ cacheOp: 'set', path: '/a' }).code).toBe(200)
     expect(t.s.nodeStats('D').ok).toBe(0)
     expect(t.keys()).toEqual(['/a'])
+  })
+})
+
+describe('cache: read-through forwarding and push slots', () => {
+  it('strips cacheOp before forwarding downstream', () => {
+    const t = setup({}, true)
+    const atD: Message[] = []
+    t.s.on('message:arrived', (p) => {
+      if (p.at === 'D' && p.msg.kind === 'request') atD.push(p.msg)
+    })
+    t.send({ cacheOp: 'get', path: '/a' })
+    expect(atD).toHaveLength(1)
+    expect(atD[0].meta.cacheOp).toBeUndefined()
+    expect(atD[0].meta.path).toBe('/a')
+  })
+
+  it('push-based senders see 1 slot for a Cache, not its key capacity', () => {
+    const t = setup({ capacity: 50 })
+    t.s.runAction('P', 'capacity')
+    const r = t.s.nodeState<{ responses: Message[] }>('P').responses
+    expect(r[r.length - 1].meta.cap).toBe(1)
   })
 })

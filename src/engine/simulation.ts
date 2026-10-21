@@ -259,7 +259,7 @@ export class Simulation {
   private newRecord(id: NodeId, type: string, def: ComponentDef | undefined, config: Record<string, unknown>): NodeRecord {
     const rec = { id, type, def, config, state: def ? def.initialState() : {}, stats: zeroStats() } as NodeRecord
     rec.processor = new Processor({
-      config: () => (rec.def?.processingConfig ? rec.def.processingConfig(rec.config) : rec.config),
+      config: () => processingConfigOf(rec),
       stats: rec.stats,
       // A job released after its node was removed must not emit stats for a node that no longer exists.
       statsChanged: () => {
@@ -312,7 +312,7 @@ export class Simulation {
       peerOutputCount: (id) => sim.edgeList.reduce((n, e) => n + (e.source === id ? 1 : 0), 0),
       peer: (id) => {
         const p = sim.nodes.get(id)
-        return p ? { type: p.type, config: p.config } : undefined
+        return p ? { type: p.type, config: p.config, processing: processingConfigOf(p) } : undefined
       },
       newMessage: (kind: MessageKind, meta: Message['meta'], parent?: Message): Message => ({
         id: sim.nextId(),
@@ -337,6 +337,11 @@ export class Simulation {
       random: () => sim.random(),
     }
   }
+}
+
+/** The config a node's processing reads: its def's processingConfig of the config, or the config itself. */
+function processingConfigOf(rec: NodeRecord): Record<string, unknown> {
+  return rec.def?.processingConfig ? rec.def.processingConfig(rec.config) : rec.config
 }
 
 function zeroStats(): NodeStats {

@@ -3,7 +3,7 @@ import type { Message } from '../engine/types'
 
 /*
  * Cache (docs/cache-spec.md §2). Without outputs it is a leaf for cache-aside: it answers `get`
- * (HIT 200 / MISS 404, `meta.cacheHit`) and `set`. With outputs it is read-through: a HIT answers
+ * (200 with `meta.cacheHit` true/false: a MISS is not an error) and `set`. With outputs it is read-through: a HIT answers
  * here, a MISS goes to the first output and an ok response stores the key on its way back.
  * `keys` mode keeps real keys (LRU + TTL in sim time); `random` mode hits with probability hitRate.
  */
@@ -23,11 +23,10 @@ export interface CacheConfig {
   up: boolean
 }
 
-/** A stored key: `at` = when it was stored (TTL), `used` = last store or hit (LRU). */
+/** A stored key and when it was stored (TTL). Recency is the position in the array. */
 export interface CacheEntry {
   key: string
   at: number
-  used: number
 }
 
 export interface CacheState {
@@ -65,9 +64,7 @@ export function cacheLookup(entries: CacheEntry[], key: string, now: number, ttl
   cachePurgeExpired(entries, now, ttl)
   const i = entries.findIndex((e) => e.key === key)
   if (i === -1) return false
-  const [e] = entries.splice(i, 1)
-  e.used = now
-  entries.push(e)
+  entries.push(...entries.splice(i, 1))
   return true
 }
 
@@ -76,7 +73,7 @@ export function cacheStore(entries: CacheEntry[], key: string, now: number, capa
   cachePurgeExpired(entries, now, ttl)
   const i = entries.findIndex((e) => e.key === key)
   if (i !== -1) entries.splice(i, 1)
-  entries.push({ key, at: now, used: now })
+  entries.push({ key, at: now })
   cacheTrim(entries, capacity)
 }
 
@@ -147,10 +144,12 @@ export const cache = defineComponent<CacheConfig, CacheState>({
       ctx.label('MISS', 'slow')
       const next = ctx.outputs()[0]
       if (!next) {
-        ctx.reply(msg, { status: 'error', code: 404, meta: { cacheHit: false } })
+        ctx.reply(msg, { status: 'ok', code: 200, meta: { cacheHit: false } })
         return
       }
-      ctx.send(next.target, msg)
+      // Downstream gets a plain request: the cache operation ends here.
+      const { cacheOp: _op, ...meta } = msg.meta
+      ctx.send(next.target, { ...msg, meta })
     })
   },
   /** Read-through: an ok response stores its key; every response goes back marked as a miss. */

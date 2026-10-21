@@ -374,7 +374,7 @@ export const es = {
       info: {
         summary: 'Guarda respuestas por clave (el path) para no ir a la base cada vez.',
         behavior: [
-          'Sin salidas (cache-aside): el servicio le pregunta; HIT responde `200`, MISS `404`, y el servicio guarda la clave después de ir a la base.',
+          'Sin salidas (cache-aside): el servicio le pregunta; responde `200` con HIT o MISS (un MISS no es error), y tras un MISS el servicio va a la base y guarda la clave sin esperar.',
           'Con salidas (read-through): un MISS se reenvía a su primera salida y la respuesta ok se guarda al volver.',
           'Claves reales: si se llena, sale la clave usada hace más tiempo (LRU); con TTL, una clave vencida es MISS.',
           'Aleatorio: HIT con probabilidad Hit rate, sin guardar nada.',
