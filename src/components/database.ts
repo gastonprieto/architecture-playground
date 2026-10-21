@@ -89,7 +89,11 @@ export const database = defineComponent<DatabaseConfig, DatabaseState>({
     ctx.process(msg, () => {
       const st = ctx.state
       if (op === 'create') {
-        if (typeof id === 'string' && !st.sessions.includes(id)) st.sessions.push(id)
+        if (typeof id !== 'string') {
+          ctx.reply(msg, { status: 'error', code: 400 })
+          return
+        }
+        if (!st.sessions.includes(id)) st.sessions.push(id)
         ctx.reply(msg, { status: 'ok', code: 200 })
       } else if (typeof id === 'string' && st.sessions.includes(id)) {
         ctx.reply(msg, { status: 'ok', code: 200 })

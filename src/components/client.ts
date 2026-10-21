@@ -81,7 +81,8 @@ function sendOne(ctx: Ctx<ClientConfig, ClientState>): void {
   const who = {
     clientId: ctx.nodeId,
     // Each user is its own identity for the LB's IP Hash.
-    clientIp: users > 1 ? `${ip}#${k + 1}` : ip,
+    // An empty IP falls back to the client id, so users of different clients never collide.
+    clientIp: users > 1 ? `${ip || ctx.nodeId}#${k + 1}` : ip,
     clientName: ctx.config.name ?? '',
     ...(ctx.config.color ? { clientColor: ctx.config.color } : {}),
     userIndex: k,
@@ -143,7 +144,15 @@ export const client = defineComponent<ClientConfig, ClientState>({
     // A response for a user removed meanwhile (users lowered) has nobody to store the cookie on.
     if (typeof k !== 'number' || k < 0 || k >= ctx.state.cookies.length) return
     if (typeof res.meta.setSession === 'string') ctx.state.cookies[k] = res.meta.setSession
-    else if (res.code === 401 && res.meta.authError === 'session-lost') ctx.state.cookies[k] = null
+    // Only if it rejected the cookie the user still has: a late 401 for an older cookie must not
+    // clear the one a re-login stored meanwhile.
+    else if (res.code === 401 && res.meta.authError === 'session-lost' && res.meta.sessionId === ctx.state.cookies[k]) {
+      ctx.state.cookies[k] = null
+    }
+  },
+  // Resize the cookies as soon as `users` changes, even while paused.
+  onConfig(ctx) {
+    syncUsers(ctx)
   },
   onTick(ctx, dtMs) {
     syncUsers(ctx)

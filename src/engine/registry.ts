@@ -16,6 +16,11 @@ export type Tone = 'req' | 'ok' | 'slow' | 'err' | 'hc' | 'redis' | 'db'
 export interface ReplyInfo {
   status: 'ok' | 'error'
   code: number
+  /**
+   * Patch merged over the request's meta on the response; its keys override the request's. Use it
+   * only for reply data (`setSession`, `authError`, ...): never change identity keys (`clientId`,
+   * `clientIp`, `userIndex`, `sessionId`, ...), which the originator and the hops back rely on.
+   */
   meta?: Partial<Message['meta']>
 }
 
@@ -70,7 +75,9 @@ export interface ComponentDef<C = any, S = any> {
   onTick?(ctx: Ctx<C, S>, dtMs: number): void
   /**
    * Called synchronously on every setGraph that keeps this node (same id and type), after its config
-   * was refreshed; `prev` is the config it had before. Runs even while paused (no time passes).
+   * was refreshed; `prev` is the config it had before. Runs even while paused (no time passes), and
+   * on every graph edit, including ones that change nothing of this node (e.g. moving any node), so
+   * it must be idempotent.
    */
   onConfig?(ctx: Ctx<C, S>, prev: C): void
   /** Icon derived from the config (e.g. the database kind); `icon` is the base one the palette uses. */

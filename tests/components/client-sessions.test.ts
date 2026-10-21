@@ -193,4 +193,62 @@ describe('client cookies', () => {
     expect(cookies(s)).toHaveLength(1)
     expect(cookies(s)[0]).toMatch(/^sid:/)
   })
+
+  it('a stale session-lost 401 (for an older cookie) does not clear a newer cookie', () => {
+    const s = sim(graph([node('C', 'client'), node('S', 'sess')], [edge('C', 'S')]))
+    let n = 0
+    const res = (meta: Message['meta'], code = 200): Message => ({
+      id: `r${++n}`,
+      kind: 'response',
+      meta: { userIndex: 0, ...meta },
+      trail: [],
+      createdAt: 0,
+      status: code === 200 ? 'ok' : 'error',
+      code,
+    })
+    s.inject('C', res({ setSession: 'sid:X' }))
+    expect(cookies(s)).toEqual(['sid:X'])
+    // Two requests were in flight with X; the store was wiped. The first 401 clears X.
+    s.inject('C', res({ sessionId: 'sid:X', authError: 'session-lost' }, 401))
+    expect(cookies(s)).toEqual([null])
+    // Re-login stores Y, then the late second 401 for X arrives: Y stays.
+    s.inject('C', res({ setSession: 'sid:Y' }))
+    s.inject('C', res({ sessionId: 'sid:X', authError: 'session-lost' }, 401))
+    expect(cookies(s)).toEqual(['sid:Y'])
+    s.inject('C', res({ sessionId: 'sid:Y', authError: 'session-lost' }, 401))
+    expect(cookies(s)).toEqual([null])
+  })
+
+  it('resizes the cookies right away on a config change, even while paused', () => {
+    const g = (users: number) => graph([node('C', 'client', { users }), node('S', 'sess')], [edge('C', 'S')])
+    const s = sim(g(3))
+    s.setGraph(g(3))
+    expect(cookies(s)).toEqual([null, null, null])
+    s.setGraph(g(1))
+    expect(cookies(s)).toEqual([null])
+    s.setGraph(g(2))
+    expect(cookies(s)).toEqual([null, null])
+  })
+})
+
+describe('client IP with several users', () => {
+  it('with an empty IP, users fall back to "<client id>#k", so two clients never collide', () => {
+    const s = sim(
+      graph([node('A', 'client', { users: 2 }), node('B', 'client', { users: 2 }), node('S', 'sess')], [edge('A', 'S'), edge('B', 'S')]),
+    )
+    const a = requestsFrom(s, 'A')
+    const b = requestsFrom(s, 'B')
+    s.runAction('A', 'send1')
+    s.runAction('A', 'send1')
+    s.runAction('B', 'send1')
+    expect(a.map((m) => m.meta.clientIp)).toEqual(['A#1', 'A#2'])
+    expect(b.map((m) => m.meta.clientIp)).toEqual(['B#1'])
+  })
+
+  it('with an empty IP and one user, the IP stays empty (as before)', () => {
+    const s = sim(graph([node('A', 'client'), node('S', 'sess')], [edge('A', 'S')]))
+    const a = requestsFrom(s, 'A')
+    s.runAction('A', 'send1')
+    expect(a[0].meta.clientIp).toBe('')
+  })
 })

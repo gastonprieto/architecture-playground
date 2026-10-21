@@ -143,4 +143,16 @@ describe('database sessions', () => {
     s.advance(10)
     expect(sessions()).toEqual(['sid:a'])
   })
+
+  it('create without a string sessionId answers 400 and stores nothing', () => {
+    const { s, replies, sessions } = setup()
+    s.inject('D', req({ sessionOp: 'create' }))
+    s.inject('D', req({ sessionOp: 'create', sessionId: 42 as unknown as string }))
+    s.advance(300)
+    expect(replies.map((r) => [r.status, r.code])).toEqual([
+      ['error', 400],
+      ['error', 400],
+    ])
+    expect(sessions()).toEqual([])
+  })
 })
