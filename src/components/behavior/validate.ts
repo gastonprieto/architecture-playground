@@ -9,8 +9,11 @@ const TARGET_TYPES = {
 
 type TargetVerb = keyof typeof TARGET_TYPES
 
-/** Names compare after trimming and collapsing inner whitespace (the parser joins words with one space). */
-const normalize = (name: string) => name.trim().replace(/\s+/g, ' ')
+/**
+ * Names compare after NFC normalization (an accent typed decomposed matches a composed one), trimming
+ * and collapsing inner whitespace (the parser joins words with one space).
+ */
+export const normalizeName = (name: string) => name.normalize('NFC').trim().replace(/\s+/g, ' ')
 
 /** Pure check of a parsed program against the node's connected outputs. */
 export function validateBehavior(program: Program, outputs: BehaviorOutput[]): DslError[] {
@@ -19,7 +22,7 @@ export function validateBehavior(program: Program, outputs: BehaviorOutput[]): D
 
   const seen = new Set<string>()
   for (const h of program.handlers) {
-    const key = `${h.on} ${h.on === 'request' ? (h.prefix ?? '') : h.on === 'event' ? (h.eventType ?? '') : ''}`
+    const key = `${h.on} ${h.on === 'request' ? (h.prefix ?? '') : h.on === 'event' ? (h.eventType ?? '').normalize('NFC') : ''}`
     if (seen.has(key)) errors.push({ line: h.line, code: 'duplicate-handler', params: { on: h.on } })
     seen.add(key)
     checkSteps(h.steps)
@@ -38,8 +41,8 @@ export function validateBehavior(program: Program, outputs: BehaviorOutput[]): D
   }
 
   function checkTarget(verb: TargetVerb, target: string, line: number): void {
-    const name = normalize(target)
-    const matches = outputs.filter((o) => normalize(o.name) === name)
+    const name = normalizeName(target)
+    const matches = outputs.filter((o) => normalizeName(o.name) === name)
     if (matches.length === 0) {
       errors.push({ line, code: 'not-connected', params: { target: name } })
     } else if (matches.length > 1) {

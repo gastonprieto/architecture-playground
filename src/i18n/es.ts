@@ -100,6 +100,7 @@ export const es = {
     processingTime: 'Tiempo de proceso',
     capacity: 'Capacidad',
     queueMax: 'Cola máx.',
+    behavior: 'Comportamiento',
   },
   /** Names of the Cliente palette colors (swatch labels). */
   colorNames: {
@@ -117,6 +118,7 @@ export const es = {
     processingTime: 'Cuánto tarda en procesar cada mensaje.',
     capacity: 'Cuántos mensajes procesa a la vez.',
     queueMax: 'Cuántos pueden esperar cuando está ocupado; más allá, `503`.',
+    behavior: 'Qué hace con cada request, evento o mensaje, escrito en el DSL; vacío, el comportamiento por defecto.',
   },
   info: {
     open: 'Cómo funciona {label}',

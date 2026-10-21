@@ -111,16 +111,23 @@ class Parser {
   private handler(l: Line): Handler | null {
     this.pos++
     const hasColon = l.text.endsWith(':')
-    const words = (hasColon ? l.text.slice(0, -1) : l.text).split(/\s+/).filter(Boolean)
-    const [, kind = '', arg, ...extra] = words
+    // Tokenized like a step, so an event type may be quoted (`on event "Order Created":`).
+    const tokens = tokenize(hasColon ? l.text.slice(0, -1) : l.text)
+    const kind = tokens[1]?.quoted ? '' : (tokens[1]?.text ?? '')
+    const argToken = tokens[2]
+    const arg = argToken?.text
+    const extra = tokens.slice(3).map((t) => t.text)
     let handler: Handler | null = null
     if (kind === 'request') {
-      if (arg !== undefined && !arg.startsWith('/')) this.error(l.line, 'unknown-keyword', { word: arg })
+      const isPrefix = argToken !== undefined && !argToken.quoted && argToken.text.startsWith('/')
+      if (argToken !== undefined && !isPrefix) this.error(l.line, 'unknown-keyword', { word: argToken.text })
       else if (extra.length > 0) this.error(l.line, 'unknown-keyword', { word: extra[0] })
-      handler = { on: 'request', line: l.line, ...(arg?.startsWith('/') && { prefix: arg }), steps: [] }
+      handler = { on: 'request', line: l.line, ...(isPrefix && { prefix: argToken.text }), steps: [] }
     } else if (kind === 'event') {
+      const eventType = arg?.trim()
       if (extra.length > 0) this.error(l.line, 'unknown-keyword', { word: extra[0] })
-      handler = { on: 'event', line: l.line, ...(arg !== undefined && { eventType: arg }), steps: [] }
+      else if (argToken !== undefined && eventType === '') this.error(l.line, 'missing-target')
+      handler = { on: 'event', line: l.line, ...(eventType && { eventType }), steps: [] }
     } else if (kind === 'message') {
       if (arg !== undefined) this.error(l.line, 'unknown-keyword', { word: arg })
       handler = { on: 'message', line: l.line, steps: [] }

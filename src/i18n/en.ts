@@ -97,6 +97,7 @@ export const en: Dict = {
     processingTime: 'Processing time',
     capacity: 'Capacity',
     queueMax: 'Max queue',
+    behavior: 'Behavior',
   },
   /** Names of the Cliente palette colors (swatch labels). */
   colorNames: {
@@ -114,6 +115,7 @@ export const en: Dict = {
     processingTime: 'How long it takes to process each message.',
     capacity: 'How many messages it processes at once.',
     queueMax: 'How many can wait while it is busy; beyond that, `503`.',
+    behavior: 'What it does with each request, event or message, written in the DSL; empty, the default behavior.',
   },
   info: {
     open: 'How {label} works',

@@ -140,3 +140,15 @@ describe('compileBehavior', () => {
     expect(program.handlers).toHaveLength(1)
   })
 })
+
+describe('validateBehavior: unicode normalization', () => {
+  it('matches a decomposed accent in the DSL against a composed name (NFC on both sides)', () => {
+    const composed = 'Depósito'.normalize('NFC')
+    const decomposed = 'Depósito'.normalize('NFD')
+    expect(composed).not.toBe(decomposed)
+    const { errors } = compileBehavior(`on request:\n  query ${decomposed}\n`, [{ name: composed, type: 'database' }])
+    expect(errors).toEqual([])
+    const reverse = compileBehavior(`on request:\n  query ${composed}\n`, [{ name: decomposed, type: 'database' }])
+    expect(reverse.errors).toEqual([])
+  })
+})

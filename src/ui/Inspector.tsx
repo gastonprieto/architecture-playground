@@ -53,6 +53,8 @@ function FieldControl({ def, fieldKey, field, value, onChange }: FieldControlPro
       )
     case 'mix':
       return <MixField label={label} value={Array.isArray(value) ? (value as MixRow[]) : field.default} onChange={onChange} />
+    case 'behavior':
+      return null
   }
 }
 

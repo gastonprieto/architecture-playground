@@ -272,3 +272,15 @@ describe('parseBehavior', () => {
     })
   })
 })
+
+describe('parseBehavior: quoted event types in handlers', () => {
+  it('accepts a quoted event type with spaces, like publish does', () => {
+    const { program, errors } = parseBehavior('on event "Order Created":\n  reply 200\n')
+    expect(errors).toEqual([])
+    expect(program.handlers[0]).toMatchObject({ on: 'event', eventType: 'Order Created' })
+  })
+
+  it('still reports extra words after an unquoted event type', () => {
+    expect(codes(parseBehavior('on event Order Created:\n  reply 200\n').errors)).toEqual([['unknown-keyword', 1]])
+  })
+})

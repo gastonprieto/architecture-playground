@@ -8,6 +8,8 @@ export type Field =
   | { type: 'mix'; label: string; default: { value: string; weight: number }[] }
   /** One of a fixed set of `#rrggbb` colors (the inspector shows swatches). */
   | { type: 'color'; label: string; default: string; options: readonly string[] }
+  /** Behavior DSL text (src/components/behavior); '' keeps the component's default behavior. */
+  | { type: 'behavior'; label: string; default: '' }
 
 export type Tone = 'req' | 'ok' | 'slow' | 'err' | 'hc' | 'redis' | 'db'
 
@@ -74,6 +76,9 @@ export function defineComponent<C, S>(def: ComponentDef<C, S>): ComponentDef<C, 
     config: { name: { type: 'text', label: 'Nombre', default: def.label }, ...def.config },
   }
 }
+
+/** The `behavior` config field of Servicio, Worker and Suscriptor. */
+export const behaviorField: Field = { type: 'behavior', label: 'Comportamiento', default: '' }
 
 export const processingFields: Record<'up' | 'processingTime' | 'capacity' | 'queueMax', Field> = {
   up: { type: 'boolean', label: 'Activo', default: true },
