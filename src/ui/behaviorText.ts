@@ -44,6 +44,7 @@ const REFERENCE_KEYS = [
   'wait',
   'fail',
   'reply',
+  'session',
   'nowait',
   'orReply',
   'orContinue',

@@ -21,6 +21,7 @@ const SAMPLES: Record<DslErrorCode, DslError> = {
   'wrong-verb': { line: 1, code: 'wrong-verb', params: { verb: 'call', target: 'BD', type: 'database', suggestion: 'query' } },
   'no-broker': { line: 1, code: 'no-broker' },
   'nowait-with-or': { line: 1, code: 'nowait-with-or' },
+  'session-nowait': { line: 1, code: 'session-nowait' },
 }
 
 describe('dslErrorText', () => {
@@ -95,7 +96,7 @@ describe('examples and reference', () => {
     const es = referenceRows('es')
     const en = referenceRows('en')
     const all = es.map((r) => r.syntax).join(' ')
-    for (const kw of ['on request', 'on event', 'on message', 'call', 'query', 'enqueue', 'publish', 'parallel:', 'wait', 'fail', 'reply', 'nowait', 'or reply', 'or continue'])
+    for (const kw of ['on request', 'on event', 'on message', 'call', 'query', 'enqueue', 'publish', 'parallel:', 'wait', 'fail', 'reply', 'session', 'nowait', 'or reply', 'or continue'])
       expect(all).toContain(kw)
     expect(en.length).toBe(es.length)
     es.forEach((r, i) => expect(r.text).not.toBe(en[i].text))

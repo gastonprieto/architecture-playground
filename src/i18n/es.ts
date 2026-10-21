@@ -175,6 +175,7 @@ export const es = {
       'wrong-verb-suggestion': '{verb} no va con "{target}" ({type}); ¿quisiste decir {suggestion}?',
       'no-broker': 'publish necesita un Broker conectado',
       'nowait-with-or': 'nowait no se combina con or: nowait ya ignora el resultado',
+      'session-nowait': 'session no admite nowait: la sesión se verifica antes de seguir',
     },
     examples: {
       service: '# Ejemplo: cambiá los nombres por los de tus salidas\non request:\n  query Base de datos\n  call Pagos /cobros or reply 402\n  reply 201\n',
@@ -198,6 +199,10 @@ export const es = {
         wait: { syntax: 'wait ms', text: 'Espera esos milisegundos, ocupando la capacidad.' },
         fail: { syntax: 'fail N% [código]', text: 'Con probabilidad N%, corta con ese código (500 si no se indica).' },
         reply: { syntax: 'reply código', text: 'Responde y termina. Menor a 400 es ok; si no, error.' },
+        session: {
+          syntax: 'session memory | jwt | Base',
+          text: 'Verifica la sesión del usuario: en memoria del componente, como JWT o en una Base de datos. Sin cookie y con credenciales, la crea (login); si la cookie no existe, 401.',
+        },
         nowait: { syntax: '… nowait', text: 'No espera el resultado: sigue enseguida.' },
         orReply: { syntax: '… or reply N', text: 'Si el paso falla, responde N y termina.' },
         orContinue: { syntax: '… or continue', text: 'Si el paso falla, sigue con el siguiente.' },

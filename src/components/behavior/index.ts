@@ -1,4 +1,4 @@
-export type { BehaviorOutput, DslError, DslErrorCode, Handler, Mod, Program, Step } from './ast'
+export type { BehaviorOutput, DslError, DslErrorCode, Handler, Mod, Program, SessionStore, Step } from './ast'
 export { compileBehavior } from './compile'
 export { behaviorStatus, behaviorTargets, graphBehaviorOutputs, type BehaviorStatus, type BehaviorTarget } from './outputs'
 export { parseBehavior } from './parse'

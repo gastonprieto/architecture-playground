@@ -11,6 +11,11 @@ export type Step =
   /** `code` defaults to 500. */
   | { kind: 'fail'; line: number; percent: number; code: number }
   | { kind: 'reply'; line: number; code: number }
+  /** Where the session lives (docs/sessions-spec.md §4). `mod` is never `nowait`. */
+  | { kind: 'session'; line: number; store: SessionStore; mod?: Mod }
+
+/** `memory` and `jwt` are keywords; any other target names a connected database. */
+export type SessionStore = { kind: 'memory' } | { kind: 'jwt' } | { kind: 'database'; target: string }
 
 export type Handler =
   | { on: 'request'; line: number; prefix?: string; steps: Step[] }
@@ -39,6 +44,7 @@ export type DslErrorCode =
   | 'wrong-verb'
   | 'no-broker'
   | 'nowait-with-or'
+  | 'session-nowait'
 
 /** A code plus params; the UI translates it. `line` is 1-based. */
 export interface DslError {

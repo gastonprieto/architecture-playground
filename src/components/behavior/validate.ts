@@ -9,6 +9,9 @@ const TARGET_TYPES = {
 
 type TargetVerb = keyof typeof TARGET_TYPES
 
+/** `session <name>` may only target a database (memory and jwt need no output). */
+const SESSION_TYPES = ['database'] as const
+
 /**
  * Names compare after NFC normalization (an accent typed decomposed matches a composed one), trimming
  * and collapsing inner whitespace (the parser joins words with one space).
@@ -36,11 +39,13 @@ export function validateBehavior(program: Program, outputs: BehaviorOutput[]): D
         if (!hasBroker) errors.push({ line: step.line, code: 'no-broker' })
       } else if (step.kind === 'call' || step.kind === 'query' || step.kind === 'enqueue') {
         checkTarget(step.kind, step.target, step.line)
+      } else if (step.kind === 'session' && step.store.kind === 'database') {
+        checkTarget('session', step.store.target, step.line)
       }
     }
   }
 
-  function checkTarget(verb: TargetVerb, target: string, line: number): void {
+  function checkTarget(verb: TargetVerb | 'session', target: string, line: number): void {
     const name = normalizeName(target)
     const matches = outputs.filter((o) => normalizeName(o.name) === name)
     if (matches.length === 0) {
@@ -49,7 +54,8 @@ export function validateBehavior(program: Program, outputs: BehaviorOutput[]): D
       errors.push({ line, code: 'ambiguous-target', params: { target: name } })
     } else {
       const type = matches[0].type
-      if ((TARGET_TYPES[verb] as readonly string[]).includes(type)) return
+      const allowed: readonly string[] = verb === 'session' ? SESSION_TYPES : TARGET_TYPES[verb]
+      if (allowed.includes(type)) return
       // A broker is reached with `publish` (it takes the event type, not the broker's name).
       const suggestion =
         type === 'broker' ? 'publish' : (Object.keys(TARGET_TYPES) as TargetVerb[]).find((v) => (TARGET_TYPES[v] as readonly string[]).includes(type))

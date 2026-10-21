@@ -15,10 +15,12 @@ import { normalizeName, validateBehavior } from './validate'
 
 export interface BehaviorConfig {
   behavior?: string
+  /** Activo; `session memory` forgets every session while it is off. */
+  up?: boolean
 }
 
-/** What to do with the response to a child request: `ok` is its status. */
-type ChildResult = (ok: boolean) => void
+/** What to do with the response to a child request: `ok` is its status; `res` is absent when the target vanished. */
+type ChildResult = (ok: boolean, res?: Message) => void
 
 /** State a component must hold to run behaviors. */
 export interface BehaviorState {
@@ -29,9 +31,11 @@ export interface BehaviorState {
   behaviorPending: Record<string, { target: NodeId; next: ChildResult }>
   /** Last compile, keyed by the DSL text and the outputs it was validated against. */
   behaviorCache?: { key: string; program: Program | null }
+  /** Session ids created by `session memory` (`sid:<id>`), in creation order, without duplicates. */
+  sessions: string[]
 }
 
-export const initialBehaviorState = (): BehaviorState => ({ behaviorPending: {} })
+export const initialBehaviorState = (): BehaviorState => ({ behaviorPending: {}, sessions: [] })
 
 type BehaviorCtx = Ctx<BehaviorConfig, BehaviorState>
 
@@ -65,10 +69,18 @@ export function handleBehaviorResponse(res: Message, ctx: BehaviorCtx): boolean 
   const entry = res.replyTo === undefined ? undefined : pending[res.replyTo]
   if (entry) {
     delete pending[res.replyTo!]
-    entry.next(res.status === 'ok')
+    entry.next(res.status === 'ok', res)
   }
   sweepBehaviorPending(ctx)
   return entry !== undefined
+}
+
+/**
+ * `session memory` lives in the process: while the component is Activo = off its sessions are gone.
+ * Idempotent; components call it from onConfig (every edit, even paused) and onTick.
+ */
+export function forgetSessionsIfDown(ctx: BehaviorCtx): void {
+  if (ctx.config.up === false && (ctx.state.sessions?.length ?? 0) > 0) ctx.state.sessions = []
 }
 
 /**
@@ -91,7 +103,11 @@ interface Run {
   msg: Message
   finished: boolean
   done: () => void
+  /** A session created by a `session` login; the final reply carries it (unless it is a 401). */
+  setSession?: string
 }
+
+type AuthError = NonNullable<Message['meta']['authError']>
 
 /** How a step or block ended without ending the handler: go on, or failed with no modifier (→ 502). */
 type Outcome = 'next' | 'failed'
@@ -137,11 +153,15 @@ function selectHandler(program: Program, msg: Message): Handler | undefined {
   return undefined
 }
 
-/** Replies once (`code < 400` is ok; for events and messages that is ack vs nack) and frees the slot. */
-function end(run: Run, code: number): void {
+/**
+ * Replies once (`code < 400` is ok; for events and messages that is ack vs nack) and frees the slot.
+ * A pending login rides on the reply as `setSession`, except on a 401.
+ */
+function end(run: Run, code: number, authError?: AuthError): void {
   if (run.finished) return
   run.finished = true
-  run.ctx.reply(run.msg, { status: code < 400 ? 'ok' : 'error', code })
+  const meta = authError ? { authError } : code !== 401 && run.setSession !== undefined ? { setSession: run.setSession } : undefined
+  run.ctx.reply(run.msg, { status: code < 400 ? 'ok' : 'error', code, ...(meta && { meta }) })
   run.done()
 }
 
@@ -199,7 +219,83 @@ function runStep(run: Run, step: Step, then: (o: Outcome) => void): void {
       return
     case 'reply':
       end(run, step.code)
+      return
+    case 'session':
+      sessionStep(run, step, then)
   }
+}
+
+/** Default status when a session store does not answer (down, queue full, gone). */
+const STORE_FAILED = 503
+
+/**
+ * docs/sessions-spec.md §4. A valid cookie goes on; an unknown one (or one of another kind) is a 401
+ * `session-lost`; credentials without a cookie log in (the final reply carries `setSession`); neither
+ * is a 401 `unauthenticated`. Only a database store can fail, and then the modifier decides (503 by
+ * default). Events and messages skip the step.
+ */
+function sessionStep(run: Run, step: Extract<Step, { kind: 'session' }>, then: (o: Outcome) => void): void {
+  const { ctx, msg } = run
+  if (msg.kind !== 'request') {
+    then('next')
+    return
+  }
+  const sid = msg.meta.sessionId
+  const cookie = typeof sid === 'string' && sid !== '' ? sid : undefined
+  if (cookie === undefined && msg.meta.credentials !== true) {
+    end(run, 401, 'unauthenticated')
+    return
+  }
+  const lost = () => end(run, 401, 'session-lost')
+  const login = (id: string) => {
+    run.setSession = id
+    then('next')
+  }
+  const { store } = step
+  if (store.kind === 'jwt') {
+    // The signature is simulated and shared: any jwt: token is valid, anything else is not.
+    if (cookie === undefined) login(`jwt:${msg.id}`)
+    else if (cookie.startsWith('jwt:')) then('next')
+    else lost()
+    return
+  }
+  if (store.kind === 'memory') {
+    const sessions = (ctx.state.sessions ??= [])
+    if (cookie !== undefined) {
+      if (sessions.includes(cookie)) then('next')
+      else lost()
+      return
+    }
+    const id = `sid:${msg.id}`
+    // A component that is off keeps nothing in memory (forgetSessionsIfDown).
+    if (ctx.config.up !== false && !sessions.includes(id)) sessions.push(id)
+    login(id)
+    return
+  }
+  const failed = () => {
+    if (step.mod?.kind === 'orContinue') then('next')
+    else if (step.mod?.kind === 'orReply') end(run, step.mod.code)
+    else end(run, STORE_FAILED)
+  }
+  const target = resolve(ctx, store.target)
+  if (target === undefined) {
+    failed()
+    return
+  }
+  const id = cookie ?? `sid:${msg.id}`
+  const child = ctx.newMessage('request', { ...msg.meta, sessionOp: cookie === undefined ? 'create' : 'check', sessionId: id }, msg)
+  ctx.state.behaviorPending[child.id] = {
+    target,
+    next: (_ok, res) => {
+      if (run.finished) return
+      if (res?.code === 200) {
+        if (cookie === undefined) login(id)
+        else then('next')
+      } else if (res?.code === 404 && cookie !== undefined) lost()
+      else failed()
+    },
+  }
+  ctx.send(target, child)
 }
 
 /** The connected node named `name`, or undefined when it is gone, renamed or ambiguous. */

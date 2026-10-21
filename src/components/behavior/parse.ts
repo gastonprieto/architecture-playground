@@ -1,4 +1,4 @@
-import type { DslError, Handler, Mod, Program, Step } from './ast'
+import type { DslError, Handler, Mod, Program, SessionStore, Step } from './ast'
 
 /**
  * Line-oriented recursive descent over indentation:
@@ -23,7 +23,7 @@ interface Token {
   quoted: boolean
 }
 
-const STEP_KEYWORDS = new Set(['call', 'query', 'enqueue', 'publish', 'parallel', 'parallel:', 'wait', 'fail', 'reply'])
+const STEP_KEYWORDS = new Set(['call', 'query', 'enqueue', 'publish', 'parallel', 'parallel:', 'wait', 'fail', 'reply', 'session'])
 
 function scan(text: string, errors: DslError[]): Line[] {
   const lines: Line[] = []
@@ -184,6 +184,8 @@ class Parser {
         return this.fail(l, tokens)
       case 'reply':
         return this.reply(l, tokens)
+      case 'session':
+        return this.session(l, tokens)
       default:
         if (word === 'on') this.error(l.line, 'indent')
         else this.error(l.line, 'unknown-keyword', { word: tokens[0].text })
@@ -268,6 +270,26 @@ class Parser {
     const code = this.code(l, tokens[1])
     if (code === null || !this.noExtra(l, tokens, 2)) return null
     return { kind: 'reply', line: l.line, code }
+  }
+
+  /**
+   * `session memory|jwt|<database> [or …]`. The keywords count only unquoted and alone, so a database
+   * named "memory" is written quoted. A session has to be checked before going on: no `nowait`.
+   */
+  private session(l: Line, tokens: Token[]): Step | null {
+    const { target, next } = readTarget(tokens, 1)
+    if (target === '') {
+      this.error(l.line, 'missing-target')
+      return null
+    }
+    if (tokens.slice(next).some((t) => !t.quoted && t.text === 'nowait')) {
+      this.error(l.line, 'session-nowait')
+      return null
+    }
+    const keyword = !tokens[1].quoted && next === 2 && (target === 'memory' || target === 'jwt') ? target : null
+    const store: SessionStore = keyword ? { kind: keyword } : { kind: 'database', target }
+    const mod = this.mod(l, tokens, next)
+    return { kind: 'session', line: l.line, store, ...(mod && { mod }) }
   }
 
   /** Reads an optional modifier from tokens[i…]; reports leftovers and `nowait` mixed with `or`. */

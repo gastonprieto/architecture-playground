@@ -172,6 +172,7 @@ export const en: Dict = {
       'wrong-verb-suggestion': '{verb} does not work with "{target}" ({type}); did you mean {suggestion}?',
       'no-broker': 'publish needs a connected Broker',
       'nowait-with-or': 'nowait cannot be combined with or: nowait already ignores the result',
+      'session-nowait': 'session does not take nowait: the session is checked before going on',
     },
     examples: {
       service: '# Example: change the names to your outputs\' names\non request:\n  query Database\n  call Payments /charges or reply 402\n  reply 201\n',
@@ -195,6 +196,10 @@ export const en: Dict = {
         wait: { syntax: 'wait ms', text: 'Waits that many milliseconds, holding its capacity.' },
         fail: { syntax: 'fail N% [code]', text: 'With probability N%, stops with that code (500 if none).' },
         reply: { syntax: 'reply code', text: 'Responds and ends. Below 400 is ok; otherwise, an error.' },
+        session: {
+          syntax: 'session memory | jwt | Database',
+          text: "Checks the user's session: in the component's memory, as a JWT or in a Database. With credentials and no cookie, it creates one (login); if the cookie does not exist, 401.",
+        },
         nowait: { syntax: '… nowait', text: 'Does not wait for the result: goes on right away.' },
         orReply: { syntax: '… or reply N', text: 'If the step fails, responds N and ends.' },
         orContinue: { syntax: '… or continue', text: 'If the step fails, goes on with the next one.' },

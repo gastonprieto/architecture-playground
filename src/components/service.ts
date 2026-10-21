@@ -1,5 +1,5 @@
 import { behaviorField, defineComponent, processingFields } from '../engine/registry'
-import { activeProgram, handleBehaviorResponse, initialBehaviorState, runBehavior, sweepBehaviorPending, type BehaviorState } from './behavior/run'
+import { activeProgram, forgetSessionsIfDown, handleBehaviorResponse, initialBehaviorState, runBehavior, sweepBehaviorPending, type BehaviorState } from './behavior/run'
 import {
   callDependencies,
   handleDependencyResponse,
@@ -51,9 +51,14 @@ export const service = defineComponent<ServiceConfig, DependencyState & Behavior
       ),
     )
   },
+  /** `session memory` forgets its sessions as soon as Activo goes off, even while paused. */
+  onConfig(ctx) {
+    forgetSessionsIfDown(ctx)
+  },
   /** Fails DSL children sent to a node that was deleted, so their run frees its slot. */
   onTick(ctx) {
     sweepBehaviorPending(ctx)
+    forgetSessionsIfDown(ctx)
   },
   onResponse(res, ctx) {
     if (!handleBehaviorResponse(res, ctx) && !handleDependencyResponse(res, ctx)) ctx.forwardResponse(res)

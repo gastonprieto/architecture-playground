@@ -1,5 +1,5 @@
 import { behaviorField, defineComponent, processingFields } from '../engine/registry'
-import { activeProgram, handleBehaviorResponse, initialBehaviorState, runBehavior, sweepBehaviorPending, type BehaviorState } from './behavior/run'
+import { activeProgram, forgetSessionsIfDown, handleBehaviorResponse, initialBehaviorState, runBehavior, sweepBehaviorPending, type BehaviorState } from './behavior/run'
 
 export interface SubscriberConfig {
   name: string
@@ -38,9 +38,14 @@ export const subscriber = defineComponent<SubscriberConfig, BehaviorState>({
       for (const out of ctx.outputs()) ctx.send(out.target, ctx.newMessage('event', { ...msg.meta, eventType: emits }, msg))
     })
   },
+  /** `session memory` forgets its sessions as soon as Activo goes off, even while paused. */
+  onConfig(ctx) {
+    forgetSessionsIfDown(ctx)
+  },
   /** Fails DSL children sent to a node that was deleted, so their run frees its slot. */
   onTick(ctx) {
     sweepBehaviorPending(ctx)
+    forgetSessionsIfDown(ctx)
   },
   onResponse(res, ctx) {
     if (!handleBehaviorResponse(res, ctx)) ctx.forwardResponse(res)
