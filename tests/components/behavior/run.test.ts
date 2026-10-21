@@ -174,6 +174,20 @@ describe('behavior: parallel', () => {
     expect(t.s.nodeStats('S').inFlight).toBe(0)
   })
 
+  it.each([
+    ['fail 100%', 'error', 500],
+    ['reply 201', 'ok', 201],
+  ])('`%s` before a sibling in parallel ends the handler: later branches send nothing', (first, status, code) => {
+    const t = run(parallelGraph(`on request:\n  parallel:\n    ${first}\n    call T /x\n    query DB`, true))
+    t.send()
+    t.s.advance(6000)
+    expect(codesAt(t.responses('C'))).toEqual([[status, code, 1300]])
+    expect(t.arrivals('T')).toHaveLength(0)
+    expect(t.arrivals('DB')).toHaveLength(0)
+    expect(t.repliesFrom('S')).toHaveLength(1)
+    expect(t.s.nodeStats('S').inFlight).toBe(0)
+  })
+
   it('`or reply` inside parallel ends at once; the sibling response arriving later is ignored', () => {
     const t = run(parallelGraph('on request:\n  parallel:\n    call T /x or reply 402\n    query DB', false))
     t.send()

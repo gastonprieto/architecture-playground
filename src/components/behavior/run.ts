@@ -72,7 +72,7 @@ export function activeProgram(ctx: BehaviorCtx): Program | null {
  */
 export function handleBehaviorResponse(res: Message, ctx: BehaviorCtx): boolean {
   const pending = ctx.state.behaviorPending
-  const next = res.replyTo === undefined ? undefined : pending?.[res.replyTo]
+  const next = res.replyTo === undefined ? undefined : pending[res.replyTo]
   if (!next) return false
   delete pending[res.replyTo!]
   next(res.status === 'ok')
@@ -152,6 +152,8 @@ function runSteps(run: Run, steps: Step[], i: number, then: (o: Outcome) => void
 }
 
 function runStep(run: Run, step: Step, then: (o: Outcome) => void): void {
+  // A branch of a parallel block may have ended the handler synchronously (reply, fail).
+  if (run.finished) return
   const { ctx, msg } = run
   switch (step.kind) {
     case 'call':
