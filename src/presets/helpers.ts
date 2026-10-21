@@ -29,6 +29,8 @@ export interface PresetShape {
   id: string
   name: string
   description: string
+  /** Rate (req/s) each client is tuned for; preset clients start at 0 so the user starts the traffic. */
+  demoRates: Record<string, number>
   graph: { nodes: GraphNode[]; edges: GraphEdge[] }
 }
 

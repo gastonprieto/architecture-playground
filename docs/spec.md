@@ -176,7 +176,7 @@ Fuera del MVP (se agregan después como config): TLS, compresión, sticky sessio
 
 ## 7. Presets
 
-Cargables con un click; cada uno reproduce un deck y sirve como test de integración del motor:
+Cargables con un click; cada uno reproduce un deck y sirve como test de integración del motor. Los clientes de los presets arrancan en **0 req/s** (el usuario decide cuándo arranca el tráfico); cada preset guarda en `demoRates` la tasa para la que está calibrado, que usan los tests:
 
 1. **Load balancer** — 2 clientes → LB → 3 servicios → DB.
 2. **Sync vs cola** — cliente → servicio (sync) / cliente → cola → 3 workers + DLQ.

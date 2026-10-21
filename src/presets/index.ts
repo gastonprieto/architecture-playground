@@ -10,7 +10,19 @@ export interface Preset {
   id: string
   name: string
   description: string
+  /** Rate (req/s) each client is tuned for; preset clients start at 0 so the user starts the traffic. */
+  demoRates: Record<string, number>
   graph: Graph
+}
+
+/** The preset's graph with every client at its demo rate. */
+export function withDemoTraffic(preset: Preset): Graph {
+  return {
+    ...preset.graph,
+    nodes: preset.graph.nodes.map((n) =>
+      n.id in preset.demoRates ? { ...n, config: { ...n.config, rate: preset.demoRates[n.id] } } : n,
+    ),
+  }
 }
 
 const builders = [loadBalancerPreset, syncVsQueuePreset, pubsubPreset, reverseProxyPreset, purchaseOrderPreset]

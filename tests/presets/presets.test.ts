@@ -4,7 +4,7 @@ import { defaultRegistry } from '../../src/components/index'
 import { Simulation } from '../../src/engine/simulation'
 import type { Message } from '../../src/engine/types'
 import { parseGraph, serializeGraph } from '../../src/persistence/serialize'
-import { getPresets } from '../../src/presets'
+import { getPresets, withDemoTraffic } from '../../src/presets'
 import { CLIENT_COLORS } from '../../src/ui/colors'
 import type { Graph } from '../../src/engine/types'
 
@@ -13,7 +13,7 @@ const presets = getPresets('es')
 
 const preset = (id: string) => presets.find((p) => p.id === id)!
 const run = (id: string) => {
-  const sim = new Simulation(preset(id).graph, { seed: 1, registry: defaultRegistry })
+  const sim = new Simulation(withDemoTraffic(preset(id)), { seed: 1, registry: defaultRegistry })
   return sim
 }
 
@@ -84,9 +84,15 @@ describe('presets', () => {
     expect(paths['web'].every((x) => x === '/static')).toBe(true)
   })
 
-  it('every preset client sets its rate explicitly (the default is 0)', () => {
-    for (const p of getPresets('es'))
-      for (const n of p.graph.nodes.filter((x) => x.type === 'client')) expect(n.config.rate, `${p.id}/${n.id}`).toBeGreaterThan(0)
+  it('every preset client starts idle (0 req/s) and has a demo rate to start the traffic with', () => {
+    for (const p of presets) {
+      const clients = p.graph.nodes.filter((x) => x.type === 'client')
+      for (const n of clients) {
+        expect(n.config.rate, `${p.id}/${n.id}`).toBe(0)
+        expect(p.demoRates[n.id], `${p.id}/${n.id}`).toBeGreaterThan(0)
+      }
+      expect(Object.keys(p.demoRates).sort()).toEqual(clients.map((n) => n.id).sort())
+    }
   })
 
   it('every preset client has a distinct palette color', () => {
@@ -107,7 +113,8 @@ describe('presets', () => {
 
   it('load-balancer: with ip-hash, the two clients hash to different servers', () => {
     const p = preset('load-balancer')
-    const graph = { ...p.graph, nodes: p.graph.nodes.map((n) => (n.id === 'lb' ? { ...n, config: { ...n.config, algorithm: 'ip-hash' } } : n)) }
+    const traffic = withDemoTraffic(p)
+    const graph = { ...traffic, nodes: traffic.nodes.map((n) => (n.id === 'lb' ? { ...n, config: { ...n.config, algorithm: 'ip-hash' } } : n)) }
     const sim = new Simulation(graph, { seed: 1, registry: defaultRegistry })
     const targets: Record<string, Set<string>> = {}
     sim.on('message:sent', (e) => {
@@ -154,7 +161,7 @@ describe('presets', () => {
 
   it('reverse-proxy in English routes /users, /orders and /payments', () => {
     const p = getPresets('en').find((x) => x.id === 'reverse-proxy')!
-    const sim = new Simulation(p.graph, { seed: 1, registry: defaultRegistry })
+    const sim = new Simulation(withDemoTraffic(p), { seed: 1, registry: defaultRegistry })
     const paths: Record<string, string[]> = {}
     sim.on('message:arrived', (e) => {
       if (e.msg.kind === 'request') (paths[e.at] ??= []).push(e.msg.meta.path ?? '')
@@ -210,7 +217,7 @@ describe('purchase-order preset', () => {
 
   it.each(['es', 'en'] as const)('30 s: orchestration answers 201, choreography 202, every subscriber processed events (%s)', (lang) => {
     const p = getPresets(lang).find((x) => x.id === 'purchase-order')!
-    const sim = new Simulation(p.graph, { seed: 1, registry: defaultRegistry })
+    const sim = new Simulation(withDemoTraffic(p), { seed: 1, registry: defaultRegistry })
     const byClient = responsesByClient(sim)
     sim.advance(30_000)
     const orch = byClient['client-orq'] ?? []

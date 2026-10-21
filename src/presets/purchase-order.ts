@@ -29,13 +29,15 @@ export function purchaseOrderPreset(lang: Lang): PresetShape {
     id: 'purchase-order',
     name,
     description,
+    // Clients start idle (0 req/s); these are the rates the demo is tuned for.
+    demoRates: { 'client-orq': 1.5, 'client-cor': 1.5 },
     graph: {
       nodes: [
         // Orchestration lane.
         node('client-orq', 'client', 0, ROW, n('clientOrchestration'), {
           ip: '10.0.0.1',
           color: CLIENT_COLORS[0],
-          rate: 1.5,
+          rate: 0,
           mix: [{ value: path('orders'), weight: 1 }],
         }),
         node('ordenes-orq', 'service', 1, ROW, n('orders'), {
@@ -64,7 +66,7 @@ export function purchaseOrderPreset(lang: Lang): PresetShape {
         node('client-cor', 'client', 0, LOW + ROW, n('clientChoreography'), {
           ip: '10.0.0.2',
           color: CLIENT_COLORS[1],
-          rate: 1.5,
+          rate: 0,
           mix: [{ value: path('orders'), weight: 1 }],
         }),
         node('ordenes-cor', 'service', 1, LOW + ROW, n('orders'), {
