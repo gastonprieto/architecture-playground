@@ -4,18 +4,47 @@
 
 Un playground para armar arquitecturas en un canvas (clientes, servicios, bases de datos, load balancers, proxies reversos, caches, colas, workers, DLQs, brokers y suscriptores) y ver cómo fluyen los requests, mensajes y eventos entre los componentes. Se puede cambiar la configuración de cada componente (capacidad, tiempo de proceso, caídas, etc.) para ver cómo se comporta el sistema bajo carga.
 
-Incluye 4 presets para empezar:
+Incluye 5 presets para empezar:
 
 - **Load Balancer**: dos clientes reparten su tráfico entre tres servidores con round robin.
 - **Sync vs cola**: el mismo tráfico contra un servicio síncrono (se satura con 503) y contra una cola con workers (responde 202).
 - **Pub/sub**: un evento se publica en el broker y llega a cuatro suscriptores; uno es lento y se atrasa.
 - **Reverse Proxy**: el proxy enruta por prefijo de path a cada servicio.
+- **Orden de compra**: la misma compra orquestada (Órdenes llama a cada servicio y espera) y coreografiada (Órdenes publica un evento y cada servicio reacciona por su cuenta), armada con el DSL de comportamiento.
 
 Un Cliente envía a su primera salida (la primera arista que se conectó desde él).
 
 La interfaz está en español e inglés: el selector `ES | EN` de la toolbar cambia el idioma al instante (también `?lang=es` / `?lang=en` en la URL). Sin elección guardada se usa el idioma del navegador. Los presets se cargan en el idioma actual; los nombres de los nodos que ya armaste no se traducen.
 
 Online (una vez publicado el repo): https://gastonprieto.github.io/architecture-playground/
+
+## Comportamiento (DSL)
+
+Servicio, Worker y Suscriptor tienen un campo **Comportamiento**: un texto corto que decide qué hace el nodo con cada request, evento o mensaje (a quién llama, en qué orden, qué publica y con qué código responde). Vacío o con errores, el nodo usa su comportamiento por defecto. Se edita desde el inspector ("Editar comportamiento") y los nodos que lo usan muestran un badge `DSL`. Los destinos se nombran por el nombre del nodo conectado.
+
+```
+on request /ordenes:
+  query Base de datos
+  parallel:
+    call Stock /reservas
+    call Pagos /cobros or reply 402
+  call Mails /enviar nowait
+  publish OrdenCreada
+  enqueue Facturas
+  reply 201
+
+on request:
+  reply 404
+
+on event PagoRechazado:
+  call Stock /liberar or continue
+
+on message:
+  fail 10%
+  query Base de datos
+```
+
+La referencia completa está en [docs/dsl-spec.md](docs/dsl-spec.md).
 
 ## Cómo correrlo
 
@@ -118,7 +147,7 @@ También están disponibles `ctx.nodeId`, `ctx.now`, `ctx.config` y `ctx.state`.
 
 ## Especificación
 
-El diseño completo está en [docs/spec.md](docs/spec.md).
+El diseño completo está en [docs/spec.md](docs/spec.md); el DSL de comportamiento, en [docs/dsl-spec.md](docs/dsl-spec.md).
 
 ## Deploy
 

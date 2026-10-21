@@ -4,18 +4,47 @@
 
 A playground to build architectures on a canvas (clients, services, databases, load balancers, reverse proxies, caches, queues, workers, DLQs, brokers and subscribers) and watch requests, messages and events flow between them. Tweak each component (capacity, processing time, outages, etc.) to see how the system behaves under load.
 
-It comes with 4 presets:
+It comes with 5 presets:
 
 - **Load Balancer**: two clients spread their traffic across three servers with round robin.
 - **Sync vs queue**: the same traffic against a synchronous service (it saturates with 503s) and against a queue with workers (it answers 202).
 - **Pub/sub**: an event is published to the broker and reaches four subscribers; one is slow and falls behind.
 - **Reverse Proxy**: the proxy routes each path prefix to its service.
+- **Purchase order**: the same purchase orchestrated (Orders calls each service and waits) and choreographed (Orders publishes an event and each service reacts on its own), built with the behavior DSL.
 
 A Client sends to its first output (the first edge connected from it).
 
 The UI is in Spanish and English: the `ES | EN` switch in the toolbar changes the language instantly (so does `?lang=es` / `?lang=en` in the URL). With no saved choice, the browser language is used. Presets load in the current language; node names in graphs you already built are not translated.
 
 Online (once the repo is published): https://gastonprieto.github.io/architecture-playground/
+
+## Behavior (DSL)
+
+Service, Worker and Subscriber have a **Behavior** field: a short text that decides what the node does with each request, event or message (whom it calls, in what order, what it publishes and which code it responds with). Empty or with errors, the node keeps its default behavior. Edit it from the inspector ("Edit behavior"); nodes that use it show a `DSL` badge. Keywords are English in both languages; targets are referenced by the connected node's name, so this example uses the Spanish preset names:
+
+```
+on request /ordenes:
+  query Base de datos
+  parallel:
+    call Stock /reservas
+    call Pagos /cobros or reply 402
+  call Mails /enviar nowait
+  publish OrdenCreada
+  enqueue Facturas
+  reply 201
+
+on request:
+  reply 404
+
+on event PagoRechazado:
+  call Stock /liberar or continue
+
+on message:
+  fail 10%
+  query Base de datos
+```
+
+The full reference (in Spanish) is in [docs/dsl-spec.md](docs/dsl-spec.md).
 
 ## Running it
 
@@ -59,7 +88,7 @@ The def's texts (`label`, field, option and action labels) are the fallback. To 
 
 ## Specification
 
-The full design (in Spanish) is in [docs/spec.md](docs/spec.md).
+The full design (in Spanish) is in [docs/spec.md](docs/spec.md); the behavior DSL, in [docs/dsl-spec.md](docs/dsl-spec.md).
 
 ## Deploy
 
