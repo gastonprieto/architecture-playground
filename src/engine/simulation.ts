@@ -258,7 +258,10 @@ export class Simulation {
     rec.processor = new Processor({
       config: () => rec.config,
       stats: rec.stats,
-      statsChanged: () => this.emitStats(rec),
+      // A job released after its node was removed must not emit stats for a node that no longer exists.
+      statsChanged: () => {
+        if (this.nodes.get(rec.id) === rec) this.emitStats(rec)
+      },
       schedule: (ms, fn) => this.scheduleFor(rec, ms, fn),
       drop: (msg, reason, code) => this.drop(rec.id, msg, reason, code),
     })
@@ -324,6 +327,7 @@ export class Simulation {
       forwardResponse: (res) => sim.forwardResponse(rec.id, res),
       drop: (msg, reason, code) => sim.drop(rec.id, msg, reason, code),
       process: (msg, done) => rec.processor.process(msg, done),
+      occupy: (msg, run) => rec.processor.occupy(msg, run),
       schedule: (ms, fn) => sim.scheduleFor(rec, ms, fn),
       label: (text, tone) => sim.events.emit('node:label', { nodeId: rec.id, text, tone }),
       random: () => sim.random(),

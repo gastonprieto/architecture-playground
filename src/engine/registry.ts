@@ -38,6 +38,11 @@ export interface Ctx<C = any, S = any> {
   /** `reason` is a stable English code ('down', 'queue-full', 'no-output'…); the UI translates it. */
   drop(msg: Message, reason: string, code?: number): void
   process(msg: Message, done: () => void): void
+  /**
+   * Like `process`, but the slot stays in use after `processingTime` until `release()` is called
+   * (idempotent; harmless after the node is removed).
+   */
+  occupy(msg: Message, run: (release: () => void) => void): void
   schedule(ms: number, fn: () => void): void
   /** `text` is a code too ('retry', 'no-subscribers') or a literal token ('HIT', '202'). */
   label(text: string, tone: Tone): void

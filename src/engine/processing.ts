@@ -33,7 +33,8 @@ export function readProcessing(config: Record<string, unknown>): ProcessingSetti
 
 interface Job {
   msg: Message
-  done: () => void
+  /** Called after processingTime with the slot held; the slot frees on `release()`. */
+  run: (release: () => void) => void
 }
 
 /**
@@ -48,15 +49,27 @@ export class Processor {
     this.host = host
   }
 
+  /** Holds a slot for `processingTime`, then calls `done` and frees the slot. */
   process(msg: Message, done: () => void): void {
+    this.occupy(msg, (release) => {
+      done()
+      release()
+    })
+  }
+
+  /**
+   * Same admission as `process`, but after `processingTime` it calls `run(release)` and keeps the slot
+   * until `release()` is called. `release` is idempotent.
+   */
+  occupy(msg: Message, run: (release: () => void) => void): void {
     const s = readProcessing(this.host.config())
     const stats = this.host.stats
     if (!s.up) {
       this.host.drop(msg, 'down', 503)
     } else if (stats.inFlight < s.capacity) {
-      this.start({ msg, done })
+      this.start({ msg, run })
     } else if (this.queue.length < s.queueMax) {
-      this.queue.push({ msg, done })
+      this.queue.push({ msg, run })
       this.syncQueued()
     } else {
       this.host.drop(msg, 'queue-full', 503)
@@ -79,12 +92,15 @@ export class Processor {
   private start(job: Job): void {
     this.host.stats.inFlight++
     this.host.statsChanged()
-    this.host.schedule(readProcessing(this.host.config()).processingTime, () => {
-      job.done()
+    let released = false
+    const release = () => {
+      if (released) return
+      released = true
       this.host.stats.inFlight--
       this.host.statsChanged()
       this.pump()
-    })
+    }
+    this.host.schedule(readProcessing(this.host.config()).processingTime, () => job.run(release))
   }
 
   /** Start queued jobs while there are free slots and the node is up. */
