@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { DEFAULT_WEIGHT } from '../engine/weights'
+import type { DbKind } from '../components/database'
 import { defaultRegistry } from '../components/index'
 import type { ComponentDef, Field } from '../engine/registry'
 import type { EdgeRule } from '../engine/types'
@@ -15,6 +16,7 @@ import { TextField } from './fields/TextField'
 import { InfoButton } from './InfoDialog'
 import { isWeightedLb, lbShares } from './lbWeights'
 import { useEditor } from './store/editor'
+import { databaseKindPatch } from './sessions'
 import { useBehaviorStatus } from './useBehaviorStatus'
 
 export interface InspectorProps {
@@ -186,6 +188,9 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
   const t = useT()
   if (!node) return null
   const def = defaultRegistry.get(node.type)
+  // A database Tipo change brings its suggested processingTime along (one undo step, spec §5).
+  const patchFor = (key: string, v: unknown): Record<string, unknown> =>
+    def?.type === 'database' && key === 'kind' ? databaseKindPatch(node.config, v as DbKind) : { [key]: v }
   const del = (
     <button type="button" className="danger" onClick={() => removeElements([id])}>
       {t('inspector.delete')}
@@ -203,13 +208,13 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
     <div className="inspector-body">
       <div className="inspector-head">
         <h2 className="panel-title">
-          <span aria-hidden>{def.icon}</span> {componentLabel(lang, def.type, def)}
+          <span aria-hidden>{def.iconFor?.(node.config) ?? def.icon}</span> {componentLabel(lang, def.type, def)}
         </h2>
         <InfoButton type={def.type} label={componentLabel(lang, def.type, def)} />
       </div>
       {Object.entries(def.config).map(([key, field]) => {
         const control = (
-          <FieldControl key={key} nodeId={id} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, { [key]: v })} />
+          <FieldControl key={key} nodeId={id} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, patchFor(key, v))} />
         )
         if (behavior.kind !== 'active' || !OVERRIDDEN_BY_BEHAVIOR[def.type]?.includes(key)) return control
         return (

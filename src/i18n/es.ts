@@ -72,6 +72,8 @@ export const es = {
     queued: 'En cola',
     ok: 'OK',
     errors: 'Errores',
+    loggedIn: 'Usuarios logueados',
+    sessions: 'Sesiones guardadas',
   },
   metrics: {
     label: 'Métricas',
@@ -201,7 +203,7 @@ export const es = {
         reply: { syntax: 'reply código', text: 'Responde y termina. Menor a 400 es ok; si no, error.' },
         session: {
           syntax: 'session memory | jwt | Base',
-          text: 'Verifica la sesión del usuario: en memoria del componente, como JWT o en una Base de datos. Sin cookie y con credenciales, la crea (login); si la cookie no existe, 401.',
+          text: 'Verifica la sesión del usuario: en memoria del componente, como JWT o en una Base de datos conectada. Sin cookie y con credenciales, la crea (login); si la cookie no existe, 401 session-lost; sin cookie ni credenciales, 401 unauthenticated. Un JWT no se puede revocar: vale hasta que el cliente lo descarta.',
         },
         nowait: { syntax: '… nowait', text: 'No espera el resultado: sigue enseguida.' },
         orReply: { syntax: '… or reply N', text: 'Si el paso falla, responde N y termina.' },
@@ -241,6 +243,9 @@ export const es = {
           'Sus paquetes y respuestas van con su color; las respuestas tienen borde verde (ok) o rojo (error).',
           'Recibe las respuestas y con ellas se calculan la latencia y los errores.',
           'Sin salida conectada, el mensaje se descarta.',
+          'Reparte sus mensajes entre sus Usuarios, en orden. Cada usuario guarda su propia cookie de sesión: la recibe en la respuesta del login y la manda en sus próximos requests.',
+          'Un `401` session-lost (su cookie no existe donde la buscaron) le borra la cookie a ese usuario: el próximo request vuelve a loguearse. Un `401` unauthenticated (no mandó credenciales) no cambia nada.',
+          'En el nodo, 🍪 logueados/N cuenta los usuarios con cookie.',
         ],
         fields: {
           ip: 'Dirección que hashea el IP Hash del Load Balancer; vacía, usa el id del cliente.',
@@ -270,6 +275,7 @@ export const es = {
           'Si alguna dependencia falla, responde `502`.',
           'Si una salida es una Cola o un Broker, solo espera su `202`.',
           'Con un Comportamiento (DSL) válido, hace lo que dice el DSL en lugar de todo lo anterior.',
+          'El paso `session memory | jwt | <Base>` verifica la sesión del usuario antes de seguir. Con `memory` las sesiones viven en el servicio (🍪 N) y se pierden si se apaga; detrás de un LB sin sticky, otro servidor no las conoce y responde `401`.',
         ],
         fields: {
           mode: 'Paralelo llama a todas las salidas a la vez; Secuencial, de a una y corta en el primer error.',
@@ -289,6 +295,9 @@ export const es = {
           'Atiende hasta Capacidad queries a la vez; el resto espera en cola.',
           'Responde `200` al terminar cada una.',
           'Cola llena o base caída: `503`.',
+          'Tipo: Relacional (🗄️), Clave-valor (🗝️) o Documental (📄). Al cambiarlo se aplica su tiempo de proceso sugerido, salvo que lo hayas editado.',
+          'Puede guardar las sesiones de los servicios que usan `session <Base>`: responde `200` si la sesión existe (o la creó) y `404` si no. En el nodo, 🍪 N cuenta las sesiones guardadas.',
+          'La clave-valor es volátil: si se apaga y se vuelve a prender, pierde sus sesiones y los usuarios reciben `401` hasta loguearse de nuevo. Relacional y documental las conservan.',
         ],
         fields: {
           kind: 'Relacional (🗄️, 300 ms), clave-valor (🗝️, 20 ms) o documental (📄, 80 ms). La clave-valor guarda todo en memoria: si se reinicia, pierde las sesiones.',
@@ -318,6 +327,7 @@ export const es = {
           'Weighted: en proporción a los pesos de cada conexión (editables en el inspector); si todas las disponibles tienen peso 0, reparte parejo.',
           'Sin destinos disponibles: `503`.',
           'Sticky sessions: un request con una cookie de sesión conocida va al servidor que la emitió; si ya no está disponible, elige el algoritmo.',
+          'Ojo: con los health checks apagados, un servidor caído sigue "disponible", así que el usuario pegado a él falla con `503` en cada request hasta que prendas los health checks.',
         ],
         fields: {
           algorithm: 'Cómo elige el destino de cada request.',
@@ -339,7 +349,8 @@ export const es = {
           'Gana la regla con el prefijo más largo; una conexión sin regla equivale a `/`.',
           'Ningún prefijo coincide: `404`.',
           'Rate limit superado: `429`.',
-          'Autenticación sin credenciales ni cookie: `401`. En JWT, a quien entra con credenciales le emite el token en la respuesta.',
+          'Autenticación sin credenciales ni cookie: `401` unauthenticated, y el request no llega a ningún servicio.',
+          'Con JWT, el token lo emite el gateway: a quien entra con credenciales y sin token le agrega `jwt:` en la respuesta. Ese token pisa la cookie de sesión que haya puesto un servicio de atrás, así que no lo combines con `session memory` detrás del proxy (usá `session jwt`).',
           'Cache hit: responde él mismo con `200` (HIT).',
         ],
         fields: {
@@ -398,6 +409,7 @@ export const es = {
           'Puede tener salidas (por ejemplo una base): las llama en paralelo, como un servicio.',
           'Caído, deja de recibir y los mensajes esperan en la cola.',
           'Con un Comportamiento (DSL) válido, hace lo que dice el DSL en lugar de lo anterior (y no usa la tasa de fallo); sin un `on message`, confirma cada mensaje sin hacer nada.',
+          'El paso `session` solo actúa sobre requests: en mensajes de una cola se ignora y sigue.',
         ],
         fields: {
           failRate: 'Probabilidad de que un mensaje falle (mensajes venenosos).',
@@ -442,6 +454,7 @@ export const es = {
           'Caído, el broker le guarda los eventos hasta que vuelva.',
           'Si Emite evento tiene un tipo, al terminar manda ese evento a todas sus salidas.',
           'Con un Comportamiento (DSL) válido, hace lo que dice el DSL en lugar de lo anterior (y no usa Emite evento); sin un `on event`, confirma cada evento sin hacer nada.',
+          'El paso `session` solo actúa sobre requests: en eventos se ignora y sigue.',
         ],
         fields: {
           emits: 'Tipo de evento que publica después de procesar; vacío, no emite nada.',

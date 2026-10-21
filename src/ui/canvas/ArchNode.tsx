@@ -1,12 +1,14 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
+import { dbKind, type DbKind } from '../../components/database'
 import { defaultRegistry } from '../../components/index'
 import type { Message, NodeId } from '../../engine/types'
 import { useLang, useT } from '../../i18n'
-import { componentLabel } from '../../i18n/componentText'
+import { componentLabel, optionLabel } from '../../i18n/componentText'
 import { C, toneColor } from '../colors'
 import { ZERO_STATS, useRuntime } from '../runtime/runtimeStore'
 import { UI_CELLS, type CellsView, type UiState } from '../runtime/useSimulation'
 import { useEditor } from '../store/editor'
+import { cookieCounter } from '../sessions'
 import { useBehaviorStatus } from '../useBehaviorStatus'
 import { packetStyle } from './PacketLayer'
 
@@ -69,11 +71,17 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
   }
   const hasBehavior = defaultRegistry.get(kind)?.config.behavior?.type === 'behavior'
   const lanes = ui?.lanes ? Object.entries(ui.lanes).filter(([id]) => nodes?.some((n) => n.id === id)) : []
+  const cookies = cookieCounter(kind, config, ui)
   return (
     <div className="node-stats">
       <div className="node-counters">
         {config.up === false && <span className="node-down">{t('node.down')}</span>}
         {hasBehavior && <DslBadge nodeId={nodeId} text={config.behavior} />}
+        {cookies && (
+          <span className="node-cookies" title={t(kind === 'client' ? 'node.loggedIn' : 'node.sessions')}>
+            {cookies}
+          </span>
+        )}
         {stats.inFlight > 0 && <span title={t('node.inFlight')}>⏳ {compact(stats.inFlight)}</span>}
         {stats.queued > 0 && <span title={t('node.queued')}>☰ {compact(stats.queued)}</span>}
         <span title={t('node.ok')} className="node-ok">✔ {compact(stats.ok)}</span>
@@ -96,6 +104,12 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
   const def = defaultRegistry.get(data.kind)
   const lang = useLang((s) => s.lang)
   const typeLabel = componentLabel(lang, data.kind, def)
+  // A Base de datos also names its kind: "Base de datos · clave-valor".
+  const subtitle =
+    def && data.kind === 'database'
+      ? `${typeLabel} · ${optionLabel(lang, def, 'kind', dbKind(data.config as { kind?: DbKind })).toLocaleLowerCase(lang)}`
+      : typeLabel
+  const icon = def ? (def.iconFor?.(data.config) ?? def.icon) : '❓'
   // A Cliente wears its own color (the one its packets carry).
   const own = data.kind === 'client' && typeof data.config.color === 'string' && data.config.color ? data.config.color : undefined
   const color = own ?? (def ? toneColor(def.color) : C.err)
@@ -116,11 +130,11 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
       )}
       <div className="arch-node-head">
         <span className="arch-node-icon" aria-hidden>
-          {def?.icon ?? '❓'}
+          {icon}
         </span>
         <div className="arch-node-text">
           <div className="arch-node-name">{name}</div>
-          <div className="arch-node-type">{typeLabel}</div>
+          <div className="arch-node-type">{subtitle}</div>
         </div>
       </div>
       <NodeStatsSlot nodeId={id} kind={data.kind} config={data.config} />

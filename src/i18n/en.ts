@@ -71,6 +71,8 @@ export const en: Dict = {
     queued: 'Queued',
     ok: 'OK',
     errors: 'Errors',
+    loggedIn: 'Logged-in users',
+    sessions: 'Stored sessions',
   },
   metrics: {
     label: 'Metrics',
@@ -198,7 +200,7 @@ export const en: Dict = {
         reply: { syntax: 'reply code', text: 'Responds and ends. Below 400 is ok; otherwise, an error.' },
         session: {
           syntax: 'session memory | jwt | Database',
-          text: "Checks the user's session: in the component's memory, as a JWT or in a Database. With credentials and no cookie, it creates one (login); if the cookie does not exist, 401.",
+          text: "Checks the user's session: in the component's memory, as a JWT or in a connected Database. With credentials and no cookie, it creates one (login); if the cookie does not exist, 401 session-lost; with no cookie and no credentials, 401 unauthenticated. A JWT cannot be revoked: it stays valid until the client drops it.",
         },
         nowait: { syntax: '… nowait', text: 'Does not wait for the result: goes on right away.' },
         orReply: { syntax: '… or reply N', text: 'If the step fails, responds N and ends.' },
@@ -238,6 +240,9 @@ export const en: Dict = {
           'Its packets and responses wear its color; responses get a green (ok) or red (error) outline.',
           'Receives the responses, which feed the latency and error metrics.',
           'With no output connected, the message is dropped.',
+          'Spreads its messages over its Users, in turn. Each user keeps its own session cookie: it gets it in the login response and sends it in its next requests.',
+          'A `401` session-lost (its cookie does not exist where it was looked up) clears that user\'s cookie: the next request logs in again. A `401` unauthenticated (no credentials sent) changes nothing.',
+          'On the node, 🍪 logged-in/N counts the users holding a cookie.',
         ],
         fields: {
           ip: 'Address the Load Balancer\'s IP Hash hashes; empty, it uses the client id.',
@@ -267,6 +272,7 @@ export const en: Dict = {
           'If any dependency fails, it responds `502`.',
           'If an output is a Queue or a Broker, it only waits for its `202`.',
           'With a valid Behavior (DSL), it does what the DSL says instead of all of the above.',
+          'The `session memory | jwt | <Database>` step checks the user\'s session before going on. With `memory` the sessions live in the service (🍪 N) and are lost if it goes down; behind a LB without sticky, another server does not know them and answers `401`.',
         ],
         fields: {
           mode: 'Parallel calls every output at once; Sequential, one at a time, stopping at the first error.',
@@ -286,6 +292,9 @@ export const en: Dict = {
           'Handles up to Capacity queries at once; the rest wait in a queue.',
           'Responds `200` when each one is done.',
           'Queue full or database down: `503`.',
+          'Type: Relational (🗄️), Key-value (🗝️) or Document (📄). Changing it applies its suggested processing time, unless you edited it.',
+          'It can store the sessions of services that use `session <Database>`: it answers `200` if the session exists (or it created it) and `404` if not. On the node, 🍪 N counts the stored sessions.',
+          'Key-value is volatile: if it goes down and comes back up, it loses its sessions and users get `401` until they log in again. Relational and document keep them.',
         ],
         fields: {
           kind: 'Relational (🗄️, 300 ms), key-value (🗝️, 20 ms) or document (📄, 80 ms). Key-value keeps everything in memory: if it restarts, it loses its sessions.',
@@ -315,6 +324,7 @@ export const en: Dict = {
           'Weighted: in proportion to each connection\'s weight (editable in the inspector); if every available one has weight 0, it splits equally.',
           'No targets available: `503`.',
           'Sticky sessions: a request with a known session cookie goes to the server that issued it; if that one is no longer available, the algorithm picks.',
+          'Careful: with health checks off, a down server is still "available", so a user pinned to it fails with `503` on every request until you turn health checks on.',
         ],
         fields: {
           algorithm: 'How it picks the target of each request.',
@@ -336,7 +346,8 @@ export const en: Dict = {
           'The rule with the longest prefix wins; a connection with no rule counts as `/`.',
           'No prefix matches: `404`.',
           'Rate limit exceeded: `429`.',
-          'Authentication with no credentials and no cookie: `401`. With JWT, whoever comes in with credentials gets the token in the response.',
+          'Authentication with no credentials and no cookie: `401` unauthenticated, and the request never reaches a service.',
+          'With JWT, the gateway issues the token: whoever comes in with credentials and no token gets a `jwt:` one in the response. That token overwrites any session cookie a downstream service set, so do not combine it with `session memory` behind the proxy (use `session jwt`).',
           'Cache hit: it responds itself with `200` (HIT).',
         ],
         fields: {
@@ -395,6 +406,7 @@ export const en: Dict = {
           'Can have outputs (a database, say): it calls them in parallel, like a service.',
           'When down, it stops receiving and the messages wait in the queue.',
           'With a valid Behavior (DSL), it does what the DSL says instead of the above (and ignores the failure rate); with no `on message`, it acks every message without doing anything.',
+          'The `session` step only acts on requests: on queue messages it is skipped.',
         ],
         fields: {
           failRate: 'Probability that a message fails (poison messages).',
@@ -439,6 +451,7 @@ export const en: Dict = {
           'When down, the broker keeps its events until it is back.',
           'If Emits event has a type, it sends that event to all its outputs when done.',
           'With a valid Behavior (DSL), it does what the DSL says instead of the above (and ignores Emits event); with no `on event`, it acks every event without doing anything.',
+          'The `session` step only acts on requests: on events it is skipped.',
         ],
         fields: {
           emits: 'Event type it publishes after processing; empty, it emits nothing.',

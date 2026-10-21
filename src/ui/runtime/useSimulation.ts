@@ -45,31 +45,41 @@ export interface CellsView {
 
 /**
  * Queue/DLQ items and broker lanes, copied so React sees new references (components mutate in
- * place). Only the head is copied: a long buffer costs the same as a short one.
+ * place). Only the head is copied: a long buffer costs the same as a short one. `cookies` (Cliente:
+ * users logged in) and `sessions` (Servicio/Worker/Suscriptor in memory, Base de datos) are counts.
  */
-export type UiState = { items?: CellsView; lanes?: Record<NodeId, CellsView> }
+export type UiState = { items?: CellsView; lanes?: Record<NodeId, CellsView>; cookies?: number; sessions?: number }
 
 const sigOf = (arr: Message[]) => `${arr.length}:${arr[0]?.id ?? ''}:${arr[arr.length - 1]?.id ?? ''}`
 
+const loggedIn = (cookies: unknown[]) => cookies.filter(Boolean).length
+
 /** A cheap fingerprint of the drawable parts of a component state, or null if it has none. */
-function uiSignature(state: unknown): string | null {
+export function uiSignature(state: unknown): string | null {
   if (typeof state !== 'object' || state === null) return null
-  const s = state as { items?: unknown; lanes?: unknown }
+  const s = state as { items?: unknown; lanes?: unknown; cookies?: unknown; sessions?: unknown }
   if (Array.isArray(s.items)) return sigOf(s.items as Message[])
   if (typeof s.lanes === 'object' && s.lanes !== null) {
     return Object.entries(s.lanes as Record<string, Message[]>)
       .map(([k, v]) => `${k}=${sigOf(v)}`)
       .join('|')
   }
+  if (Array.isArray(s.cookies)) return `c:${loggedIn(s.cookies)}`
+  if (Array.isArray(s.sessions)) return `s:${s.sessions.length}`
   return null
 }
 
 const view = (arr: Message[]): CellsView => ({ head: arr.slice(0, UI_CELLS), total: arr.length })
 
 export function uiCopy(state: unknown): UiState {
-  const s = state as { items?: Message[]; lanes?: Record<NodeId, Message[]> }
+  const s = state as { items?: Message[]; lanes?: Record<NodeId, Message[]>; cookies?: unknown[]; sessions?: unknown[] }
   if (Array.isArray(s.items)) return { items: view(s.items) }
-  return { lanes: Object.fromEntries(Object.entries(s.lanes ?? {}).map(([k, v]) => [k, view(v)])) }
+  if (typeof s.lanes === 'object' && s.lanes !== null) {
+    return { lanes: Object.fromEntries(Object.entries(s.lanes).map(([k, v]) => [k, view(v)])) }
+  }
+  if (Array.isArray(s.cookies)) return { cookies: loggedIn(s.cookies) }
+  if (Array.isArray(s.sessions)) return { sessions: s.sessions.length }
+  return {}
 }
 
 /**
