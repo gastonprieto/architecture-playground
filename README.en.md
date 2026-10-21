@@ -4,13 +4,14 @@
 
 A playground to build architectures on a canvas (clients, services, databases, load balancers, reverse proxies, caches, queues, workers, DLQs, brokers and subscribers) and watch requests, messages and events flow between them. Tweak each component (capacity, processing time, outages, etc.) to see how the system behaves under load.
 
-It comes with 6 presets:
+It comes with 7 presets:
 
 - **Load Balancer**: two clients spread their traffic across three servers with round robin.
 - **Sessions**: the session in the server's memory (constant 401s behind a round robin), in a shared key-value store and in a JWT, side by side.
 - **Sync vs queue**: the same traffic against a synchronous service (it saturates with 503s) and against a queue with workers (it answers 202).
 - **Pub/sub**: an event is published to the broker and reaches four subscribers; one is slow and falls behind.
-- **Reverse Proxy**: the proxy routes each path prefix to its service and stops the client with no credentials with a 401.
+- **Reverse Proxy**: the proxy routes each path prefix to its service, stops the client with no credentials with a 401 and caches `/static` at the edge.
+- **Cache**: cache-aside; the service asks the Cache for each product and goes to the database on a MISS. With 10 products and room for 5, you see the evictions (LRU) and the database load.
 - **Purchase order**: the same purchase orchestrated (Orders calls each service and waits) and choreographed (Orders publishes an event and each service reacts on its own), built with the behavior DSL.
 
 A Client sends to its first output (the first edge connected from it).
@@ -58,6 +59,15 @@ You can show where a user's session lives and who authenticates:
 - **Reverse Proxy**: **Authentication** (none, credentials or JWT) stops whoever comes without credentials at the door with a `401`.
 
 The **Sessions** preset puts the three cases side by side. The spec (in Spanish) is in [docs/sessions-spec.md](docs/sessions-spec.md).
+
+## Cache
+
+- **Cache**: with no outputs it is a **cache-aside** cache (the service asks it and, after a MISS, goes to the database and stores the key); with outputs it is **read-through**. **Mode** Real keys (Capacity with LRU eviction, and TTL) or Random (Hit rate). The node shows 🔑 keys and hit %.
+- **Service**: wired to a Cache with no outputs, it does cache-aside automatically, no DSL needed.
+- **`cache X:` DSL step**: the block runs only on a MISS and, if it goes well, the key is stored without waiting.
+- **Reverse Proxy**: an edge cache (Off, Random or Real keys) only for the **Cacheable paths** (empty = all).
+
+The spec (in Spanish) is in [docs/cache-spec.md](docs/cache-spec.md).
 
 ## Running it
 

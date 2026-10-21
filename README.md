@@ -4,13 +4,14 @@
 
 Un playground para armar arquitecturas en un canvas (clientes, servicios, bases de datos, load balancers, proxies reversos, caches, colas, workers, DLQs, brokers y suscriptores) y ver cómo fluyen los requests, mensajes y eventos entre los componentes. Se puede cambiar la configuración de cada componente (capacidad, tiempo de proceso, caídas, etc.) para ver cómo se comporta el sistema bajo carga.
 
-Incluye 6 presets para empezar:
+Incluye 7 presets para empezar:
 
 - **Load Balancer**: dos clientes reparten su tráfico entre tres servidores con round robin.
 - **Sesiones**: la sesión en memoria del servidor (401 constantes detrás de un round robin), en un store clave-valor compartido y en un JWT, lado a lado.
 - **Sync vs cola**: el mismo tráfico contra un servicio síncrono (se satura con 503) y contra una cola con workers (responde 202).
 - **Pub/sub**: un evento se publica en el broker y llega a cuatro suscriptores; uno es lento y se atrasa.
-- **Reverse Proxy**: el proxy enruta por prefijo de path a cada servicio y corta con 401 al cliente sin credenciales.
+- **Reverse Proxy**: el proxy enruta por prefijo de path a cada servicio, corta con 401 al cliente sin credenciales y cachea `/static` en el borde.
+- **Cache**: cache-aside; el servicio le pregunta a la Cache por cada producto y en un MISS va a la base. Con 10 productos y lugar para 5, se ven las expulsiones (LRU) y la carga de la base.
 - **Orden de compra**: la misma compra orquestada (Órdenes llama a cada servicio y espera) y coreografiada (Órdenes publica un evento y cada servicio reacciona por su cuenta), armada con el DSL de comportamiento.
 
 Un Cliente envía a su primera salida (la primera arista que se conectó desde él).
@@ -58,6 +59,15 @@ Se puede mostrar dónde vive la sesión de un usuario y quién autentica:
 - **Reverse Proxy**: **Autenticación** (ninguna, credenciales o JWT) corta en la puerta con `401` a quien no trae credenciales.
 
 El preset **Sesiones** pone los tres casos lado a lado. La spec está en [docs/sessions-spec.md](docs/sessions-spec.md).
+
+## Cache
+
+- **Cache**: sin salidas es una cache **cache-aside** (el servicio le pregunta y, tras un MISS, va a la base y guarda la clave); con salidas es **read-through**. **Modo** Claves reales (Capacidad con expulsión LRU y TTL) o Aleatorio (Hit rate). El nodo muestra 🔑 claves y hit %.
+- **Servicio**: conectado a una Cache sin salidas hace cache-aside automático, sin DSL.
+- **Paso `cache X:`** del DSL: el bloque corre solo en un MISS y, si sale bien, la clave se guarda sin esperar.
+- **Reverse Proxy**: cache de borde (Apagada, Aleatoria o Claves reales) solo para los **Paths cacheables** (vacío = todos).
+
+La spec está en [docs/cache-spec.md](docs/cache-spec.md).
 
 ## Cómo correrlo
 

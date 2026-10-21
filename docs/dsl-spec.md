@@ -56,6 +56,7 @@ paso      := 'call'    destino path  [mod]
            | 'fail'  N'%' [código]
            | 'reply' código
            | 'session' ( 'memory' | 'jwt' | destino ) [mod]   (mod sin nowait)
+           | 'cache' destino [mod] ':' bloque                 (mod sin nowait)
 mod       := 'nowait' | 'or' 'reply' código | 'or' 'continue'
 destino   := nombre de un nodo conectado (resto de la línea hasta un path o modificador; comillas opcionales)
 path      := token que empieza con '/'
@@ -84,6 +85,7 @@ path      := token que empieza con '/'
 | `wait ms` | — | Espera `ms` de simulación, ocupando el slot. | Sí |
 | `fail N% [código]` | — | Con probabilidad N%: corta el handler con `código` (default 500). En `on event` y `on message` es un **nack**. | — |
 | `reply código` | — | Responde y **termina** el handler. `código < 400` es ok y si no, error. En eventos y mensajes es ack o nack. | — |
+| `cache X:` + bloque | Cache conectada | Cache-aside explícito ([cache](cache-spec.md#4-dsl-paso-cache)). Pide la clave a X (`get`): el `meta.path` del request (en `on event`, el tipo de evento; en `on message`, el id del mensaje). **HIT** → se saltea el bloque y sigue. **MISS** → corre el bloque; si termina sin error, manda `set` de la clave **sin esperar** (fire-and-forget) y sigue. Si un paso del bloque falla, el error se propaga como en cualquier paso y **no** se escribe. Un `reply` dentro del bloque termina el handler sin escribir. HIT/MISS se distinguen por `meta.cacheHit`, nunca por el código. No admite `nowait` (error `cache-nowait`). | Sí, el `get` (el `set` no) |
 | `session memory \| jwt \| X` | `memory`, `jwt` o una Base de datos conectada | Verifica la sesión del request ([sesiones](sessions-spec.md#4-dsl-paso-session)): cookie válida → sigue; cookie desconocida → **401** `session-lost`; sin cookie y con credenciales → login (crea la sesión y la respuesta final lleva `setSession`); sin nada → **401** `unauthenticated`. Con `memory` la sesión vive en el componente; con `X`, en la base (ida y vuelta); con `jwt`, en el token (no se puede revocar). En eventos y mensajes se ignora. No admite `nowait`. | Sí, con una base |
 
 **Sin `reply`:** al llegar al final del handler se responde **200** a un request, o ack a un evento o mensaje.
@@ -95,6 +97,7 @@ path      := token que empieza con '/'
 - **`or continue`:** si falla, sigue con el paso siguiente.
 - **`nowait`:** no espera la respuesta ni el 202: sigue enseguida y el resultado se ignora cuando llega. Combinarlo con `or ...` es error de validación, porque `nowait` ya ignora el resultado.
 - **Dentro de `parallel:`:** un paso que falla sin modificador marca el bloque como fallido. El bloque espera a todos y después responde 502.
+- **`cache` contra una Cache que falla** (caída, cola llena, o un error que vuelve de una Cache read-through): el paso falla con **503** por default; `or reply N` responde N; `or continue` lo trata como MISS: corre el bloque y no escribe.
 - **`session` contra una base que falla** (caída, cola llena): el paso falla con **503** por default (acepta `or reply N` / `or continue`). A diferencia de `call`, dentro de `parallel:` ese 503 **termina el handler enseguida**, sin esperar al resto del bloque. Los `401` de sesión también terminan el handler.
 
 **`call X nowait` vs `enqueue X`:** los dos "no esperan", pero con `nowait` el request **se pierde** si X está caído o saturado. Con `enqueue`, la Cola lo guarda y lo reintenta. Esta diferencia es una lección de la charla.
@@ -127,6 +130,8 @@ La validación es **pura**: recibe el texto y la lista de salidas conectadas (`{
   - `call Base de datos` → "¿quisiste decir query?"
   - `query Pagos` → "¿quisiste decir call?"
   - `call Cola` → "¿quisiste decir enqueue?"
+  - `cache Base de datos` → "¿quisiste decir query?"
+- `cache` con bloque vacío (`empty-block`) o con `nowait` (`cache-nowait`).
 - `publish` sin ningún Broker conectado.
 - `nowait` combinado con `or`.
 - Handler duplicado.
