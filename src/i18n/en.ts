@@ -143,6 +143,9 @@ export const en: Dict = {
     ok: 'No errors',
     empty: 'Empty: uses the default behavior.',
     errorsTitle: 'With errors, the component uses its default behavior (you can still save).',
+    noMessageHandler: 'Note: there is no `on message` handler, so every queue message is acked without doing anything.',
+    noEventHandler: 'Note: there is no `on event` handler, so every event is acked without doing anything.',
+    overridden: 'Overridden by the behavior',
     hintIndent: 'Tab indents · Ctrl+M to move with Tab · Ctrl+Enter saves',
     hintFocus: 'Tab moves focus · Ctrl+M to indent with Tab · Ctrl+Enter saves',
     line: 'line {line}: {message}',
@@ -369,7 +372,7 @@ export const en: Dict = {
           'Tells the queue whether it went well (`200`) or not (`500`), so it can retry.',
           'Can have outputs (a database, say): it calls them in parallel, like a service.',
           'When down, it stops receiving and the messages wait in the queue.',
-          'With a valid Behavior (DSL), it does what its `on message` says (and ignores the failure rate).',
+          'With a valid Behavior (DSL), it does what the DSL says instead of the above (and ignores the failure rate); with no `on message`, it acks every message without doing anything.',
         ],
         fields: {
           failRate: 'Probability that a message fails (poison messages).',
@@ -413,7 +416,7 @@ export const en: Dict = {
           'Processes up to Capacity events at once and acks each one to the broker.',
           'When down, the broker keeps its events until it is back.',
           'If Emits event has a type, it sends that event to all its outputs when done.',
-          'With a valid Behavior (DSL), it does what its `on event` says (and ignores Emits event).',
+          'With a valid Behavior (DSL), it does what the DSL says instead of the above (and ignores Emits event); with no `on event`, it acks every event without doing anything.',
         ],
         fields: {
           emits: 'Event type it publishes after processing; empty, it emits nothing.',

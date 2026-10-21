@@ -1,4 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react'
+import { parseBehavior } from '../components/behavior'
 import { defaultRegistry } from '../components/index'
 import type { NodeId } from '../engine/types'
 import { useLang, useT } from '../i18n'
@@ -111,6 +112,16 @@ function EditorPanel({ nodeId }: { nodeId: NodeId }) {
     return true
   }
 
+  // A valid DSL with no handler for what this type receives acks everything without doing anything.
+  const missingKey =
+    status.kind !== 'active'
+      ? null
+      : node.type === 'worker' && !parseBehavior(text).program.handlers.some((h) => h.on === 'message')
+        ? 'behavior.noMessageHandler'
+        : node.type === 'subscriber' && !parseBehavior(text).program.handlers.some((h) => h.on === 'event')
+          ? 'behavior.noEventHandler'
+          : null
+
   const lineCount = text.split('\n').length
   const errorLines = new Set(status.kind === 'errors' ? status.errors.map((e) => e.line) : [])
 
@@ -119,6 +130,10 @@ function EditorPanel({ nodeId }: { nodeId: NodeId }) {
       className="info-panel dsl-dialog"
       labelledBy={titleId}
       onClose={close}
+      // A stray click outside must not throw edits away: the backdrop closes only an unchanged text.
+      onBackdrop={() => {
+        if (text === initial) close()
+      }}
       opener={opener}
       initialFocus={taRef}
       onKey={onKey}
@@ -176,7 +191,10 @@ function EditorPanel({ nodeId }: { nodeId: NodeId }) {
                 </ul>
               </>
             ) : status.kind === 'active' ? (
-              <p className="dsl-status-head ok">{t('behavior.ok')}</p>
+              <>
+                <p className="dsl-status-head ok">{t('behavior.ok')}</p>
+                {missingKey && <p className="dsl-status-note">{t(missingKey)}</p>}
+              </>
             ) : (
               <p className="dsl-status-head">{t('behavior.empty')}</p>
             )}

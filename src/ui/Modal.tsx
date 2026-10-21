@@ -23,8 +23,10 @@ export interface ModalProps {
   labelledBy: string
   className: string
   style?: CSSProperties
-  /** Esc, a backdrop click, or the caller's own close/cancel buttons. */
+  /** Esc, a backdrop click (unless `onBackdrop` is given), or the caller's own close/cancel buttons. */
   onClose(): void
+  /** A click on the backdrop; defaults to `onClose`. */
+  onBackdrop?(): void
   /** Focus goes back here on close (if still in the page). */
   opener: HTMLElement | null
   /** Focused when the dialog opens. */
@@ -41,7 +43,7 @@ export interface ModalProps {
  * reaches the app's shortcuts (Space, Delete, +/-, undo…). Default actions still happen (typing,
  * Enter/Space on buttons). The app behind it is made `inert` by App.
  */
-export function Modal({ labelledBy, className, style, onClose, opener, initialFocus, onKey, children }: ModalProps) {
+export function Modal({ labelledBy, className, style, onClose, onBackdrop, opener, initialFocus, onKey, children }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const downOnBackdrop = useRef(false)
   // Latest callbacks, so the listener is installed once for the dialog's lifetime.
@@ -84,7 +86,7 @@ export function Modal({ labelledBy, className, style, onClose, opener, initialFo
     downOnBackdrop.current = e.target === e.currentTarget
   }
   const onBackdropClick = (e: MouseEvent) => {
-    if (downOnBackdrop.current && e.target === e.currentTarget) onClose()
+    if (downOnBackdrop.current && e.target === e.currentTarget) (onBackdrop ?? onClose)()
     downOnBackdrop.current = false
   }
 

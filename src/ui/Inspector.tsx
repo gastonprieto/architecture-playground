@@ -15,6 +15,7 @@ import { TextField } from './fields/TextField'
 import { InfoButton } from './InfoDialog'
 import { isWeightedLb, lbShares } from './lbWeights'
 import { useEditor } from './store/editor'
+import { useBehaviorStatus } from './useBehaviorStatus'
 
 export interface InspectorProps {
   runAction?: (nodeId: string, action: string) => void
@@ -173,8 +174,12 @@ function EdgeInspector({ id }: { id: string }) {
   )
 }
 
+/** Fields a valid behavior DSL replaces, per component type (they are dimmed while one is active). */
+const OVERRIDDEN_BY_BEHAVIOR: Record<string, string[]> = { service: ['mode'], worker: ['failRate'], subscriber: ['emits'] }
+
 function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorProps['runAction'] }) {
   const node = useEditor((s) => s.graph.nodes.find((n) => n.id === id))
+  const behavior = useBehaviorStatus(id, node?.config.behavior)
   const updateNodeConfig = useEditor((s) => s.updateNodeConfig)
   const removeElements = useEditor((s) => s.removeElements)
   const lang = useLang((s) => s.lang)
@@ -202,9 +207,18 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
         </h2>
         <InfoButton type={def.type} label={componentLabel(lang, def.type, def)} />
       </div>
-      {Object.entries(def.config).map(([key, field]) => (
-        <FieldControl key={key} nodeId={id} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, { [key]: v })} />
-      ))}
+      {Object.entries(def.config).map(([key, field]) => {
+        const control = (
+          <FieldControl key={key} nodeId={id} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, { [key]: v })} />
+        )
+        if (behavior.kind !== 'active' || !OVERRIDDEN_BY_BEHAVIOR[def.type]?.includes(key)) return control
+        return (
+          <div key={key} className="field-overridden">
+            {control}
+            <p className="field-note">{t('behavior.overridden')}</p>
+          </div>
+        )
+      })}
       {def.type === 'load-balancer' && node.config.algorithm === 'weighted' && <WeightsSection lbId={id} />}
       {def.actions && (
         <div className="inspector-actions">

@@ -146,6 +146,9 @@ export const es = {
     ok: 'Sin errores',
     empty: 'Vacío: usa el comportamiento por defecto.',
     errorsTitle: 'Con errores, el componente usa el comportamiento por defecto (se puede guardar igual).',
+    noMessageHandler: 'Ojo: no hay un handler on message, así que cada mensaje de la cola se confirma sin hacer nada.',
+    noEventHandler: 'Ojo: no hay un handler on event, así que cada evento se confirma sin hacer nada.',
+    overridden: 'Reemplazado por el comportamiento',
     hintIndent: 'Tab indenta · Ctrl+M para moverte con Tab · Ctrl+Enter guarda',
     hintFocus: 'Tab mueve el foco · Ctrl+M para indentar con Tab · Ctrl+Enter guarda',
     line: 'línea {line}: {message}',
@@ -372,7 +375,7 @@ export const es = {
           'Le avisa a la cola si salió bien (`200`) o mal (`500`), para que reintente.',
           'Puede tener salidas (por ejemplo una base): las llama en paralelo, como un servicio.',
           'Caído, deja de recibir y los mensajes esperan en la cola.',
-          'Con un Comportamiento (DSL) válido, hace lo que dice su `on message` (y no usa la tasa de fallo).',
+          'Con un Comportamiento (DSL) válido, hace lo que dice el DSL en lugar de lo anterior (y no usa la tasa de fallo); sin un `on message`, confirma cada mensaje sin hacer nada.',
         ],
         fields: {
           failRate: 'Probabilidad de que un mensaje falle (mensajes venenosos).',
@@ -416,7 +419,7 @@ export const es = {
           'Procesa hasta Capacidad eventos a la vez y confirma cada uno al broker.',
           'Caído, el broker le guarda los eventos hasta que vuelva.',
           'Si Emite evento tiene un tipo, al terminar manda ese evento a todas sus salidas.',
-          'Con un Comportamiento (DSL) válido, hace lo que dice su `on event` (y no usa Emite evento).',
+          'Con un Comportamiento (DSL) válido, hace lo que dice el DSL en lugar de lo anterior (y no usa Emite evento); sin un `on event`, confirma cada evento sin hacer nada.',
         ],
         fields: {
           emits: 'Tipo de evento que publica después de procesar; vacío, no emite nada.',

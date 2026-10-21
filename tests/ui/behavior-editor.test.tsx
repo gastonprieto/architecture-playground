@@ -285,6 +285,70 @@ describe('behavior editor popup', () => {
   })
 })
 
+describe('behavior editor: backdrop, hints, overridden fields', () => {
+  const open = () => fireEvent.click(within(inspector()).getByRole('button', { name: 'Editar comportamiento' }))
+  const backdropClick = () => {
+    const backdrop = document.querySelector('.info-backdrop')!
+    fireEvent.mouseDown(backdrop)
+    fireEvent.click(backdrop)
+  }
+
+  it('a backdrop click keeps the dialog open when the text was edited, and closes it when unchanged', () => {
+    renderWith()
+    open()
+    fireEvent.change(textarea(), { target: { value: VALID } })
+    backdropClick()
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(textarea().value).toBe(VALID)
+    // Back to the saved text: the backdrop closes again.
+    fireEvent.change(textarea(), { target: { value: '' } })
+    backdropClick()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(svc().config.behavior).toBe('')
+  })
+
+  it('Esc still cancels edited text', () => {
+    renderWith()
+    open()
+    fireEvent.change(textarea(), { target: { value: VALID } })
+    fireEvent.keyDown(textarea(), { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(svc().config.behavior).toBe('')
+  })
+
+  it('notes a Worker with no `on message` and a Suscriptor with no `on event` (not an error)', () => {
+    renderWith('w1')
+    open()
+    const note = /no hay un handler on message/
+    expect(screen.queryByText(note)).toBeNull()
+    fireEvent.change(textarea(), { target: { value: 'on request:\n  query Base de datos\n' } })
+    expect(screen.getByText(note)).toBeTruthy()
+    expect(within(document.querySelector<HTMLElement>('.dsl-status')!).getByText('Sin errores')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    act(() => {
+      const id = useEditor.getState().addNode('subscriber', { x: 0, y: 0 }, 'Sub', { behavior: 'on request:\n  reply 200\n' })
+      useEditor.getState().select({ kind: 'node', id })
+    })
+    open()
+    expect(screen.getByText(/no hay un handler on event/)).toBeTruthy()
+  })
+
+  it('dims the fields a valid behavior overrides, with a note', () => {
+    renderWith()
+    const note = 'Reemplazado por el comportamiento'
+    expect(within(inspector()).queryByText(note)).toBeNull()
+    setBehavior('s1', VALID)
+    const mode = within(inspector()).getByLabelText('Llamadas')
+    expect(mode.closest('.field-overridden')).toBeTruthy()
+    expect(within(inspector()).getByText(note)).toBeTruthy()
+    expect(within(inspector()).getByLabelText('Capacidad').closest('.field-overridden')).toBeNull()
+    setBehavior('s1', INVALID) // errors → default behavior → nothing overridden
+    expect(within(inspector()).queryByText(note)).toBeNull()
+    act(() => useEditor.getState().select({ kind: 'node', id: 'w1' }))
+    expect(within(inspector()).getByLabelText('Tasa de fallo').closest('.field-overridden')).toBeTruthy()
+  })
+})
+
 describe('DSL badge on the node', () => {
   it('shows "DSL" for an active behavior, "⚠ DSL" with errors, nothing by default', () => {
     renderWith()

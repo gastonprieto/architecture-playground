@@ -20,7 +20,7 @@ Online (una vez publicado el repo): https://gastonprieto.github.io/architecture-
 
 ## Comportamiento (DSL)
 
-Servicio, Worker y Suscriptor tienen un campo **Comportamiento**: un texto corto que decide qué hace el nodo con cada request, evento o mensaje (a quién llama, en qué orden, qué publica y con qué código responde). Vacío o con errores, el nodo usa su comportamiento por defecto. Se edita desde el inspector ("Editar comportamiento") y los nodos que lo usan muestran un badge `DSL`. Los destinos se nombran por el nombre del nodo conectado.
+Servicio, Worker y Suscriptor tienen un campo **Comportamiento**: un texto corto que decide qué hace el nodo con cada request, evento o mensaje (a quién llama, en qué orden, qué publica y con qué código responde). Vacío o con errores, el nodo usa su comportamiento por defecto. Se edita desde el inspector ("Editar comportamiento") y los nodos que lo usan muestran un badge `DSL`. Los destinos se nombran por el nombre del nodo conectado. El ejemplo es ilustrativo: valida solo en un nodo conectado a nodos con esos nombres (Base de datos, Stock, Pagos, Mails, Facturas) y a un Broker.
 
 ```
 on request /ordenes:

@@ -20,7 +20,7 @@ Online (once the repo is published): https://gastonprieto.github.io/architecture
 
 ## Behavior (DSL)
 
-Service, Worker and Subscriber have a **Behavior** field: a short text that decides what the node does with each request, event or message (whom it calls, in what order, what it publishes and which code it responds with). Empty or with errors, the node keeps its default behavior. Edit it from the inspector ("Edit behavior"); nodes that use it show a `DSL` badge. Keywords are English in both languages; targets are referenced by the connected node's name, so this example uses the Spanish preset names:
+Service, Worker and Subscriber have a **Behavior** field: a short text that decides what the node does with each request, event or message (whom it calls, in what order, what it publishes and which code it responds with). Empty or with errors, the node keeps its default behavior. Edit it from the inspector ("Edit behavior"); nodes that use it show a `DSL` badge. Keywords are English in both languages. Targets are referenced by the name of a connected node; the example below is illustrative and uses generic Spanish node names (Base de datos, Stock, Pagos, Mails, Facturas), so it only validates on a node wired to nodes with those names and to a Broker:
 
 ```
 on request /ordenes:

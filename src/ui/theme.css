@@ -586,6 +586,9 @@ body {
 .dsl-status-head { margin: 0; color: var(--dim); }
 .dsl-status-head.ok { color: var(--green); }
 .dsl-status-head.err { color: var(--muted); }
+.dsl-status-note { margin: 6px 0 0; color: var(--muted); }
+.field-overridden > :first-child { opacity: 0.45; }
+.field-note { margin: -4px 0 8px; font-size: 11px; color: var(--muted); font-style: italic; }
 .dsl-errors { margin: 4px 0 0; padding: 0; list-style: none; font: 12px/1.6 var(--mono); color: var(--orange); }
 
 .dsl-ref { min-height: 0; overflow-y: auto; padding-left: 18px; border-left: 1px solid var(--line); }
