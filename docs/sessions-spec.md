@@ -140,7 +140,7 @@ El orden en el proxy sigue siendo: rate limit → auth → cache → rutear.
 
 ## 10. Presets
 
-- **"Sesiones" (nuevo):** tres carriles. Cada uno tiene un Cliente con 6 usuarios con login, un LB round robin sin sticky y 3 servicios:
+- **"Sesiones" (nuevo):** tres carriles. Cada uno tiene un Cliente con 5 usuarios con login, un LB round robin sin sticky y 3 servicios. Son 5 y no 6 a propósito: con un número de usuarios múltiplo de los servidores, el round robin del Cliente y el del LB se alinean y cada usuario cae siempre en el mismo servidor (sticky por casualidad), así que el carril de memoria no mostraría ningún 401:
   1. **Memoria:** `session memory`.
   2. **Store:** `session Sesiones`, contra una Base de datos clave-valor compartida llamada "Sesiones" / "Sessions".
   3. **JWT:** `session jwt`.

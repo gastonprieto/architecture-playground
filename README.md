@@ -4,12 +4,13 @@
 
 Un playground para armar arquitecturas en un canvas (clientes, servicios, bases de datos, load balancers, proxies reversos, caches, colas, workers, DLQs, brokers y suscriptores) y ver cómo fluyen los requests, mensajes y eventos entre los componentes. Se puede cambiar la configuración de cada componente (capacidad, tiempo de proceso, caídas, etc.) para ver cómo se comporta el sistema bajo carga.
 
-Incluye 5 presets para empezar:
+Incluye 6 presets para empezar:
 
 - **Load Balancer**: dos clientes reparten su tráfico entre tres servidores con round robin.
+- **Sesiones**: la sesión en memoria del servidor (401 constantes detrás de un round robin), en un store clave-valor compartido y en un JWT, lado a lado.
 - **Sync vs cola**: el mismo tráfico contra un servicio síncrono (se satura con 503) y contra una cola con workers (responde 202).
 - **Pub/sub**: un evento se publica en el broker y llega a cuatro suscriptores; uno es lento y se atrasa.
-- **Reverse Proxy**: el proxy enruta por prefijo de path a cada servicio.
+- **Reverse Proxy**: el proxy enruta por prefijo de path a cada servicio y corta con 401 al cliente sin credenciales.
 - **Orden de compra**: la misma compra orquestada (Órdenes llama a cada servicio y espera) y coreografiada (Órdenes publica un evento y cada servicio reacciona por su cuenta), armada con el DSL de comportamiento.
 
 Un Cliente envía a su primera salida (la primera arista que se conectó desde él).
@@ -45,6 +46,18 @@ on message:
 ```
 
 La referencia completa está en [docs/dsl-spec.md](docs/dsl-spec.md).
+
+## Sesiones y autenticación
+
+Se puede mostrar dónde vive la sesión de un usuario y quién autentica:
+
+- **Cliente**: tiene **Usuarios** (cada uno con su cookie) y **Autenticación** (con login o sin credenciales). El nodo muestra 🍪 logueados/N.
+- **Paso `session`** del DSL: `session memory` (en el servidor), `session <Base>` (en una base compartida) o `session jwt` (en el token, que no se puede revocar). Una cookie que el servidor no conoce da `401` y el usuario se vuelve a loguear.
+- **Base de datos**: tiene **Tipo** (relacional, clave-valor o documental). La clave-valor es rápida pero volátil: si se reinicia, pierde las sesiones.
+- **Load Balancer**: **Sticky sessions** manda a cada usuario al servidor que le dio la cookie.
+- **Reverse Proxy**: **Autenticación** (ninguna, credenciales o JWT) corta en la puerta con `401` a quien no trae credenciales.
+
+El preset **Sesiones** pone los tres casos lado a lado. La spec está en [docs/sessions-spec.md](docs/sessions-spec.md).
 
 ## Cómo correrlo
 

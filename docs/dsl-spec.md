@@ -55,6 +55,7 @@ paso      := 'call'    destino path  [mod]
            | 'wait'  ms
            | 'fail'  N'%' [código]
            | 'reply' código
+           | 'session' ( 'memory' | 'jwt' | destino ) [mod]   (mod sin nowait)
 mod       := 'nowait' | 'or' 'reply' código | 'or' 'continue'
 destino   := nombre de un nodo conectado (resto de la línea hasta un path o modificador; comillas opcionales)
 path      := token que empieza con '/'
@@ -83,6 +84,7 @@ path      := token que empieza con '/'
 | `wait ms` | — | Espera `ms` de simulación, ocupando el slot. | Sí |
 | `fail N% [código]` | — | Con probabilidad N%: corta el handler con `código` (default 500). En `on event` y `on message` es un **nack**. | — |
 | `reply código` | — | Responde y **termina** el handler. `código < 400` es ok y si no, error. En eventos y mensajes es ack o nack. | — |
+| `session memory \| jwt \| X` | `memory`, `jwt` o una Base de datos conectada | Verifica la sesión del request ([sesiones](sessions-spec.md#4-dsl-paso-session)): cookie válida → sigue; cookie desconocida → **401** `session-lost`; sin cookie y con credenciales → login (crea la sesión y la respuesta final lleva `setSession`); sin nada → **401** `unauthenticated`. Con `memory` la sesión vive en el componente; con `X`, en la base (ida y vuelta); con `jwt`, en el token (no se puede revocar). En eventos y mensajes se ignora. No admite `nowait`. | Sí, con una base |
 
 **Sin `reply`:** al llegar al final del handler se responde **200** a un request, o ack a un evento o mensaje.
 
@@ -93,6 +95,7 @@ path      := token que empieza con '/'
 - **`or continue`:** si falla, sigue con el paso siguiente.
 - **`nowait`:** no espera la respuesta ni el 202: sigue enseguida y el resultado se ignora cuando llega. Combinarlo con `or ...` es error de validación, porque `nowait` ya ignora el resultado.
 - **Dentro de `parallel:`:** un paso que falla sin modificador marca el bloque como fallido. El bloque espera a todos y después responde 502.
+- **`session` contra una base que falla** (caída, cola llena): el paso falla con **503** por default (acepta `or reply N` / `or continue`). A diferencia de `call`, dentro de `parallel:` ese 503 **termina el handler enseguida**, sin esperar al resto del bloque. Los `401` de sesión también terminan el handler.
 
 **`call X nowait` vs `enqueue X`:** los dos "no esperan", pero con `nowait` el request **se pierde** si X está caído o saturado. Con `enqueue`, la Cola lo guarda y lo reintenta. Esta diferencia es una lección de la charla.
 

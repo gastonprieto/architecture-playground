@@ -4,12 +4,13 @@
 
 A playground to build architectures on a canvas (clients, services, databases, load balancers, reverse proxies, caches, queues, workers, DLQs, brokers and subscribers) and watch requests, messages and events flow between them. Tweak each component (capacity, processing time, outages, etc.) to see how the system behaves under load.
 
-It comes with 5 presets:
+It comes with 6 presets:
 
 - **Load Balancer**: two clients spread their traffic across three servers with round robin.
+- **Sessions**: the session in the server's memory (constant 401s behind a round robin), in a shared key-value store and in a JWT, side by side.
 - **Sync vs queue**: the same traffic against a synchronous service (it saturates with 503s) and against a queue with workers (it answers 202).
 - **Pub/sub**: an event is published to the broker and reaches four subscribers; one is slow and falls behind.
-- **Reverse Proxy**: the proxy routes each path prefix to its service.
+- **Reverse Proxy**: the proxy routes each path prefix to its service and stops the client with no credentials with a 401.
 - **Purchase order**: the same purchase orchestrated (Orders calls each service and waits) and choreographed (Orders publishes an event and each service reacts on its own), built with the behavior DSL.
 
 A Client sends to its first output (the first edge connected from it).
@@ -45,6 +46,18 @@ on message:
 ```
 
 The full reference (in Spanish) is in [docs/dsl-spec.md](docs/dsl-spec.md).
+
+## Sessions and auth
+
+You can show where a user's session lives and who authenticates:
+
+- **Client**: has **Users** (each with its own cookie) and **Authentication** (with login or no credentials). The node shows 🍪 logged-in/N.
+- **`session` DSL step**: `session memory` (on the server), `session <Database>` (in a shared database) or `session jwt` (in the token, which cannot be revoked). A cookie the server does not know gets a `401` and the user logs in again.
+- **Database**: has a **Type** (relational, key-value or document). Key-value is fast but volatile: if it restarts, it loses the sessions.
+- **Load Balancer**: **Sticky sessions** sends each user to the server that gave it the cookie.
+- **Reverse Proxy**: **Authentication** (none, credentials or JWT) stops whoever comes without credentials at the door with a `401`.
+
+The **Sessions** preset puts the three cases side by side. The spec (in Spanish) is in [docs/sessions-spec.md](docs/sessions-spec.md).
 
 ## Running it
 
