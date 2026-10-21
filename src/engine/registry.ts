@@ -1,6 +1,12 @@
 import type { EdgeId, EdgeRule, Message, MessageKind, NodeId } from './types'
 
-export type Field =
+/** Show a field only while another field of the same config has this value (the UI hides it otherwise). */
+export interface FieldCondition {
+  field: string
+  equals: string | boolean | number
+}
+
+type FieldKind =
   | { type: 'number'; label: string; default: number; min: number; max: number; step?: number; unit?: string }
   | { type: 'boolean'; label: string; default: boolean }
   | { type: 'select'; label: string; default: string; options: { value: string; label: string }[] }
@@ -10,6 +16,21 @@ export type Field =
   | { type: 'color'; label: string; default: string; options: readonly string[] }
   /** Behavior DSL text (src/components/behavior); '' keeps the component's default behavior. */
   | { type: 'behavior'; label: string; default: '' }
+  /** An ordered list of strings (e.g. path prefixes). */
+  | { type: 'list'; label: string; default: string[] }
+
+export type Field = FieldKind & { showIf?: FieldCondition }
+
+/**
+ * Whether `field` applies under `config` (its `showIf` holds). A missing controlling value falls back
+ * to that field's default in `def`, if given. Engine and UI share this rule.
+ */
+export function fieldVisible(field: Field, config: Record<string, unknown>, def?: ComponentDef): boolean {
+  const cond = field.showIf
+  if (!cond) return true
+  const value = cond.field in config ? config[cond.field] : def?.config[cond.field]?.default
+  return value === cond.equals
+}
 
 export type Tone = 'req' | 'ok' | 'slow' | 'err' | 'hc' | 'redis' | 'db'
 
@@ -87,6 +108,11 @@ export interface ComponentDef<C = any, S = any> {
   recordsMetrics?: boolean
   /** False for source-only components (Cliente): no input port, nothing can be wired into them. Default true. */
   inputs?: boolean
+  /**
+   * The config the engine's processing (up / processingTime / capacity / queueMax) reads, when it
+   * differs from the component's config: e.g. the Cache's `capacity` counts keys, not slots.
+   */
+  processingConfig?(config: C): Record<string, unknown>
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -127,6 +153,9 @@ export class Registry {
 
 export function defaultConfig(def: ComponentDef): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(def.config).map(([key, f]) => [key, f.type === 'mix' ? f.default.map((o) => ({ ...o })) : f.default]),
+    Object.entries(def.config).map(([key, f]) => [
+      key,
+      f.type === 'mix' ? f.default.map((o) => ({ ...o })) : f.type === 'list' ? [...f.default] : f.default,
+    ]),
   )
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Registry, defaultConfig, defineComponent, processingFields } from '../../src/engine/registry'
+import { Registry, defaultConfig, defineComponent, fieldVisible, processingFields } from '../../src/engine/registry'
 
 const make = (type: string, label = type) =>
   defineComponent({
@@ -64,5 +64,41 @@ describe('defaultConfig mix defaults', () => {
     expect(a).not.toBe(b)
     expect(a[0]).not.toBe(b[0])
     expect(a).not.toBe(def.config.paths.default)
+  })
+})
+
+describe('list fields and showIf', () => {
+  const def = defineComponent({
+    type: 'proxyish',
+    label: 'P',
+    icon: 'p',
+    color: 'req',
+    config: {
+      mode: { type: 'select', label: 'Modo', default: 'a', options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] },
+      paths: { type: 'list', label: 'Paths', default: ['/static'], showIf: { field: 'mode', equals: 'b' } },
+      on: { type: 'boolean', label: 'On', default: false, showIf: { field: 'mode', equals: 'a' } },
+    },
+    initialState: () => ({}),
+    onMessage() {},
+  })
+
+  it('defaultConfig returns a fresh copy of list defaults', () => {
+    const a = defaultConfig(def).paths as string[]
+    const b = defaultConfig(def).paths as string[]
+    expect(a).toEqual(['/static'])
+    expect(a).not.toBe(b)
+    expect(a).not.toBe(def.config.paths.default)
+  })
+
+  it('fieldVisible honors showIf against a config (no showIf = always)', () => {
+    expect(fieldVisible(def.config.mode, { mode: 'b' })).toBe(true)
+    expect(fieldVisible(def.config.paths, { mode: 'a' })).toBe(false)
+    expect(fieldVisible(def.config.paths, { mode: 'b' })).toBe(true)
+    expect(fieldVisible(def.config.on, { mode: 'a' })).toBe(true)
+  })
+
+  it('fieldVisible falls back to the controlling field default when the config lacks it', () => {
+    expect(fieldVisible(def.config.on, {}, def)).toBe(true)
+    expect(fieldVisible(def.config.paths, {}, def)).toBe(false)
   })
 })

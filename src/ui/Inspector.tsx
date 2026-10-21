@@ -2,7 +2,7 @@ import { useId } from 'react'
 import { DEFAULT_WEIGHT } from '../engine/weights'
 import type { DbKind } from '../components/database'
 import { defaultRegistry } from '../components/index'
-import type { ComponentDef, Field } from '../engine/registry'
+import { fieldVisible, type ComponentDef, type Field } from '../engine/registry'
 import type { EdgeRule } from '../engine/types'
 import { useLang, useT } from '../i18n'
 import { actionLabel, colorName, componentLabel, fieldLabel, optionLabel, unknownTypeTitle } from '../i18n/componentText'
@@ -58,6 +58,11 @@ function FieldControl({ nodeId, def, fieldKey, field, value, onChange }: FieldCo
       )
     case 'mix':
       return <MixField label={label} value={Array.isArray(value) ? (value as MixRow[]) : field.default} onChange={onChange} />
+    case 'list': {
+      // Minimal editor: comma-separated values.
+      const list = Array.isArray(value) ? (value as unknown[]).map(String) : field.default
+      return <TextField label={label} value={list.join(', ')} onChange={(v) => onChange(v.split(',').map((x) => x.trim()))} />
+    }
     case 'behavior':
       return <BehaviorField nodeId={nodeId} label={label} value={typeof value === 'string' ? value : field.default} />
   }
@@ -213,6 +218,7 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
         <InfoButton type={def.type} label={componentLabel(lang, def.type, def)} />
       </div>
       {Object.entries(def.config).map(([key, field]) => {
+        if (!fieldVisible(field, node.config, def)) return null
         const control = (
           <FieldControl key={key} nodeId={id} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, patchFor(key, v))} />
         )

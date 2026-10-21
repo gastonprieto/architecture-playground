@@ -363,20 +363,27 @@ export const en: Dict = {
     },
     cache: {
       label: 'Cache',
-      fields: { hitRate: 'Hit rate' },
+      fields: { mode: 'Mode', capacity: 'Capacity', ttl: 'TTL', hitRate: 'Hit rate' },
+      options: {
+        mode: { keys: 'Real keys', random: 'Random' },
+      },
       info: {
-        summary: 'Sits in front of a service or a database and answers what it already has stored.',
+        summary: 'Stores responses by key (the path) so the database is not hit every time.',
         behavior: [
-          'Hit: it responds itself with `200` (HIT).',
-          'Miss: it forwards to its first output and lets the response through (MISS).',
-          'Miss with no output: `503`.',
-          'It never queues or rejects: it has no capacity and never goes down.',
+          'With no outputs (cache-aside): the service asks it; a HIT answers `200`, a MISS `404`, and the service stores the key after going to the database.',
+          'With outputs (read-through): a MISS is forwarded to its first output and the ok response is stored on the way back.',
+          'Real keys: when full, the least recently used key leaves (LRU); with a TTL, an expired key is a MISS.',
+          'Random: a HIT with probability Hit rate, storing nothing.',
+          'Down: `503`.',
         ],
         fields: {
+          mode: 'Real keys stores each path; Random hits by chance.',
+          capacity: 'How many keys fit; when full, the least recently used one leaves.',
+          ttl: 'How many ms a key lives after it was stored; 0 is forever.',
           hitRate: 'Probability of having the data (0 to 1).',
           processingTime: 'How long the in-memory lookup takes.',
         },
-        tip: 'Compare the p50 latency with a high hit rate and with a low one.',
+        tip: 'Send several different paths and watch the cache fill up: the first ones are MISS, then HIT.',
       },
     },
     queue: {

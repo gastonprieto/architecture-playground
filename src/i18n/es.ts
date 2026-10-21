@@ -366,20 +366,27 @@ export const es = {
     },
     cache: {
       label: 'Cache',
-      fields: { hitRate: 'Hit rate' },
+      fields: { mode: 'Modo', capacity: 'Capacidad', ttl: 'TTL', hitRate: 'Hit rate' },
+      options: {
+        mode: { keys: 'Claves reales', random: 'Aleatorio' },
+      },
       info: {
-        summary: 'Va adelante de un servicio o una base y responde lo que ya tiene guardado.',
+        summary: 'Guarda respuestas por clave (el path) para no ir a la base cada vez.',
         behavior: [
-          'Hit: responde ella con `200` (HIT).',
-          'Miss: reenvía a su primera salida y deja pasar la respuesta (MISS).',
-          'Miss sin salida: `503`.',
-          'No encola ni rechaza: no tiene capacidad ni se cae.',
+          'Sin salidas (cache-aside): el servicio le pregunta; HIT responde `200`, MISS `404`, y el servicio guarda la clave después de ir a la base.',
+          'Con salidas (read-through): un MISS se reenvía a su primera salida y la respuesta ok se guarda al volver.',
+          'Claves reales: si se llena, sale la clave usada hace más tiempo (LRU); con TTL, una clave vencida es MISS.',
+          'Aleatorio: HIT con probabilidad Hit rate, sin guardar nada.',
+          'Caída: `503`.',
         ],
         fields: {
+          mode: 'Claves reales guarda cada path; Aleatorio acierta al azar.',
+          capacity: 'Cuántas claves entran; llena, sale la menos usada recientemente.',
+          ttl: 'Cuántos ms vive una clave desde que se guardó; 0 es para siempre.',
           hitRate: 'Probabilidad de tener el dato (0 a 1).',
           processingTime: 'Lo que tarda la búsqueda en memoria.',
         },
-        tip: 'Compará la latencia p50 con hit rate alto y con hit rate bajo.',
+        tip: 'Mandá varios paths distintos y mirá cómo se llena la cache: los primeros son MISS y después HIT.',
       },
     },
     queue: {

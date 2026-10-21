@@ -50,6 +50,12 @@ export interface Message {
     userIndex?: number
     /** A session request to a database. */
     sessionOp?: 'check' | 'create'
+    /** A cache request: look the key up or store it (no cacheOp = get). */
+    cacheOp?: 'get' | 'set'
+    /** The cache key; without it the cache uses `path`, then '/'. */
+    cacheKey?: string
+    /** On a cache response: whether the key was found. */
+    cacheHit?: boolean
     [k: string]: unknown
   }
   /** Path travelled so far; responses walk it in reverse. */

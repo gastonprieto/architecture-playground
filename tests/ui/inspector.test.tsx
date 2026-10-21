@@ -140,3 +140,18 @@ describe('NumberField typing', () => {
     expect(useEditor.getState().graph.nodes[0].config.mix).toEqual([{ value: '/', weight: 0 }])
   })
 })
+
+describe('Inspector: conditional fields', () => {
+  it('a Cache shows only the fields of its mode (showIf)', () => {
+    act(() =>
+      useEditor.getState().loadGraph({ nodes: [{ id: 'k1', type: 'cache', position: { x: 0, y: 0 }, config: { name: 'Cache', mode: 'keys' } }], edges: [] }),
+    )
+    render(<Inspector />)
+    select({ kind: 'node', id: 'k1' })
+    expect(screen.getByLabelText('Capacidad', { selector: 'input[type=number]' })).toBeTruthy()
+    expect(screen.queryByLabelText('Hit rate', { selector: 'input[type=number]' })).toBeNull()
+    fireEvent.change(screen.getByLabelText('Modo'), { target: { value: 'random' } })
+    expect(screen.getByLabelText('Hit rate', { selector: 'input[type=number]' })).toBeTruthy()
+    expect(screen.queryByLabelText('TTL', { selector: 'input[type=number]' })).toBeNull()
+  })
+})

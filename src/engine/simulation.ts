@@ -259,7 +259,7 @@ export class Simulation {
   private newRecord(id: NodeId, type: string, def: ComponentDef | undefined, config: Record<string, unknown>): NodeRecord {
     const rec = { id, type, def, config, state: def ? def.initialState() : {}, stats: zeroStats() } as NodeRecord
     rec.processor = new Processor({
-      config: () => rec.config,
+      config: () => (rec.def?.processingConfig ? rec.def.processingConfig(rec.config) : rec.config),
       stats: rec.stats,
       // A job released after its node was removed must not emit stats for a node that no longer exists.
       statsChanged: () => {
