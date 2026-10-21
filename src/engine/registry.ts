@@ -13,6 +13,12 @@ export type Field =
 
 export type Tone = 'req' | 'ok' | 'slow' | 'err' | 'hc' | 'redis' | 'db'
 
+export interface ReplyInfo {
+  status: 'ok' | 'error'
+  code: number
+  meta?: Partial<Message['meta']>
+}
+
 export interface OutEdge {
   edgeId: EdgeId
   target: NodeId
@@ -34,7 +40,8 @@ export interface Ctx<C = any, S = any> {
   newMessage(kind: MessageKind, meta: Message['meta'], parent?: Message): Message
   /** Appends this node to msg.trail. */
   send(target: NodeId, msg: Message): void
-  reply(msg: Message, r: { status: 'ok' | 'error'; code: number }): void
+  /** Answer `msg` one hop back. `meta` is merged over the request's meta on the response. */
+  reply(msg: Message, r: ReplyInfo): void
   /** Pass a response one hop further back. */
   forwardResponse(res: Message): void
   /** `reason` is a stable English code ('down', 'queue-full', 'no-output'…); the UI translates it. */

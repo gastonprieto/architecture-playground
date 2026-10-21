@@ -12,11 +12,36 @@ export interface ClientConfig {
   rate: number
   mix: MixEntry[]
   burstSize: number
+  /** How many users share this client (1..50); messages go round robin over them. */
+  users: number
+  /** 'login': requests carry credentials and the user's cookie; 'none': never. */
+  auth: ClientAuth
 }
+
+export type ClientAuth = 'login' | 'none'
 
 export interface ClientState {
   /** Fractional messages owed by onTick (rate * elapsed), sent once they reach whole units. */
   acc: number
+  /** Round-robin cursor over the users. */
+  next: number
+  /** Session cookie of each user (index = userIndex); null = not logged in. Length = users. */
+  cookies: (string | null)[]
+}
+
+/** The configured number of users, as an integer ≥ 1. */
+export function userCount(config: Pick<ClientConfig, 'users'>): number {
+  const n = Math.floor(Number(config.users))
+  return Number.isFinite(n) && n >= 1 ? n : 1
+}
+
+/** Keep one cookie slot per user: new users start without a cookie, removed users are dropped. */
+function syncUsers(ctx: Ctx<ClientConfig, ClientState>): void {
+  const st = ctx.state
+  const n = userCount(ctx.config)
+  if (st.cookies.length > n) st.cookies.length = n
+  while (st.cookies.length < n) st.cookies.push(null)
+  if (st.next >= n) st.next = 0
 }
 
 /**
@@ -43,13 +68,24 @@ function pick(mix: MixEntry[], r: number): string {
 
 /** Sends one request (or event) to the first output, or drops it with 'no-output'. */
 function sendOne(ctx: Ctx<ClientConfig, ClientState>): void {
+  syncUsers(ctx)
   const value = pick(ctx.config.mix, ctx.random())
   const isEvent = ctx.config.kind === 'event'
+  const users = userCount(ctx.config)
+  const k = ctx.state.next
+  ctx.state.next = (k + 1) % users
+  const ip = ctx.config.ip ?? ''
+  const cookie = ctx.state.cookies[k]
+  // Only requests get answered, so only they carry credentials and cookies.
+  const login = !isEvent && ctx.config.auth !== 'none'
   const who = {
     clientId: ctx.nodeId,
-    clientIp: ctx.config.ip ?? '',
+    // Each user is its own identity for the LB's IP Hash.
+    clientIp: users > 1 ? `${ip}#${k + 1}` : ip,
     clientName: ctx.config.name ?? '',
     ...(ctx.config.color ? { clientColor: ctx.config.color } : {}),
+    userIndex: k,
+    ...(login ? { credentials: true, ...(cookie ? { sessionId: cookie } : {}) } : {}),
   }
   const msg = ctx.newMessage(isEvent ? 'event' : 'request', isEvent ? { eventType: value, ...who } : { path: value, ...who })
   const out = ctx.outputs()[0]
@@ -79,14 +115,38 @@ export const client = defineComponent<ClientConfig, ClientState>({
     rate: { type: 'number', label: 'Tasa', default: 0, min: 0, max: 50, step: 1, unit: 'req/s' },
     mix: { type: 'mix', label: 'Mix (path / evento)', default: [{ value: '/', weight: 1 }] },
     burstSize: { type: 'number', label: 'Tamaño de ráfaga', default: 20, min: 1, max: 200, step: 1 },
+    users: { type: 'number', label: 'Usuarios', default: 1, min: 1, max: 50, step: 1 },
+    auth: {
+      type: 'select',
+      label: 'Autenticación',
+      default: 'login',
+      options: [
+        { value: 'login', label: 'Con login' },
+        { value: 'none', label: 'Sin credenciales' },
+      ],
+    },
   },
-  initialState: () => ({ acc: 0 }),
+  initialState: () => ({ acc: 0, next: 0, cookies: [] }),
   // A client has no inputs: anything but a response that reaches it fails visibly (requests get a
   // 503 back). Responses never get here; they end at the client (empty trail).
   onMessage(msg, ctx) {
     ctx.drop(msg, 'client-rejects-requests', 503)
   },
+  // Responses end here (the client originated them, so their trail is empty).
+  onResponse(res, ctx) {
+    if (res.trail.length > 0) {
+      ctx.forwardResponse(res)
+      return
+    }
+    syncUsers(ctx)
+    const k = res.meta.userIndex
+    // A response for a user removed meanwhile (users lowered) has nobody to store the cookie on.
+    if (typeof k !== 'number' || k < 0 || k >= ctx.state.cookies.length) return
+    if (typeof res.meta.setSession === 'string') ctx.state.cookies[k] = res.meta.setSession
+    else if (res.code === 401 && res.meta.authError === 'session-lost') ctx.state.cookies[k] = null
+  },
   onTick(ctx, dtMs) {
+    syncUsers(ctx)
     ctx.state.acc += (ctx.config.rate * dtMs) / 1000
     while (ctx.state.acc >= 1) {
       ctx.state.acc -= 1

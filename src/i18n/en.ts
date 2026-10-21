@@ -213,9 +213,12 @@ export const en: Dict = {
         rate: 'Rate',
         mix: 'Mix (path / event)',
         burstSize: 'Burst size',
+        users: 'Users',
+        auth: 'Authentication',
       },
       options: {
         kind: { request: 'Request', event: 'Event' },
+        auth: { login: 'With login', none: 'No credentials' },
       },
       actions: {
         send1: 'Send 1',
@@ -238,6 +241,8 @@ export const en: Dict = {
           rate: 'Messages per second it sends on its own.',
           mix: 'Paths or event types to send, each with its weight.',
           burstSize: 'How many messages "Burst" sends, spread over one second.',
+          users: 'How many users share this client. Messages go to them in turn, and each one has its own session cookie.',
+          auth: 'With login, each request carries credentials and the user\'s cookie if it has one. With no credentials, it carries neither.',
         },
         tip: 'Start with "Send 1" to follow one request end to end, then raise the rate.',
       },

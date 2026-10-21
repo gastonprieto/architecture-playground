@@ -31,7 +31,27 @@ export type MessageKind = 'request' | 'message' | 'event' | 'response'
 export interface Message {
   id: string
   kind: MessageKind
-  meta: { path?: string; eventType?: string; clientId?: string; clientIp?: string; clientName?: string; clientColor?: string; [k: string]: unknown }
+  meta: {
+    path?: string
+    eventType?: string
+    clientId?: string
+    clientIp?: string
+    clientName?: string
+    clientColor?: string
+    /** The request carries login credentials (Cliente with auth 'login'). */
+    credentials?: boolean
+    /** The session cookie the request carries (`sid:<id>` or `jwt:<id>`). */
+    sessionId?: string
+    /** On a response: the session cookie the originating user must store. */
+    setSession?: string
+    /** On a 401 response: why it was rejected. */
+    authError?: 'session-lost' | 'unauthenticated'
+    /** Which of the Cliente's users sent the request (0-based). */
+    userIndex?: number
+    /** A session request to a database. */
+    sessionOp?: 'check' | 'create'
+    [k: string]: unknown
+  }
   /** Path travelled so far; responses walk it in reverse. */
   trail: NodeId[]
   /** simTime at creation. */

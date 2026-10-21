@@ -2,7 +2,7 @@ import { Emitter } from './emitter'
 import { createRandom } from './random'
 import { RollingMetrics } from './metrics'
 import { Processor } from './processing'
-import { defaultConfig, type ComponentDef, type Ctx, type OutEdge, type Registry, type Tone } from './registry'
+import { defaultConfig, type ComponentDef, type Ctx, type OutEdge, type Registry, type ReplyInfo, type Tone } from './registry'
 import { Scheduler } from './scheduler'
 import type { EdgeId, Graph, GraphEdge, Message, MessageKind, MetricsSnapshot, NodeId, NodeStats } from './types'
 
@@ -190,13 +190,13 @@ export class Simulation {
     this.transmit(from, to, { ...msg, trail: [...msg.trail, from] })
   }
 
-  /** Build the response to `msg` and send it one hop back along its trail. No-op on an empty trail. */
-  private respond(from: NodeId, msg: Message, r: { status: 'ok' | 'error'; code: number }): void {
+  /** Build the response to `msg` (its meta, patched by `r.meta`) and send it one hop back along its trail. No-op on an empty trail. */
+  private respond(from: NodeId, msg: Message, r: ReplyInfo): void {
     if (msg.trail.length === 0) return
     const res: Message = {
       id: this.nextId(),
       kind: 'response',
-      meta: { ...msg.meta },
+      meta: { ...msg.meta, ...r.meta },
       trail: msg.trail.slice(0, -1),
       // Kept from the request so the originator can compute latency = now - createdAt.
       createdAt: msg.createdAt,

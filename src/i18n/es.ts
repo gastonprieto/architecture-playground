@@ -216,9 +216,12 @@ export const es = {
         rate: 'Tasa',
         mix: 'Mix (path / evento)',
         burstSize: 'Tamaño de ráfaga',
+        users: 'Usuarios',
+        auth: 'Autenticación',
       },
       options: {
         kind: { request: 'Request', event: 'Evento' },
+        auth: { login: 'Con login', none: 'Sin credenciales' },
       },
       actions: {
         send1: 'Enviar 1',
@@ -241,6 +244,8 @@ export const es = {
           rate: 'Mensajes por segundo que manda solo.',
           mix: 'Paths o tipos de evento a mandar, cada uno con su peso.',
           burstSize: 'Cuántos mensajes manda "Ráfaga", repartidos en un segundo.',
+          users: 'Cuántos usuarios comparten este cliente. Los mensajes se reparten entre ellos en orden, y cada uno tiene su propia cookie de sesión.',
+          auth: 'Con login, cada request lleva credenciales y la cookie del usuario si la tiene. Sin credenciales, no lleva ninguna de las dos.',
         },
         tip: 'Arrancá con "Enviar 1" para seguir un request punta a punta, y después subí la tasa.',
       },
