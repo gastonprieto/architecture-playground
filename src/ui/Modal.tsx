@@ -2,6 +2,22 @@ import { useEffect, useLayoutEffect, useRef, type CSSProperties, type MouseEvent
 
 const FOCUSABLE = 'button, [href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])'
 
+/**
+ * Whether Tab can really land on `el`: enabled, not `hidden`/display:none/visibility:hidden (itself
+ * or an ancestor up to `root`), and not inside a closed <details> unless it is that details' own summary.
+ */
+function reachable(el: HTMLElement, root: HTMLElement): boolean {
+  if ((el as HTMLButtonElement).disabled) return false
+  if (getComputedStyle(el).visibility === 'hidden') return false
+  for (let node: HTMLElement | null = el; node && node !== root; node = node.parentElement) {
+    if (node.hidden || getComputedStyle(node).display === 'none') return false
+    const parent = node.parentElement
+    if (parent instanceof HTMLDetailsElement && !parent.open && !(node === el && el.tagName === 'SUMMARY' && parent.querySelector(':scope > summary') === el))
+      return false
+  }
+  return true
+}
+
 export interface ModalProps {
   /** Id of the element that names the dialog. */
   labelledBy: string
@@ -47,7 +63,7 @@ export function Modal({ labelledBy, className, style, onClose, opener, initialFo
         latest.current.onClose()
       } else if (e.key === 'Tab') {
         // Focus moves here (not natively) so the cycle never leaves the dialog.
-        const items = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => !(el as HTMLButtonElement).disabled)
+        const items = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => reachable(el, panel))
         if (items.length === 0) return
         e.preventDefault()
         const i = items.indexOf(document.activeElement as HTMLElement)
