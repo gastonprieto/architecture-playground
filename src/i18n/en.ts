@@ -143,6 +143,8 @@ export const en: Dict = {
     ok: 'No errors',
     empty: 'Empty: uses the default behavior.',
     errorsTitle: 'With errors, the component uses its default behavior (you can still save).',
+    hintIndent: 'Tab indents · Ctrl+M to move with Tab · Ctrl+Enter saves',
+    hintFocus: 'Tab moves focus · Ctrl+M to indent with Tab · Ctrl+Enter saves',
     line: 'line {line}: {message}',
     badge: 'DSL',
     badgeErrors: '⚠ DSL',

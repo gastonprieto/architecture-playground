@@ -146,6 +146,8 @@ export const es = {
     ok: 'Sin errores',
     empty: 'Vacío: usa el comportamiento por defecto.',
     errorsTitle: 'Con errores, el componente usa el comportamiento por defecto (se puede guardar igual).',
+    hintIndent: 'Tab indenta · Ctrl+M para moverte con Tab · Ctrl+Enter guarda',
+    hintFocus: 'Tab mueve el foco · Ctrl+M para indentar con Tab · Ctrl+Enter guarda',
     line: 'línea {line}: {message}',
     badge: 'DSL',
     badgeErrors: '⚠ DSL',

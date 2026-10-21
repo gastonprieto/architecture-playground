@@ -105,7 +105,7 @@ describe('behavior editor popup', () => {
     expect(document.activeElement).toBe(textarea())
     expect(document.querySelector('.app')!.hasAttribute('inert')).toBe(true)
     fireEvent.change(textarea(), { target: { value: VALID } })
-    expect(within(dialog).getByText('Sin errores')).toBeTruthy()
+    expect(within(dialog.querySelector<HTMLElement>('.dsl-status')!).getByText('Sin errores')).toBeTruthy()
     expect(svc().config.behavior).toBe('') // nothing saved while typing
     fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar' }))
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -183,6 +183,59 @@ describe('behavior editor popup', () => {
     // Delete must not remove the selected node behind the dialog.
     fireEvent.keyDown(ta, { key: 'Delete' })
     expect(svc()).toBeTruthy()
+  })
+
+  it('Ctrl+M releases Tab so the keyboard can reach Guardar; the hint follows the mode', () => {
+    renderWith()
+    fireEvent.click(within(inspector()).getByRole('button', { name: 'Editar comportamiento' }))
+    const dialog = screen.getByRole('dialog')
+    const ta = textarea()
+    expect(within(dialog).getByText('Tab indenta · Ctrl+M para moverte con Tab · Ctrl+Enter guarda')).toBeTruthy()
+    fireEvent.change(ta, { target: { value: VALID } })
+    fireEvent.keyDown(ta, { key: 'm', ctrlKey: true })
+    expect(within(dialog).getByText('Tab mueve el foco · Ctrl+M para indentar con Tab · Ctrl+Enter guarda')).toBeTruthy()
+    fireEvent.keyDown(ta, { key: 'Tab' })
+    expect(ta.value).toBe(VALID)
+    expect(document.activeElement).not.toBe(ta)
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    const save = within(dialog).getByRole('button', { name: 'Guardar' })
+    for (let i = 0; i < 5 && document.activeElement !== save; i++) fireEvent.keyDown(document.activeElement!, { key: 'Tab' })
+    expect(document.activeElement).toBe(save)
+    fireEvent.click(document.activeElement!)
+    expect(svc().config.behavior).toBe(VALID)
+  })
+
+  it('Ctrl+M again brings Tab back to indenting', () => {
+    renderWith()
+    fireEvent.click(within(inspector()).getByRole('button', { name: 'Editar comportamiento' }))
+    const ta = textarea()
+    fireEvent.keyDown(ta, { key: 'm', ctrlKey: true })
+    fireEvent.keyDown(ta, { key: 'm', ctrlKey: true })
+    fireEvent.keyDown(ta, { key: 'Tab' })
+    expect(ta.value).toBe('  ')
+    expect(document.activeElement).toBe(ta)
+  })
+
+  it('Ctrl+Enter (or Cmd+Enter) saves', () => {
+    renderWith()
+    for (const mod of [{ ctrlKey: true }, { metaKey: true }]) {
+      fireEvent.click(within(inspector()).getByRole('button', { name: 'Editar comportamiento' }))
+      fireEvent.change(textarea(), { target: { value: mod.ctrlKey ? VALID : INVALID } })
+      fireEvent.keyDown(textarea(), { key: 'Enter', ...mod })
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(svc().config.behavior).toBe(mod.ctrlKey ? VALID : INVALID)
+    }
+  })
+
+  it('announces only the error count politely', () => {
+    renderWith()
+    fireEvent.click(within(inspector()).getByRole('button', { name: 'Editar comportamiento' }))
+    const live = document.querySelector('.dsl-dialog [aria-live="polite"]')!
+    expect(screen.getByRole('dialog').querySelector('[role="status"]')).toBeNull()
+    fireEvent.change(textarea(), { target: { value: INVALID } })
+    expect(live.textContent).toBe('⚠ 1 error')
+    fireEvent.change(textarea(), { target: { value: VALID } })
+    expect(live.textContent).toBe('Sin errores')
   })
 
   it('"Insertar ejemplo" fills the template for the component type, then appends', () => {

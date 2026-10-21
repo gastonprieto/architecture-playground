@@ -3,7 +3,8 @@ import { defaultRegistry } from '../components/index'
 import type { NodeId } from '../engine/types'
 import { useLang, useT } from '../i18n'
 import { componentLabel } from '../i18n/componentText'
-import { behaviorExample, dslErrorLine, referenceRows } from './behaviorText'
+import { behaviorExample, behaviorSummary, dslErrorLine } from './behaviorText'
+import { BehaviorReference } from './BehaviorReference'
 import { toneColor } from './colors'
 import { applyEdit, dslKeyEdit, type TextEdit } from './dslKeys'
 import { Modal } from './Modal'
@@ -11,38 +12,13 @@ import { useBehaviorEditor } from './store/behaviorEditor'
 import { useEditor } from './store/editor'
 import { useBehaviorStatus } from './useBehaviorStatus'
 
-/** DSL reference: keyword table, notes and the spec example. Shown in the editor and in the ⓘ panel. */
-export function BehaviorReference() {
-  const lang = useLang((s) => s.lang)
-  const t = useT()
-  return (
-    <div className="dsl-ref-body">
-      <table className="dsl-ref-table">
-        <caption>{t('behavior.ref.keywords')}</caption>
-        <tbody>
-          {referenceRows(lang).map((r) => (
-            <tr key={r.key}>
-              <th scope="row">
-                <code>{r.syntax}</code>
-              </th>
-              <td>{r.text}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="dsl-ref-notes">{t('behavior.ref.notes')}</p>
-      <h4>{t('behavior.ref.example')}</h4>
-      <pre className="dsl-ref-example">{t('behavior.ref.exampleText')}</pre>
-    </div>
-  )
-}
-
 /**
  * Put `edit` into the textarea through the browser's editing commands when available, so the
  * textarea's own undo (Ctrl/Cmd+Z) keeps working; otherwise set the text directly.
  */
 function applyToTextarea(ta: HTMLTextAreaElement, edit: TextEdit, setText: (text: string) => void): void {
   const expected = applyEdit(ta.value, edit)
+  ta.focus()
   ta.setSelectionRange(edit.from, edit.to)
   let done = false
   try {
@@ -64,6 +40,8 @@ function EditorPanel({ nodeId }: { nodeId: NodeId }) {
   const errorsId = useId()
   const initial = typeof node?.config.behavior === 'string' ? node.config.behavior : ''
   const [text, setText] = useState(initial)
+  /** Tab indents in the code (default); Ctrl+M switches it to moving focus, so the keyboard can leave. */
+  const [tabIndents, setTabIndents] = useState(true)
   const status = useBehaviorStatus(nodeId, text)
   const taRef = useRef<HTMLTextAreaElement>(null)
   const gutterRef = useRef<HTMLDivElement>(null)
@@ -92,18 +70,36 @@ function EditorPanel({ nodeId }: { nodeId: NodeId }) {
   }
 
   const insertExample = () => {
+    const ta = taRef.current
+    if (!ta) return
     const example = behaviorExample(lang, node.type)
-    const next = text.trim() === '' ? example : `${text.replace(/\n*$/, '\n')}\n${example}`
-    pendingSel.current = [next.length, next.length]
-    setText(next)
-    taRef.current?.focus()
+    // Through the textarea's editing path, so Ctrl/Cmd+Z in the code undoes it.
+    const from = text.trim() === '' ? 0 : /\n*$/.exec(text)!.index
+    const insert = from === 0 ? example : `\n\n${example}`
+    const caret = from + insert.length
+    const edit: TextEdit = { from, to: text.length, insert, selStart: caret, selEnd: caret }
+    pendingSel.current = [caret, caret]
+    applyToTextarea(ta, edit, setText)
+    ta.setSelectionRange(caret, caret)
   }
 
-  // Tab/Shift+Tab/Enter in the code edit indentation (the modal sees keys first, so they are handled here).
+  // The modal sees keys first, so the editor's own keys are handled here.
   const onKey = (e: globalThis.KeyboardEvent): boolean => {
     const ta = taRef.current
-    if (!ta || e.target !== ta || e.isComposing) return false
-    if (e.key !== 'Tab' && e.key !== 'Enter') return false
+    if (!ta || e.isComposing) return false
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      save()
+      return true
+    }
+    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'm') {
+      e.preventDefault()
+      setTabIndents((v) => !v)
+      return true
+    }
+    // Tab/Shift+Tab/Enter in the code edit indentation.
+    if (e.target !== ta || (e.key !== 'Tab' && e.key !== 'Enter')) return false
+    if (e.key === 'Tab' && !tabIndents) return false
     if (e.ctrlKey || e.metaKey || e.altKey || (e.key === 'Enter' && e.shiftKey)) return false
     e.preventDefault()
     const edit = dslKeyEdit(ta.value, ta.selectionStart, ta.selectionEnd, e.key, e.shiftKey)
@@ -165,7 +161,11 @@ function EditorPanel({ nodeId }: { nodeId: NodeId }) {
               }}
             />
           </div>
-          <div id={errorsId} className="dsl-status" role="status">
+          <p className="dsl-hint">{t(tabIndents ? 'behavior.hintIndent' : 'behavior.hintFocus')}</p>
+          <p className="sr-only" aria-live="polite">
+            {status.kind === 'errors' ? behaviorSummary(lang, status) : t(status.kind === 'active' ? 'behavior.ok' : 'behavior.empty')}
+          </p>
+          <div id={errorsId} className="dsl-status">
             {status.kind === 'errors' ? (
               <>
                 <p className="dsl-status-head err">{t('behavior.errorsTitle')}</p>
