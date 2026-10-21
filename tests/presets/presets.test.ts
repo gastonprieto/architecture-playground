@@ -27,8 +27,8 @@ function responsesByClient(sim: Simulation): Record<string, Message[]> {
 }
 
 describe('presets', () => {
-  it('exposes the five presets with valid, uniquely-id graphs', () => {
-    expect(presets.map((p) => p.id)).toEqual(['load-balancer', 'sync-vs-queue', 'pubsub', 'reverse-proxy', 'purchase-order'])
+  it('exposes the six presets with valid, uniquely-id graphs', () => {
+    expect(presets.map((p) => p.id)).toEqual(['load-balancer', 'sessions', 'sync-vs-queue', 'pubsub', 'reverse-proxy', 'purchase-order'])
     for (const p of presets) {
       const ids = p.graph.nodes.map((n) => n.id)
       expect(new Set(ids).size).toBe(ids.length)
@@ -135,7 +135,7 @@ describe('presets', () => {
     const names = enPresets.flatMap((p) => p.graph.nodes.map((n) => n.config.name))
     for (const name of ['Browser', 'Mobile app', 'Server 1', 'Database', 'Orders', 'Billing', 'Inventory', 'Emails', 'Analytics', 'Users', 'Payments', 'Web'])
       expect(names).toContain(name)
-    expect(enPresets.map((p) => p.name)).toEqual(['Load Balancer', 'Sync vs queue', 'Pub/sub', 'Reverse Proxy', 'Purchase order'])
+    expect(enPresets.map((p) => p.name)).toEqual(['Load Balancer', 'Sessions', 'Sync vs queue', 'Pub/sub', 'Reverse Proxy', 'Purchase order'])
     expect(enPresets.find((p) => p.id === 'sync-vs-queue')!.description).toMatch(/^The same traffic/)
     for (const [i, p] of enPresets.entries()) {
       const es = presets[i]
@@ -229,5 +229,85 @@ describe('purchase-order preset', () => {
     for (const id of ['stock-cor', 'pagos-cor', 'mails-cor']) expect(sim.nodeStats(id).ok, id).toBeGreaterThan(20)
     for (const id of ['db-stock-orq', 'db-pagos-orq', 'db-mails-orq', 'db-ordenes-cor', 'db-stock-cor', 'db-pagos-cor', 'db-mails-cor'])
       expect(sim.nodeStats(id).ok, id).toBeGreaterThan(0)
+  })
+})
+
+/** Every DSL of a preset compiles against its outputs (the engine's view), with at least one handler. */
+function expectDslsCompile(p: { graph: Graph }, label: string) {
+  for (const n of p.graph.nodes.filter((x) => typeof x.config.behavior === 'string' && x.config.behavior.trim() !== '')) {
+    const { program, errors } = compileBehavior(n.config.behavior as string, outputsOf(p.graph, n.id))
+    expect(errors, `${label}/${n.id}`).toEqual([])
+    expect(program.handlers.length, `${label}/${n.id}`).toBeGreaterThan(0)
+  }
+}
+
+describe('sessions preset', () => {
+  const LANES = { mem: 'client-mem', store: 'client-store', jwt: 'client-jwt' } as const
+  const WARM_UP = 8_000
+
+  it('three lanes: 5 users with login, round robin without sticky, 3 servers each; a key-value store', () => {
+    const p = preset('sessions')
+    const cfg = (id: string) => p.graph.nodes.find((n) => n.id === id)!.config
+    for (const lane of ['mem', 'store', 'jwt']) {
+      expect(cfg(`client-${lane}`)).toMatchObject({ users: 5, auth: 'login', rate: 0 })
+      expect(cfg(`lb-${lane}`)).toMatchObject({ algorithm: 'round-robin', sticky: false })
+      for (const i of [1, 2, 3]) expect(p.graph.edges.some((e) => e.source === `lb-${lane}` && e.target === `${lane}-${i}`)).toBe(true)
+    }
+    expect(cfg('mem-1').behavior).toContain('session memory')
+    expect(cfg('store-1').behavior).toContain('session Sesiones')
+    expect(cfg('jwt-1').behavior).toContain('session jwt')
+    expect(cfg('sessions-db')).toMatchObject({ name: 'Sesiones', kind: 'key-value', processingTime: 20 })
+    expect(getPresets('en').find((x) => x.id === 'sessions')!.graph.nodes.find((n) => n.id === 'sessions-db')!.config.name).toBe('Sessions')
+  })
+
+  it.each(['es', 'en'] as const)('every DSL compiles (%s)', (lang) => {
+    const p = getPresets(lang).find((x) => x.id === 'sessions')!
+    expectDslsCompile(p, lang)
+    expect(p.graph.nodes.filter((n) => n.config.behavior).length).toBe(9)
+  })
+
+  it('30 s: the memory lane loses sessions; the store and jwt lanes do not after warm-up', () => {
+    const sim = run('sessions')
+    const lost: Record<string, number> = {}
+    const ok: Record<string, number> = {}
+    sim.on('message:arrived', (e) => {
+      if (e.msg.kind !== 'response' || sim.now < WARM_UP) return
+      if (e.msg.code === 401 && e.msg.meta.authError === 'session-lost') lost[e.at] = (lost[e.at] ?? 0) + 1
+      if (e.msg.status === 'ok') ok[e.at] = (ok[e.at] ?? 0) + 1
+    })
+    sim.advance(30_000)
+    expect(lost[LANES.mem] ?? 0).toBeGreaterThan(5)
+    expect(lost[LANES.store] ?? 0).toBe(0)
+    expect(lost[LANES.jwt] ?? 0).toBe(0)
+    for (const id of Object.values(LANES)) expect(ok[id] ?? 0, id).toBeGreaterThan(10)
+    expect((sim.nodeState('sessions-db') as { sessions: string[] }).sessions.length).toBeGreaterThan(0)
+  })
+})
+
+describe('reverse-proxy gateway auth', () => {
+  it('the proxy requires credentials and an anonymous client starts idle', () => {
+    const p = preset('reverse-proxy')
+    expect(p.graph.nodes.find((n) => n.id === 'proxy')!.config.auth).toBe('credentials')
+    expect(p.graph.nodes.find((n) => n.id === 'anon')!.config).toMatchObject({ auth: 'none', rate: 0, name: 'Sin credenciales' })
+    expect(getPresets('en').find((x) => x.id === 'reverse-proxy')!.graph.nodes.find((n) => n.id === 'anon')!.config.name).toBe('Anonymous')
+  })
+
+  it('30 s: the anonymous client only gets 401 and never reaches a service; the others are served', () => {
+    const sim = run('reverse-proxy')
+    const byClient = responsesByClient(sim)
+    const reached: string[] = []
+    sim.on('message:arrived', (e) => {
+      if (e.msg.kind === 'request' && ['usuarios', 'ordenes', 'pagos', 'web'].includes(e.at) && e.msg.meta.clientId === 'anon') reached.push(e.at)
+    })
+    sim.advance(30_000)
+    const anon = byClient['anon'] ?? []
+    expect(anon.length).toBeGreaterThan(5)
+    expect(anon.every((m) => m.code === 401 && m.meta.authError === 'unauthenticated')).toBe(true)
+    expect(reached).toEqual([])
+    for (const id of ['web-client', 'mobile']) expect((byClient[id] ?? []).filter((m) => m.code === 401)).toEqual([])
+  })
+
+  it.each(['es', 'en'] as const)('every preset DSL compiles (%s)', (lang) => {
+    for (const p of getPresets(lang)) expectDslsCompile(p, `${lang}/${p.id}`)
   })
 })

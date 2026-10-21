@@ -499,6 +499,17 @@ export const es = {
         db: 'Base de datos',
       },
     },
+    sessions: {
+      name: 'Sesiones',
+      description:
+        'Dónde vive la sesión del usuario. Tres carriles iguales: 5 usuarios con login detrás de un Load Balancer round robin sin sticky. Arriba, sesión en memoria del servidor: cada request cae en otro servidor y recibe 401. En el medio, un store clave-valor compartido: funciona con cualquier servidor (apagalo y prendelo: se pierden las sesiones). Abajo, JWT: no necesita store ni sticky. Probá prender Sticky sessions en el LB de arriba.',
+      nodes: {
+        client: { mem: 'Cliente memoria', store: 'Cliente store', jwt: 'Cliente JWT' },
+        lb: { mem: 'LB memoria', store: 'LB store', jwt: 'LB JWT' },
+        server: { mem: 'Memoria {n}', store: 'Store {n}', jwt: 'JWT {n}' },
+        store: 'Sesiones',
+      },
+    },
     'sync-vs-queue': {
       name: 'Sync vs cola',
       description: 'El mismo tráfico contra un servicio síncrono (se satura con 503) y contra una cola con workers (responde 202).',
@@ -526,7 +537,8 @@ export const es = {
     },
     'reverse-proxy': {
       name: 'Reverse Proxy',
-      description: 'El proxy enruta por prefijo de path a cada servicio; lo que no coincide con ninguna regla va a Web.',
+      description:
+        'El proxy enruta por prefijo de path a cada servicio; lo que no coincide con ninguna regla va a Web. Además autentica en la puerta: el cliente sin credenciales recibe 401 y nunca llega a un servicio.',
       paths: {
         users: '/usuarios',
         orders: '/ordenes',
@@ -536,6 +548,7 @@ export const es = {
       nodes: {
         web: 'Navegador',
         mobile: 'App móvil',
+        anon: 'Sin credenciales',
         proxy: 'Reverse Proxy',
         users: 'Usuarios',
         orders: 'Órdenes',

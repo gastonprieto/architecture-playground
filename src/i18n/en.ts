@@ -494,6 +494,17 @@ export const en: Dict = {
         db: 'Database',
       },
     },
+    sessions: {
+      name: 'Sessions',
+      description:
+        "Where the user's session lives. Three identical lanes: 5 logged-in users behind a round-robin Load Balancer without sticky. Top, session in the server's memory: each request lands on another server and gets a 401. Middle, a shared key-value store: any server works (turn it off and on: the sessions are lost). Bottom, JWT: needs no store and no sticky. Try turning on Sticky sessions on the top LB.",
+      nodes: {
+        client: { mem: 'Memory client', store: 'Store client', jwt: 'JWT client' },
+        lb: { mem: 'Memory LB', store: 'Store LB', jwt: 'JWT LB' },
+        server: { mem: 'Memory {n}', store: 'Store {n}', jwt: 'JWT {n}' },
+        store: 'Sessions',
+      },
+    },
     'sync-vs-queue': {
       name: 'Sync vs queue',
       description: 'The same traffic against a synchronous service (it saturates and returns 503s) and against a queue with workers (it answers 202).',
@@ -521,7 +532,8 @@ export const en: Dict = {
     },
     'reverse-proxy': {
       name: 'Reverse Proxy',
-      description: 'The proxy routes each path prefix to its service; anything that matches no rule goes to Web.',
+      description:
+        'The proxy routes each path prefix to its service; anything that matches no rule goes to Web. It also authenticates at the door: the client with no credentials gets a 401 and never reaches a service.',
       paths: {
         users: '/users',
         orders: '/orders',
@@ -531,6 +543,7 @@ export const en: Dict = {
       nodes: {
         web: 'Browser',
         mobile: 'Mobile app',
+        anon: 'Anonymous',
         proxy: 'Reverse Proxy',
         users: 'Users',
         orders: 'Orders',
