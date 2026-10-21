@@ -7,6 +7,7 @@ import { C, toneColor } from '../colors'
 import { ZERO_STATS, useRuntime } from '../runtime/runtimeStore'
 import { UI_CELLS, type CellsView, type UiState } from '../runtime/useSimulation'
 import { useEditor } from '../store/editor'
+import { useBehaviorStatus } from '../useBehaviorStatus'
 import { packetStyle } from './PacketLayer'
 
 export type ArchNodeData = { kind: string; config: Record<string, unknown> }
@@ -42,6 +43,19 @@ function Cells({ cells, kind }: { cells: CellsView; kind: string }) {
 
 const truncate = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
 
+/** "DSL" when the node runs a behavior, "⚠ DSL" when it has errors (and runs the default); nothing when blank. */
+function DslBadge({ nodeId, text }: { nodeId: NodeId; text: unknown }) {
+  const t = useT()
+  const status = useBehaviorStatus(nodeId, text)
+  if (status.kind === 'default') return null
+  const error = status.kind === 'errors'
+  return (
+    <span className={`node-dsl${error ? ' error' : ''}`} title={t(error ? 'behavior.badgeErrorsTitle' : 'behavior.badgeTitle')}>
+      {t(error ? 'behavior.badgeErrors' : 'behavior.badge')}
+    </span>
+  )
+}
+
 /** Live counters, the down badge and queue/DLQ cells or broker lanes. */
 export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: string; config: Record<string, unknown> }) {
   const stats = useRuntime((s) => s.stats[nodeId]) ?? ZERO_STATS
@@ -53,11 +67,13 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
     const name = typeof n?.config.name === 'string' ? n.config.name.trim() : ''
     return name || id
   }
+  const hasBehavior = defaultRegistry.get(kind)?.config.behavior?.type === 'behavior'
   const lanes = ui?.lanes ? Object.entries(ui.lanes).filter(([id]) => nodes?.some((n) => n.id === id)) : []
   return (
     <div className="node-stats">
       <div className="node-counters">
         {config.up === false && <span className="node-down">{t('node.down')}</span>}
+        {hasBehavior && <DslBadge nodeId={nodeId} text={config.behavior} />}
         {stats.inFlight > 0 && <span title={t('node.inFlight')}>⏳ {compact(stats.inFlight)}</span>}
         {stats.queued > 0 && <span title={t('node.queued')}>☰ {compact(stats.queued)}</span>}
         <span title={t('node.ok')} className="node-ok">✔ {compact(stats.ok)}</span>

@@ -1,7 +1,8 @@
 import type { Ctx } from '../../engine/registry'
 import { matchesPath } from '../../engine/rules'
 import type { Message, NodeId } from '../../engine/types'
-import type { BehaviorOutput, Handler, Mod, Program, Step } from './ast'
+import type { Handler, Mod, Program, Step } from './ast'
+import { behaviorTargets, type BehaviorTarget } from './outputs'
 import { parseBehavior } from './parse'
 import { normalizeName, validateBehavior } from './validate'
 
@@ -31,22 +32,8 @@ export const initialBehaviorState = (): BehaviorState => ({ behaviorPending: {} 
 
 type BehaviorCtx = Ctx<BehaviorConfig, BehaviorState>
 
-interface Target extends BehaviorOutput {
-  target: NodeId
-}
-
 /** Connected outputs as the DSL sees them: one per target node (a node wired twice counts once). */
-function targets(ctx: BehaviorCtx): Target[] {
-  const seen = new Set<NodeId>()
-  const list: Target[] = []
-  for (const out of ctx.outputs()) {
-    if (seen.has(out.target)) continue
-    seen.add(out.target)
-    const name = ctx.peer(out.target)?.config.name
-    list.push({ target: out.target, type: out.targetType, name: typeof name === 'string' ? name.trim() : '' })
-  }
-  return list
-}
+const targets = (ctx: BehaviorCtx): BehaviorTarget[] => behaviorTargets(ctx.outputs(), (id) => ctx.peer(id)?.config.name)
 
 /**
  * The program to run for the next message, or null to keep the default behavior: when the DSL is

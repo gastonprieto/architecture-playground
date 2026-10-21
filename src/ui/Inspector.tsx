@@ -5,6 +5,7 @@ import type { ComponentDef, Field } from '../engine/registry'
 import type { EdgeRule } from '../engine/types'
 import { useLang, useT } from '../i18n'
 import { actionLabel, colorName, componentLabel, fieldLabel, optionLabel, unknownTypeTitle } from '../i18n/componentText'
+import { BehaviorField } from './fields/BehaviorField'
 import { BooleanField } from './fields/BooleanField'
 import { ColorField } from './fields/ColorField'
 import { MixField, type MixRow } from './fields/MixField'
@@ -20,6 +21,7 @@ export interface InspectorProps {
 }
 
 interface FieldControlProps {
+  nodeId: string
   def: ComponentDef
   fieldKey: string
   field: Field
@@ -27,7 +29,7 @@ interface FieldControlProps {
   onChange(v: unknown): void
 }
 
-function FieldControl({ def, fieldKey, field, value, onChange }: FieldControlProps) {
+function FieldControl({ nodeId, def, fieldKey, field, value, onChange }: FieldControlProps) {
   const lang = useLang((s) => s.lang)
   const label = fieldLabel(lang, def, fieldKey)
   switch (field.type) {
@@ -54,7 +56,7 @@ function FieldControl({ def, fieldKey, field, value, onChange }: FieldControlPro
     case 'mix':
       return <MixField label={label} value={Array.isArray(value) ? (value as MixRow[]) : field.default} onChange={onChange} />
     case 'behavior':
-      return null
+      return <BehaviorField nodeId={nodeId} label={label} value={typeof value === 'string' ? value : field.default} />
   }
 }
 
@@ -201,7 +203,7 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
         <InfoButton type={def.type} label={componentLabel(lang, def.type, def)} />
       </div>
       {Object.entries(def.config).map(([key, field]) => (
-        <FieldControl key={key} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, { [key]: v })} />
+        <FieldControl key={key} nodeId={id} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, { [key]: v })} />
       ))}
       {def.type === 'load-balancer' && node.config.algorithm === 'weighted' && <WeightsSection lbId={id} />}
       {def.actions && (

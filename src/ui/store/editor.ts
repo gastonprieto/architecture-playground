@@ -20,7 +20,11 @@ export interface EditorState {
   connect(source: NodeId, target: NodeId): EdgeId | null
   moveNode(id: NodeId, position: { x: number; y: number }, commit: boolean): void
   removeElements(ids: string[]): void
-  updateNodeConfig(id: NodeId, patch: Record<string, unknown>): void
+  /**
+   * Quick edits of the same field coalesce into one undo step (typing). `coalesce: false` makes this
+   * edit its own step and keeps the next one from merging into it (e.g. the behavior editor's Save).
+   */
+  updateNodeConfig(id: NodeId, patch: Record<string, unknown>, opts?: { coalesce?: boolean }): void
   setEdgeRule(id: EdgeId, rule: EdgeRule | undefined): void
   /** Weight for a weighted load balancer; undefined removes it. Quick edits coalesce like config edits. */
   setEdgeWeight(id: EdgeId, weight: number | undefined): void
@@ -105,13 +109,13 @@ export const useEditor = create<EditorState>((set, get) => {
       commit(next, graph, selection && drop.has(selection.id) ? { selection: null } : {})
     },
 
-    updateNodeConfig(id, patch) {
+    updateNodeConfig(id, patch, opts) {
       const { graph } = get()
       if (!graph.nodes.some((n) => n.id === id)) return
       const next = { ...graph, nodes: graph.nodes.map((n) => (n.id === id ? { ...n, config: { ...n.config, ...patch } } : n)) }
       const keys = Object.keys(patch)
       const now = Date.now()
-      const key = keys.length === 1 ? keys[0] : null
+      const key = keys.length === 1 && opts?.coalesce !== false ? keys[0] : null
       if (key !== null && lastEdit && lastEdit.graph === graph && lastEdit.id === id && lastEdit.key === key && now - lastEdit.at < COALESCE_MS) {
         set({ graph: next, future: [], dragBase: null })
       } else {

@@ -5,6 +5,7 @@ import { useLang, useT } from '../i18n'
 import { clearLocationHash, initialGraph } from '../persistence/initial'
 import { saveLocal } from '../persistence/storage'
 import { Canvas } from './canvas/Canvas'
+import { BehaviorEditorDialog } from './BehaviorEditor'
 import { backfillClients } from './clientColor'
 import { InfoDialog } from './InfoDialog'
 import { Inspector } from './Inspector'
@@ -14,6 +15,7 @@ import { SimContext, useSimulation } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 import './theme.css'
 import { Toolbar } from './Toolbar'
+import { useBehaviorEditor } from './store/behaviorEditor'
 import { useInfoPanel } from './store/infoPanel'
 import { useIsMobile } from './useIsMobile'
 
@@ -56,11 +58,12 @@ export default function App() {
   const api = useSimulation()
   const t = useT()
   const infoOpen = useInfoPanel((s) => s.type !== null)
+  const behaviorOpen = useBehaviorEditor((s) => s.nodeId !== null)
   return (
     <ReactFlowProvider>
       <SimContext.Provider value={api}>
-        {/* Inert behind the info dialog: no clicks, focus or keys reach the editor while it is open. */}
-        <div className={`app${mobile ? ' mobile' : ''}`} inert={infoOpen}>
+        {/* Inert behind a dialog: no clicks, focus or keys reach the editor while it is open. */}
+        <div className={`app${mobile ? ' mobile' : ''}`} inert={infoOpen || behaviorOpen}>
           <header className="toolbar">
             <Toolbar api={api} mobile={mobile} />
           </header>
@@ -78,6 +81,7 @@ export default function App() {
           </footer>
         </div>
         <InfoDialog />
+        <BehaviorEditorDialog />
       </SimContext.Provider>
     </ReactFlowProvider>
   )
