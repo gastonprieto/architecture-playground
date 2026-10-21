@@ -31,9 +31,3 @@ export function stepSpeed(speed: number, dir: 1 | -1): number {
   const cur = i === -1 ? SPEEDS.length - 1 : i
   return SPEEDS[Math.min(SPEEDS.length - 1, Math.max(0, cur + dir))]
 }
-
-/** Click on the speed button: the next speed, wrapping around. */
-export function cycleSpeed(speed: number): number {
-  const i = SPEEDS.findIndex((s) => s === speed)
-  return SPEEDS[(i + 1) % SPEEDS.length]
-}

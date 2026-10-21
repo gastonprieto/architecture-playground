@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Message } from '../../src/engine/types'
 import { UI_CELLS, uiCopy } from '../../src/ui/runtime/useSimulation'
 import { formatMetrics } from '../../src/ui/MetricsBar'
-import { SPEEDS, cycleSpeed, stepSpeed } from '../../src/ui/runtime/runtimeStore'
+import { SPEEDS, stepSpeed } from '../../src/ui/runtime/runtimeStore'
 
 describe('speeds', () => {
   it('SPEEDS', () => expect(SPEEDS).toEqual([0.25, 0.5, 1, 2, 4]))
@@ -12,11 +12,6 @@ describe('speeds', () => {
     expect(stepSpeed(1, -1)).toBe(0.5)
     expect(stepSpeed(4, 1)).toBe(4)
     expect(stepSpeed(0.25, -1)).toBe(0.25)
-  })
-
-  it('cycleSpeed wraps around', () => {
-    expect(cycleSpeed(2)).toBe(4)
-    expect(cycleSpeed(4)).toBe(0.25)
   })
 })
 

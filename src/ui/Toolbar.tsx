@@ -6,7 +6,7 @@ import { encodeHash } from '../persistence/hash'
 import { LANGS, useLang, useT } from '../i18n'
 import { parseGraph, serializeGraph } from '../persistence/serialize'
 import { getPresets } from '../presets'
-import { cycleSpeed, stepSpeed, useRuntime } from './runtime/runtimeStore'
+import { SPEEDS, stepSpeed, useRuntime } from './runtime/runtimeStore'
 import type { SimApi } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 
@@ -186,9 +186,19 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
         )}
         <Btn onClick={reset}>{t('toolbar.reset')}</Btn>
         {!mobile && (
-          <Btn className="speed" onClick={() => setSpeed(cycleSpeed(speed))} title={t('toolbar.speedTitle')}>
-            {formatSpeed(speed)}
-          </Btn>
+          <select
+            className="toolbar-select speed"
+            value={String(speed)}
+            onChange={(e) => setSpeed(Number(e.target.value))}
+            aria-label={t('toolbar.speedTitle')}
+            title={t('toolbar.speedTitle')}
+          >
+            {SPEEDS.map((s) => (
+              <option key={s} value={String(s)}>
+                {formatSpeed(s)}
+              </option>
+            ))}
+          </select>
         )}
       </div>
       <select className="toolbar-select" value="" onChange={onPreset} aria-label={t('toolbar.presets')}>

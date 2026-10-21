@@ -96,6 +96,15 @@ describe('App', () => {
     localStorage.clear()
   })
 
+  it('speed is a dropdown with every speed, and choosing one sets it', () => {
+    render(<App />)
+    const select = screen.getByRole('combobox', { name: 'Velocidad (teclas - y +)' }) as HTMLSelectElement
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual(['0.25x', '0.5x', '1x', '2x', '4x'])
+    expect(select.value).toBe(String(useRuntime.getState().speed))
+    fireEvent.change(select, { target: { value: '2' } })
+    expect(useRuntime.getState().speed).toBe(2)
+  })
+
   it('flushes a pending save on pagehide', () => {
     localStorage.clear()
     render(<App />)

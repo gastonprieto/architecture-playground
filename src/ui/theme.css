@@ -274,7 +274,7 @@ body {
 .toolbar button:disabled { opacity: 0.45; cursor: not-allowed; }
 .toolbar button.primary { min-width: 84px; color: var(--cyan); border-color: var(--cyan); font-weight: 700; }
 .toolbar button.danger:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
-.toolbar button.speed { min-width: 48px; font-family: var(--mono); }
+.toolbar .speed { min-width: 64px; font-family: var(--mono); }
 /* Secondary buttons collapse to icons before the toolbar would wrap. */
 .toolbar .tb-icon { display: none; }
 @media (max-width: 1360px) {
