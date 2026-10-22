@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useLayoutEffect, useRef, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
 
 const FOCUSABLE = 'button, [href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])'
@@ -90,11 +91,30 @@ export function Modal({ labelledBy, className, style, onClose, onBackdrop, opene
     downOnBackdrop.current = false
   }
 
+  const reduced = useReducedMotion()
   return (
-    <div className="info-backdrop" onMouseDown={onBackdropDown} onClick={onBackdropClick}>
-      <div className={className} role="dialog" aria-modal="true" aria-labelledby={labelledBy} tabIndex={-1} ref={panelRef} style={style}>
+    <motion.div
+      className="info-backdrop"
+      onMouseDown={onBackdropDown}
+      onClick={onBackdropClick}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.12 }}
+    >
+      <motion.div
+        className={className}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelledBy}
+        tabIndex={-1}
+        ref={panelRef}
+        style={style}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 4 }}
+        animate={reduced ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: reduced ? 0 : 0.16, ease: 'easeOut' }}
+      >
         {children}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

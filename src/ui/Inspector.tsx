@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { DEFAULT_WEIGHT } from '../engine/weights'
 import type { DbKind } from '../components/database'
 import { defaultRegistry } from '../components/index'
@@ -250,10 +251,26 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
 export function Inspector({ runAction }: InspectorProps) {
   const selection = useEditor((s) => s.selection)
   const t = useT()
-  if (!selection) return <p className="inspector-help">{t('inspector.help')}</p>
-  return selection.kind === 'edge' ? (
-    <EdgeInspector key={`edge:${selection.id}`} id={selection.id} />
-  ) : (
-    <NodeInspector key={`node:${selection.id}`} id={selection.id} runAction={runAction} />
+  const reduce = useReducedMotion()
+  // One key per inspector "screen" (empty / an edge / a node): changing it animates the swap;
+  // editing fields within the same selection keeps the key, so no re-animation on every keystroke.
+  const key = !selection ? 'empty' : `${selection.kind}:${selection.id}`
+  return (
+    <AnimatePresence initial={false}>
+      <motion.div
+        key={key}
+        initial={reduce ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.16, ease: 'easeOut' }}
+      >
+        {!selection ? (
+          <p className="inspector-help">{t('inspector.help')}</p>
+        ) : selection.kind === 'edge' ? (
+          <EdgeInspector id={selection.id} />
+        ) : (
+          <NodeInspector id={selection.id} runAction={runAction} />
+        )}
+      </motion.div>
+    </AnimatePresence>
   )
 }

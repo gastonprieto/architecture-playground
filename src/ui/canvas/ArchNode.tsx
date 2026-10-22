@@ -1,4 +1,5 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { dbKind, type DbKind } from '../../components/database'
 import { defaultRegistry } from '../../components/index'
 import type { Message, NodeId } from '../../engine/types'
@@ -128,10 +129,14 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
   const configName = typeof data.config.name === 'string' ? data.config.name.trim() : ''
   const name = configName || (def ? typeLabel : data.kind)
   const hasIncoming = useEditor((s) => def?.inputs === false && s.graph.edges.some((e) => e.target === id))
+  const reduced = useReducedMotion()
   return (
-    <div
+    <motion.div
       className={`arch-node${selected ? ' selected' : ''}${def ? '' : ' unknown'}`}
       style={{ ['--node-color' as string]: color }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+      animate={reduced ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+      transition={{ duration: reduced ? 0 : 0.18, ease: 'easeOut' }}
     >
       {def?.inputs !== false ? (
         <Handle type="target" position={Position.Left} className="arch-handle" />
@@ -151,6 +156,6 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
       </div>
       <NodeStatsSlot nodeId={id} kind={data.kind} config={data.config} />
       <Handle type="source" position={Position.Right} className="arch-handle" />
-    </div>
+    </motion.div>
   )
 }

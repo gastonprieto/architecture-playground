@@ -1,5 +1,6 @@
 import { prepareGraph } from './graphEntry'
 import { useReactFlow } from '@xyflow/react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type ChangeEvent } from 'react'
 import type { Graph } from '../engine/types'
 import { encodeHash } from '../persistence/hash'
@@ -86,6 +87,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const lang = useLang((s) => s.lang)
   const t = useT()
   const presets = useMemo(() => getPresets(lang), [lang])
+  const reduced = useReducedMotion()
 
   /** Replace the graph (undoable), restart the simulation and frame the new graph. */
   const load = useCallback(
@@ -241,11 +243,21 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
         )}
         <LangToggle />
       </div>
-      {toast && (
-        <div key={toast.key} className="toast" role="status">
-          {toast.text}
-        </div>
-      )}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.key}
+            className="toast"
+            role="status"
+            initial={{ opacity: 0, x: '-50%', y: reduced ? 0 : -4 }}
+            animate={{ opacity: 1, x: '-50%', y: 0 }}
+            exit={{ opacity: 0, x: '-50%', y: reduced ? 0 : -4 }}
+            transition={{ duration: reduced ? 0 : 0.15, ease: 'easeOut' }}
+          >
+            {toast.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }

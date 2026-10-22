@@ -1,4 +1,5 @@
 import { ViewportPortal, useStoreApi } from '@xyflow/react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { NodeId } from '../../engine/types'
 import { codeText, useLang } from '../../i18n'
@@ -98,16 +99,26 @@ export function FloatingLabels() {
     setOwned((prev) => ({ ...prev, labels: prev.labels.filter((l) => l.key !== key) }))
   }, [])
 
+  const reduced = useReducedMotion()
   if (labels.length === 0) return null
   return (
     <ViewportPortal>
-      {labels.map((l) => (
-        <div key={l.key} className="float-label" style={{ transform: `translate(${l.x}px, ${l.y}px)` }}>
-          <span style={{ color: l.color }} onAnimationEnd={() => remove(l.key)}>
-            {l.count > 1 ? `${l.text} ×${l.count}` : l.text}
-          </span>
-        </div>
-      ))}
+      <AnimatePresence>
+        {labels.map((l) => (
+          <div key={l.key} className="float-label" style={{ transform: `translate(${l.x}px, ${l.y}px)` }}>
+            <motion.span
+              style={{ color: l.color }}
+              initial={{ opacity: 0, x: '-50%', y: '-100%' }}
+              animate={{ opacity: 1, x: '-50%', y: reduced ? '-100%' : 'calc(-100% - 24px)' }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduced ? 0 : 1, ease: 'easeOut' }}
+              onAnimationComplete={() => remove(l.key)}
+            >
+              {l.count > 1 ? `${l.text} ×${l.count}` : l.text}
+            </motion.span>
+          </div>
+        ))}
+      </AnimatePresence>
     </ViewportPortal>
   )
 }
