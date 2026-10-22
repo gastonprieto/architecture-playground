@@ -14,7 +14,7 @@ import { cacheCounters } from '../cacheCounters'
 import { useBehaviorStatus } from '../useBehaviorStatus'
 import { packetStyle } from './PacketLayer'
 
-export type ArchNodeData = { kind: string; config: Record<string, unknown> }
+export type ArchNodeData = { kind: string; config: Record<string, unknown>; enterDelay?: number }
 export type ArchFlowNode = Node<ArchNodeData, 'arch'>
 
 const LANE_LABEL_MAX = 8
@@ -130,13 +130,14 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
   const name = configName || (def ? typeLabel : data.kind)
   const hasIncoming = useEditor((s) => def?.inputs === false && s.graph.edges.some((e) => e.target === id))
   const reduced = useReducedMotion()
+  const enterDelay = reduced ? 0 : (data.enterDelay ?? 0)
   return (
     <motion.div
       className={`arch-node${selected ? ' selected' : ''}${def ? '' : ' unknown'}`}
       style={{ ['--node-color' as string]: color }}
       initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
       animate={reduced ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-      transition={{ duration: reduced ? 0 : 0.18, ease: 'easeOut' }}
+      transition={{ duration: reduced ? 0 : 0.18, ease: 'easeOut', delay: enterDelay }}
     >
       {def?.inputs !== false ? (
         <Handle type="target" position={Position.Left} className="arch-handle" />

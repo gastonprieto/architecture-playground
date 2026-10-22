@@ -10,6 +10,12 @@ export interface EditorState {
   selection: Selection
   past: Graph[]
   future: Graph[]
+  /**
+   * Bumped each time a whole graph is loaded/replaced (boot, preset, import). The canvas uses it to
+   * stagger the mount animation of a freshly loaded graph's nodes, without staggering nodes added
+   * later by hand.
+   */
+  loadEpoch: number
   /** Graph at the start of an in-progress drag (moveNode with commit=false). */
   dragBase: { id: NodeId; graph: Graph } | null
   /**
@@ -62,8 +68,8 @@ export const useEditor = create<EditorState>((set, get) => {
     selection: null,
     past: [],
     future: [],
+    loadEpoch: 0,
     dragBase: null,
-
     addNode(type, position, name, overrides) {
       const id = `${type}-${randomSuffix()}`
       const def = defaultRegistry.get(type)
@@ -162,11 +168,11 @@ export const useEditor = create<EditorState>((set, get) => {
     },
 
     loadGraph(graph) {
-      set({ graph, selection: null, past: [], future: [], dragBase: null })
+      set((st) => ({ graph, selection: null, past: [], future: [], dragBase: null, loadEpoch: st.loadEpoch + 1 }))
     },
 
     replaceGraph(graph) {
-      commit(graph, get().graph, { selection: null })
+      commit(graph, get().graph, { selection: null, loadEpoch: get().loadEpoch + 1 })
     },
 
     undo() {
