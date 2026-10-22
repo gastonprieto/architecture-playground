@@ -419,9 +419,7 @@ body {
   font: 13px/1.3 var(--sans);
   word-break: break-all;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  animation: toast-in 0.15s ease-out;
 }
-@keyframes toast-in { from { opacity: 0; transform: translate(-50%, -4px); } }
 
 /* ---------- metrics bar ---------- */
 
@@ -498,12 +496,6 @@ body {
   font: 700 13px/1 var(--mono);
   white-space: nowrap;
   text-shadow: 0 0 4px var(--bg), 0 0 2px var(--bg);
-  animation: float-up 1s ease-out forwards;
-}
-@keyframes float-up {
-  from { opacity: 1; transform: translate(-50%, -100%); }
-  70% { opacity: 0.85; }
-  to { opacity: 0; transform: translate(-50%, calc(-100% - 24px)); }
 }
 
 /* ---------- component info (ⓘ button + modal) ---------- */
