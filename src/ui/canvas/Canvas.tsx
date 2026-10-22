@@ -82,17 +82,25 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
   // (the graph itself is never copied; nodes/edges are derived from the store).
   const [sizes, setSizes] = useState<Record<string, Size>>({})
 
+  // Stagger the mount animation of a freshly loaded graph (boot/preset/import) only: when loadEpoch
+  // changes, give each node an increasing enter delay by index; any later render (drag, addNode)
+  // carries no delay, so a hand-dropped node appears immediately.
+  const loadEpoch = useEditor((s) => s.loadEpoch)
+  const staggeredEpoch = useRef<number | null>(null)
+  const stagger = staggeredEpoch.current !== loadEpoch
+  staggeredEpoch.current = loadEpoch
+
   const nodes = useMemo<ArchFlowNode[]>(
     () =>
-      graph.nodes.map((n) => ({
+      graph.nodes.map((n, i) => ({
         id: n.id,
         type: 'arch',
         position: n.position,
-        data: { kind: n.type, config: n.config },
+        data: { kind: n.type, config: n.config, enterDelay: stagger ? Math.min(i, 12) * 0.045 : 0 },
         selected: isSelected(selection, 'node', n.id),
         measured: sizes[n.id],
       })),
-    [graph.nodes, selection, sizes],
+    [graph.nodes, selection, sizes, stagger],
   )
 
   // Only the weighted LBs' shares (and down targets) feed the edge labels, so edges re-derive when

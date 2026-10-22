@@ -219,3 +219,23 @@ describe('updateNodeConfig coalescing', () => {
     expect(useEditor.getState().past).toHaveLength(2)
   })
 })
+
+describe('loadEpoch (node mount stagger signal)', () => {
+  const graph = { nodes: [{ id: 'n', type: 'service', position: { x: 0, y: 0 }, config: {} }], edges: [] }
+  it('bumps on loadGraph and replaceGraph, not on per-node edits', () => {
+    s().loadGraph(structuredClone(graph))
+    const afterLoad = s().loadEpoch
+    // A fresh graph load is a new epoch.
+    s().loadGraph(structuredClone(graph))
+    expect(s().loadEpoch).toBe(afterLoad + 1)
+    // Replacing the whole graph (presets/import) is also a new epoch.
+    s().replaceGraph(structuredClone(graph))
+    expect(s().loadEpoch).toBe(afterLoad + 2)
+    // Hand edits do NOT bump it, so later-added nodes are not staggered.
+    const e = s().loadEpoch
+    s().addNode('service', { x: 1, y: 1 })
+    s().moveNode('n', { x: 5, y: 5 }, true)
+    s().updateNodeConfig('n', { capacity: 3 })
+    expect(s().loadEpoch).toBe(e)
+  })
+})
