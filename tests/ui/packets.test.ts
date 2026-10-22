@@ -115,18 +115,18 @@ describe('packetStyle', () => {
       expect(packetStyle(msg('a', kind, { meta: { clientColor: pink, eventType: 'x' } }))).toEqual({ fill: pink })
   })
 
-  it('responses ignore the client color: painted small by family, ok dimmed and errors opaque', () => {
+  it('responses ignore the client color: painted small by family, all translucent with errors a bit more visible', () => {
     expect(packetStyle(msg('a', 'response', { status: 'ok', code: 200, meta: { clientColor: pink } }))).toEqual({
       fill: C.ok,
       opacity: 0.35,
     })
     expect(packetStyle(msg('a', 'response', { status: 'error', code: 404, meta: { clientColor: pink } }))).toEqual({
       fill: C.slow,
-      opacity: 1,
+      opacity: 0.6,
     })
     expect(packetStyle(msg('a', 'response', { status: 'error', code: 503, meta: { clientColor: pink } }))).toEqual({
       fill: C.err,
-      opacity: 1,
+      opacity: 0.6,
     })
   })
 

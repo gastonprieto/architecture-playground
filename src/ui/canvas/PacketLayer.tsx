@@ -96,13 +96,13 @@ export interface PacketStyle {
 
 /**
  * How a packet is painted. Requests, messages and events wear their client's color (option 8b).
- * Responses ignore the client color and are painted small by HTTP status family: ok responses are
- * dimmed (translucent green), errors stay opaque in their family color (4xx amber, 5xx red), so a
- * burst of errors stands out from the ok traffic without growing in size.
+ * Responses ignore the client color and are painted small by HTTP status family. All responses are
+ * translucent (they ride below the requests): ok traffic is faint, errors are a bit more visible in
+ * their family color (4xx amber, 5xx red) so a burst of errors still stands out under load.
  */
 export function packetStyle(msg: Pick<Message, 'kind' | 'status' | 'meta' | 'code'>): PacketStyle {
   if (msg.kind === 'response') {
-    return { fill: familyColor(msg.code, msg.status), opacity: msg.status === 'error' ? 1 : 0.35 }
+    return { fill: familyColor(msg.code, msg.status), opacity: msg.status === 'error' ? 0.6 : 0.35 }
   }
   const own = msg.meta.clientColor
   if (typeof own !== 'string' || own === '') return { fill: colorFor(msg) }
@@ -199,7 +199,9 @@ export function PacketLayer() {
         let el = els.get(p.key)
         if (!el) {
           el = createPacketEl(p.msg)
-          root.appendChild(el)
+          // Responses ride below the requests: prepend them (painted first), append the rest.
+          if (p.msg.kind === 'response') root.prepend(el)
+          else root.appendChild(el)
           els.set(p.key, el)
         }
         el.setAttribute('transform', `translate(${pt.x.toFixed(1)} ${pt.y.toFixed(1)})`)
