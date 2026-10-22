@@ -6,6 +6,7 @@ export const C = {
   ok: '#4ade80',
   slow: '#facc15',
   err: '#f87171',
+  info: '#60a5fa',
   hc: '#c084fc',
   redis: '#fb7185',
   db: '#2dd4bf',

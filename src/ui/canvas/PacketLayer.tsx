@@ -64,7 +64,16 @@ function hash(s: string): number {
   return Math.abs(h)
 }
 
-export function colorFor(msg: Pick<Message, 'kind' | 'status' | 'meta'>): string {
+/** Color of a response by its HTTP status family: 2xx ok, 3xx info, 4xx warn, 5xx error. */
+export function familyColor(code: number | undefined, status: Message['status']): string {
+  if (code === undefined) return status === 'error' ? C.err : C.ok
+  if (code >= 500) return C.err
+  if (code >= 400) return C.slow
+  if (code >= 300) return C.info
+  return C.ok
+}
+
+export function colorFor(msg: Pick<Message, 'kind' | 'status' | 'meta' | 'code'>): string {
   switch (msg.kind) {
     case 'request':
       return C.req
@@ -73,7 +82,7 @@ export function colorFor(msg: Pick<Message, 'kind' | 'status' | 'meta'>): string
     case 'event':
       return CLIENT_COLORS[hash(msg.meta.eventType ?? '') % CLIENT_COLORS.length]
     case 'response':
-      return msg.status === 'ok' ? C.ok : C.err
+      return familyColor(msg.code, msg.status)
   }
 }
 
@@ -81,16 +90,23 @@ export interface PacketStyle {
   fill: string
   /** Outline: ok/error status on a response wearing its client's color. */
   stroke?: string
+  /** Fill opacity (0..1). Responses dim their ok traffic so errors stand out under load. */
+  opacity?: number
 }
 
 /**
- * How a packet is painted: in its client's color when the message carries one (requests,
- * messages, events and responses alike; responses add an ok/error outline), otherwise by kind.
+ * How a packet is painted. Requests, messages and events wear their client's color (option 8b).
+ * Responses ignore the client color and are painted small by HTTP status family: ok responses are
+ * dimmed (translucent green), errors stay opaque in their family color (4xx amber, 5xx red), so a
+ * burst of errors stands out from the ok traffic without growing in size.
  */
-export function packetStyle(msg: Pick<Message, 'kind' | 'status' | 'meta'>): PacketStyle {
+export function packetStyle(msg: Pick<Message, 'kind' | 'status' | 'meta' | 'code'>): PacketStyle {
+  if (msg.kind === 'response') {
+    return { fill: familyColor(msg.code, msg.status), opacity: msg.status === 'error' ? 1 : 0.35 }
+  }
   const own = msg.meta.clientColor
   if (typeof own !== 'string' || own === '') return { fill: colorFor(msg) }
-  return msg.kind === 'response' ? { fill: own, stroke: msg.status === 'ok' ? C.ok : C.err } : { fill: own }
+  return { fill: own }
 }
 
 /** Cubic ease-in-out on 0..1 (clamped). */
@@ -101,13 +117,13 @@ export function easeInOut(t: number): number {
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 const REQUEST_R = 6
-const RESPONSE_R = 5
+const RESPONSE_R = 3.5
 const SQUARE = 10
 const DIAMOND = 7
 
 function createPacketEl(msg: Message): SVGGElement {
   const g = document.createElementNS(SVG_NS, 'g')
-  const { fill, stroke } = packetStyle(msg)
+  const { fill, stroke, opacity } = packetStyle(msg)
   let shape: SVGElement
   switch (shapeFor(msg.kind)) {
     case 'square':
@@ -127,6 +143,7 @@ function createPacketEl(msg: Message): SVGGElement {
       shape.setAttribute('r', String(msg.kind === 'response' ? RESPONSE_R : REQUEST_R))
   }
   shape.setAttribute('fill', fill)
+  if (opacity !== undefined) shape.setAttribute('fill-opacity', String(opacity))
   if (stroke) {
     shape.setAttribute('stroke', stroke)
     shape.setAttribute('stroke-width', '2')
