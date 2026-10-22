@@ -652,12 +652,12 @@ body {
 .info-panel.dsl-dialog {
   display: flex;
   flex-direction: column;
-  width: min(1060px, 100%);
+  width: min(1200px, 100%);
   height: min(720px, calc(100vh - 32px));
   max-height: none;
   overflow: hidden;
 }
-.dsl-main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 18px; min-height: 0; }
+.dsl-main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 440px); gap: 18px; min-height: 0; }
 .dsl-left { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
 .dsl-code {
   flex: 1;
