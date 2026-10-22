@@ -82,6 +82,7 @@ export const en: Dict = {
     sessions: 'Stored sessions',
     cacheKeys: 'Stored keys',
     hitRate: 'Real hit %: HITs / (HITs + MISSes)',
+    pull: 'Consumes on demand (pull): asks the queue/broker for work when it has a free slot',
   },
   metrics: {
     label: 'Metrics',

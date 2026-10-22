@@ -79,6 +79,11 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
     <div className="node-stats">
       <div className="node-counters">
         {config.up === false && <span className="node-down">{t('node.down')}</span>}
+        {(kind === 'worker' || kind === 'subscriber') && (
+          <span className="node-pull" title={t('node.pull')}>
+            PULL
+          </span>
+        )}
         {hasBehavior && <DslBadge nodeId={nodeId} text={config.behavior} />}
         {cookies && (
           <span className="node-cookies" title={t(kind === 'client' ? 'node.loggedIn' : 'node.sessions')}>

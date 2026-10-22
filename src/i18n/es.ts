@@ -83,6 +83,7 @@ export const es = {
     sessions: 'Sesiones guardadas',
     cacheKeys: 'Claves guardadas',
     hitRate: 'Hit % real: HITs / (HITs + MISSes)',
+    pull: 'Consume por demanda (pull): pide trabajo a la cola/broker cuando tiene un slot libre',
   },
   metrics: {
     label: 'Métricas',

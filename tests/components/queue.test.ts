@@ -87,7 +87,8 @@ describe('queue', () => {
     s.advance(2 * HOP_MS)
     expect(res.map((r) => [r.status, r.code])).toEqual([['ok', 202]])
     expect(s.metrics().p50).toBe(2 * HOP_MS)
-    expect(labels).toContain('202:ok')
+    // Pull model: the queue still acks the enqueue with 202, but shows no 202 badge on the node.
+    expect(labels).not.toContain('202:ok')
   })
 
   it('enqueues a derived message (parentId, attempt 0) and pushes it to a worker', () => {

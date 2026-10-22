@@ -461,6 +461,14 @@ body {
   font-weight: 700;
 }
 .arch-node:has(.node-down) { border-style: dashed; }
+.node-pull {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-weight: 700;
+}
 .node-cells { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; min-height: 8px; }
 .node-cell {
   width: 8px;

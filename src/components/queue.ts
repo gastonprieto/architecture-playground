@@ -67,8 +67,9 @@ export const queue = defineComponent<QueueConfig, QueueState>({
       return
     }
     if (msg.kind === 'request') {
+      // Pull model: the queue acknowledges the enqueue (so the producer's round trip and metrics
+      // still close) but shows no 202 badge; a worker only gets the message when it pulls.
       ctx.reply(msg, { status: 'ok', code: 202 })
-      ctx.label('202', 'ok')
       enqueue(ctx, { ...ctx.newMessage('message', msg.meta, msg), attempt: 0 })
     } else {
       enqueue(ctx, msg)
