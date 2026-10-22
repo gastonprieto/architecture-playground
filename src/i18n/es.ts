@@ -56,6 +56,12 @@ export const es = {
     weightsHint: 'Los números son relativos: lo que cuenta es el % de tráfico que recibe cada conexión.',
     weightsEmpty: 'Conectá el Load Balancer a sus destinos para repartir pesos.',
     weight: 'Peso',
+    lbAdvanced: 'Vista avanzada',
+    lbLive: 'en vivo',
+    lbRouted: '{n} req repartidas',
+    lbNext: 'próxima',
+    lbEmpty: 'Corré la simulación para ver el reparto en vivo.',
+    lbNoTargets: 'Conectá el Load Balancer a sus destinos.',
     unknownType: 'Tipo desconocido: {type}',
   },
   widgets: {

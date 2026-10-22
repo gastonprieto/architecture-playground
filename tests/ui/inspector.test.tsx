@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useLang } from '../../src/i18n'
 import { Inspector } from '../../src/ui/Inspector'
 import { useEditor } from '../../src/ui/store/editor'
+import { useRuntime } from '../../src/ui/runtime/runtimeStore'
+import type { LbView } from '../../src/ui/runtime/useSimulation'
 
 const graph = {
   nodes: [
@@ -199,5 +201,68 @@ describe('Inspector: conditional fields', () => {
     render(<Inspector />)
     select({ kind: 'node', id: 'p1' })
     expect((screen.getByLabelText('Valor 1') as HTMLInputElement).value).toBe('/static')
+  })
+})
+
+describe('Inspector: LB advanced view', () => {
+  const lbGraph = (algorithm: string) =>
+    act(() =>
+      useEditor.getState().loadGraph({
+        nodes: [
+          { id: 'lb1', type: 'load-balancer', position: { x: 0, y: 0 }, config: { name: 'LB', algorithm } },
+          { id: 'w1', type: 'service', position: { x: 0, y: 0 }, config: { name: 'web-1' } },
+          { id: 'w2', type: 'service', position: { x: 0, y: 0 }, config: { name: 'web-2' } },
+        ],
+        edges: [
+          { id: 'e-w1', source: 'lb1', target: 'w1' },
+          { id: 'e-w2', source: 'lb1', target: 'w2' },
+        ],
+      }),
+    )
+  const seedLb = (lb: LbView) => act(() => useRuntime.setState({ states: { lb1: { lb } } }))
+  afterEach(() => act(() => useRuntime.setState({ states: {}, stats: {} })))
+
+  it('shows the empty hint before any traffic', () => {
+    lbGraph('round-robin')
+    render(<Inspector />)
+    select({ kind: 'node', id: 'lb1' })
+    expect(screen.getByText('Corré la simulación para ver el reparto en vivo.')).toBeTruthy()
+  })
+
+  it('draws the live split by server, segmented by client, with the routed total', () => {
+    lbGraph('least-connections')
+    seedLb({
+      next: 0,
+      inflight: { w1: 2, w2: 5 },
+      current: {},
+      stickyCount: 0,
+      routed: {
+        w1: { total: 30, byClient: { '10.0.0.11': { n: 20, name: 'Cliente A', color: '#38bdf8' }, '10.0.0.12': { n: 10, name: 'Cliente B', color: '#a78bfa' } } },
+        w2: { total: 10, byClient: { '10.0.0.13': { n: 10, name: 'Cliente C', color: '#f472b6' } } },
+      },
+    })
+    render(<Inspector />)
+    select({ kind: 'node', id: 'lb1' })
+    expect(screen.getByText('least-connections · 40 req repartidas')).toBeTruthy()
+    // least-connections shows an inflight chip per server; w2 is saturated.
+    expect(screen.getByText('inflight 5')).toBeTruthy()
+    expect(screen.getByText('inflight 2')).toBeTruthy()
+    // the footer summarizes inflight and names the worst server
+    expect(screen.getByText(/inflight 2 \/ 5 · web-2/)).toBeTruthy()
+  })
+
+  it('round-robin marks the server the cursor points to', () => {
+    lbGraph('round-robin')
+    seedLb({
+      next: 1, // → w2
+      inflight: {},
+      current: {},
+      stickyCount: 0,
+      routed: { w1: { total: 5, byClient: {} }, w2: { total: 4, byClient: {} } },
+    })
+    render(<Inspector />)
+    select({ kind: 'node', id: 'lb1' })
+    expect(screen.getByText(/próxima/)).toBeTruthy()
+    expect(screen.getByText(/next → web-2/)).toBeTruthy()
   })
 })

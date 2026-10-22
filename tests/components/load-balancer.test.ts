@@ -138,32 +138,8 @@ describe('load balancer', () => {
     expect(route({ ip: '' })).toHaveLength(1)
   })
 
-  it('ip-hash labels each forwarded request "<ip> → <target name>"', () => {
-    const g = lbGraph({ algorithm: 'ip-hash' }, [{ name: 'Srv A' }, { name: 'Srv B' }, { name: 'Srv C' }], { ip: '10.0.0.1' })
-    const s = sim(g)
-    const labels: { text: string; tone: string }[] = []
-    s.on('node:label', (p) => {
-      if (p.nodeId === 'LB') labels.push({ text: p.text, tone: p.tone })
-    })
-    s.runAction('C', 'send1')
-    s.advance(5000)
-    expect(labels).toEqual([{ text: '10.0.0.1 → Srv C', tone: 'hc' }])
-  })
-
-  it('ip-hash label uses the client name when the client has no IP', () => {
-    const g = lbGraph({ algorithm: 'ip-hash' }, [{ name: 'Srv A' }], { ip: '', name: 'Navegador' })
-    const s = sim(g)
-    const labels: string[] = []
-    s.on('node:label', (p) => {
-      if (p.nodeId === 'LB') labels.push(p.text)
-    })
-    s.runAction('C', 'send1')
-    s.advance(5000)
-    expect(labels).toEqual(['Navegador → Srv A'])
-  })
-
-  it('other algorithms emit no mapping label', () => {
-    for (const algorithm of ['round-robin', 'least-connections', 'random', 'weighted']) {
+  it('no algorithm emits a mapping label over the node', () => {
+    for (const algorithm of ['round-robin', 'least-connections', 'random', 'weighted', 'ip-hash']) {
       const s = sim(lbGraph({ algorithm }, [{}, {}], { ip: '10.0.0.1', burstSize: 4 }))
       const labels: string[] = []
       s.on('node:label', (p) => {

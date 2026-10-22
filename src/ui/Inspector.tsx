@@ -17,6 +17,7 @@ import { SelectField } from './fields/SelectField'
 import { TextField } from './fields/TextField'
 import { InfoButton } from './InfoDialog'
 import { isWeightedLb, lbShares } from './lbWeights'
+import { LbAdvancedSection } from './LbAdvancedSection'
 import { useEditor } from './store/editor'
 import { databaseKindPatch } from './sessions'
 import { useBehaviorStatus } from './useBehaviorStatus'
@@ -234,6 +235,9 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
         )
       })}
       {def.type === 'load-balancer' && node.config.algorithm === 'weighted' && <WeightsSection lbId={id} />}
+      {def.type === 'load-balancer' && (
+        <LbAdvancedSection lbId={id} algorithm={typeof node.config.algorithm === 'string' ? node.config.algorithm : 'round-robin'} />
+      )}
       {def.actions && (
         <div className="inspector-actions">
           {Object.keys(def.actions).map((name) => (

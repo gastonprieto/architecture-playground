@@ -614,6 +614,35 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- Load Balancer advanced view ---------- */
+.lb-adv { padding-top: 12px; margin-top: 14px; border-top: 1px solid var(--line); }
+.lb-adv-title {
+  margin: 0 0 6px; font: 600 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--purple); display: flex; align-items: center; gap: 8px;
+}
+.lb-adv-live {
+  font: 500 9px/1 var(--mono); letter-spacing: 0.04em; text-transform: none; color: var(--green);
+  border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 5px; padding: 2px 5px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.lb-adv-live::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.lb-adv-algo { margin: 0 0 12px; font: 12px var(--mono); color: var(--cyan); }
+.lb-adv-empty { margin: 0; font-size: 12px; color: var(--dim); }
+.lb-adv-srv { margin-bottom: 11px; }
+.lb-adv-head { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-bottom: 5px; }
+.lb-adv-name { font-family: var(--mono); }
+.lb-adv-cursor { color: var(--cyan); font-size: 10px; }
+.lb-adv-chip {
+  margin-left: auto; font: 10px var(--mono); color: var(--muted);
+  border: 1px solid var(--line-soft); border-radius: 5px; padding: 1px 6px;
+}
+.lb-adv-chip.warn { color: var(--yellow); border-color: rgba(250, 204, 21, 0.4); }
+.lb-adv-count { font: 11px var(--mono); color: var(--muted); min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
+.lb-adv-bar { height: 16px; border-radius: 6px; background: rgba(130, 150, 200, 0.12); overflow: hidden; display: flex; }
+.lb-adv-seg { height: 100%; transition: width 0.4s ease; }
+.lb-adv-pct { margin-top: 3px; font: 10px var(--mono); color: var(--dim); text-align: right; }
+.lb-adv-foot { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--line-soft); font: 11px var(--mono); color: var(--muted); }
+
 /* ---------- color swatches (Cliente color) ---------- */
 
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px; }

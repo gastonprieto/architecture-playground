@@ -23,6 +23,33 @@ export interface LoadBalancerState {
   current: Record<NodeId, number>
   /** Sticky sessions: session id → the target it is pinned to (learned from `setSession`). */
   sticky: Record<string, NodeId>
+  /** Advanced view: forwarded requests per target, broken down by originating client. */
+  routed: Record<NodeId, RoutedTarget>
+}
+
+/** How many requests a target received, split by the client that originated them. */
+export interface RoutedTarget {
+  total: number
+  byClient: Record<string, { n: number; name: string; color?: string }>
+}
+
+/** A stable key for the client that sent `msg` (ip, then id, then name). */
+function clientKey(msg: Message): string {
+  return nonEmpty(msg.meta.clientIp) ?? nonEmpty(msg.meta.clientId) ?? nonEmpty(msg.meta.clientName) ?? 'anon'
+}
+
+/** Record that `chosen` served one request from `msg`'s client (advanced view bookkeeping). */
+function recordRoute(st: LoadBalancerState, chosen: NodeId, msg: Message): void {
+  const bucket = (st.routed[chosen] ??= { total: 0, byClient: {} })
+  bucket.total++
+  const key = clientKey(msg)
+  const c = (bucket.byClient[key] ??= { n: 0, name: nonEmpty(msg.meta.clientName) ?? key, color: nonEmpty(msg.meta.clientColor) })
+  c.n++
+  // The name/color can arrive later than the first request; keep the latest non-empty ones.
+  const name = nonEmpty(msg.meta.clientName)
+  if (name) c.name = name
+  const color = nonEmpty(msg.meta.clientColor)
+  if (color) c.color = color
 }
 
 function hash(text: string): number {
@@ -59,10 +86,6 @@ function pick(msg: Message, ctx: Ctx<LoadBalancerConfig, LoadBalancerState>, tar
     case 'ip-hash': {
       const ip = nonEmpty(msg.meta.clientIp)
       chosen = targets[hash(ip ?? nonEmpty(msg.meta.clientId) ?? msg.id) % targets.length].target
-      // "<ip> → <target name>" so the class sees which server each client is pinned to.
-      const who = ip ?? nonEmpty(msg.meta.clientName) ?? nonEmpty(msg.meta.clientId) ?? msg.id
-      const targetName = nonEmpty(ctx.peer(chosen)?.config.name) ?? chosen
-      ctx.label(`${who} → ${targetName}`, 'hc')
       break
     }
     case 'weighted': {
@@ -113,7 +136,7 @@ export const loadBalancer = defineComponent<LoadBalancerConfig, LoadBalancerStat
     healthChecks: { type: 'boolean', label: 'Health checks', default: false },
     sticky: { type: 'boolean', label: 'Sticky sessions', default: false },
   },
-  initialState: () => ({ next: 0, inflight: {}, pending: {}, current: {}, sticky: {} }),
+  initialState: () => ({ next: 0, inflight: {}, pending: {}, current: {}, sticky: {}, routed: {} }),
   onMessage(msg, ctx) {
     let targets = ctx.outputs()
     if (ctx.config.healthChecks) targets = targets.filter((o) => ctx.peer(o.target)?.config.up !== false)
@@ -131,6 +154,8 @@ export const loadBalancer = defineComponent<LoadBalancerConfig, LoadBalancerStat
     if (session !== undefined) st.sticky[session] = chosen
     st.pending[msg.id] = chosen
     st.inflight[chosen] = (st.inflight[chosen] ?? 0) + 1
+    st.routed ??= {}
+    recordRoute(st, chosen, msg)
     ctx.send(chosen, msg)
   },
   onResponse(res, ctx) {

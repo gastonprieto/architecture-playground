@@ -57,11 +57,48 @@ export type UiState = {
   cacheKeys?: number
   cacheHits?: number
   cacheMisses?: number
+  lb?: LbView
+}
+
+/** Live Load Balancer state the advanced inspector view draws. */
+export type LbView = {
+  next: number
+  inflight: Record<NodeId, number>
+  current: Record<NodeId, number>
+  stickyCount: number
+  routed: Record<NodeId, LbRoutedView>
+}
+export type LbRoutedView = {
+  total: number
+  byClient: Record<string, { n: number; name: string; color?: string }>
 }
 
 type CacheCounts = { keys: unknown[]; hits: number; misses: number }
 const isCacheState = (s: { keys?: unknown; hits?: unknown; misses?: unknown }): s is CacheCounts =>
   Array.isArray(s.keys) && typeof s.hits === 'number' && typeof s.misses === 'number'
+
+/** The Load Balancer state: the only one with a `routed` map plus `inflight`/`current`/`next`. */
+type LbState = {
+  next: number
+  inflight: Record<NodeId, number>
+  current: Record<NodeId, number>
+  sticky: Record<string, NodeId>
+  routed: Record<NodeId, LbRoutedView>
+}
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+const isLbState = (s: Record<string, unknown>): s is LbState =>
+  typeof s.next === 'number' && isObj(s.inflight) && isObj(s.current) && isObj(s.routed)
+
+/** Fingerprint: changes when routing totals, inflight, the cursor or the sticky map move. */
+function lbSignature(s: LbState): string {
+  const routed = Object.entries(s.routed)
+    .map(([k, v]) => `${k}:${v.total}`)
+    .join(',')
+  const inflight = Object.entries(s.inflight)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(',')
+  return `lb|n:${s.next}|r:${routed}|f:${inflight}|s:${Object.keys(s.sticky ?? {}).length}`
+}
 
 const sigOf = (arr: Message[]) => `${arr.length}:${arr[0]?.id ?? ''}:${arr[arr.length - 1]?.id ?? ''}`
 
@@ -70,7 +107,7 @@ const loggedIn = (cookies: unknown[]) => cookies.filter(Boolean).length
 /** A cheap fingerprint of the drawable parts of a component state, or null if it has none. */
 export function uiSignature(state: unknown): string | null {
   if (typeof state !== 'object' || state === null) return null
-  const s = state as { items?: unknown; lanes?: unknown; cookies?: unknown; sessions?: unknown; keys?: unknown; hits?: unknown; misses?: unknown }
+  const s = state as { items?: unknown; lanes?: unknown; cookies?: unknown; sessions?: unknown; keys?: unknown; hits?: unknown; misses?: unknown; next?: unknown; inflight?: unknown; current?: unknown; routed?: unknown }
   if (Array.isArray(s.items)) return sigOf(s.items as Message[])
   if (typeof s.lanes === 'object' && s.lanes !== null) {
     return Object.entries(s.lanes as Record<string, Message[]>)
@@ -80,13 +117,31 @@ export function uiSignature(state: unknown): string | null {
   if (Array.isArray(s.cookies)) return `c:${loggedIn(s.cookies)}`
   if (Array.isArray(s.sessions)) return `s:${s.sessions.length}`
   if (isCacheState(s)) return `k:${s.keys.length}:${s.hits}:${s.misses}`
+  if (isLbState(s)) return lbSignature(s)
   return null
 }
 
 const view = (arr: Message[]): CellsView => ({ head: arr.slice(0, UI_CELLS), total: arr.length })
 
+/** A deep-enough copy of the LB view so React sees new references (the component mutates in place). */
+function lbCopy(s: LbState): LbView {
+  const routed: Record<NodeId, LbRoutedView> = {}
+  for (const [target, r] of Object.entries(s.routed)) {
+    const byClient: LbRoutedView['byClient'] = {}
+    for (const [k, c] of Object.entries(r.byClient)) byClient[k] = { ...c }
+    routed[target] = { total: r.total, byClient }
+  }
+  return {
+    next: s.next,
+    inflight: { ...s.inflight },
+    current: { ...s.current },
+    stickyCount: Object.keys(s.sticky ?? {}).length,
+    routed,
+  }
+}
+
 export function uiCopy(state: unknown): UiState {
-  const s = state as { items?: Message[]; lanes?: Record<NodeId, Message[]>; cookies?: unknown[]; sessions?: unknown[]; keys?: unknown; hits?: unknown; misses?: unknown }
+  const s = state as { items?: Message[]; lanes?: Record<NodeId, Message[]>; cookies?: unknown[]; sessions?: unknown[]; keys?: unknown; hits?: unknown; misses?: unknown; next?: unknown; inflight?: unknown; current?: unknown; routed?: unknown }
   if (Array.isArray(s.items)) return { items: view(s.items) }
   if (typeof s.lanes === 'object' && s.lanes !== null) {
     return { lanes: Object.fromEntries(Object.entries(s.lanes).map(([k, v]) => [k, view(v)])) }
@@ -94,6 +149,7 @@ export function uiCopy(state: unknown): UiState {
   if (Array.isArray(s.cookies)) return { cookies: loggedIn(s.cookies) }
   if (Array.isArray(s.sessions)) return { sessions: s.sessions.length }
   if (isCacheState(s)) return { cacheKeys: s.keys.length, cacheHits: s.hits, cacheMisses: s.misses }
+  if (isLbState(s)) return { lb: lbCopy(s) }
   return {}
 }
 

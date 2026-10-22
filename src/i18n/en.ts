@@ -55,6 +55,12 @@ export const en: Dict = {
     weightsHint: 'The numbers are relative: what counts is the % of traffic each connection gets.',
     weightsEmpty: 'Connect the Load Balancer to its targets to set weights.',
     weight: 'Weight',
+    lbAdvanced: 'Advanced view',
+    lbLive: 'live',
+    lbRouted: '{n} requests routed',
+    lbNext: 'next',
+    lbEmpty: 'Run the simulation to see the live split.',
+    lbNoTargets: 'Connect the Load Balancer to its targets.',
     unknownType: 'Unknown type: {type}',
   },
   widgets: {
