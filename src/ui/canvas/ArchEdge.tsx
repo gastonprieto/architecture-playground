@@ -4,12 +4,12 @@ import { useT } from '../../i18n'
 import type { EdgeRule } from '../../engine/types'
 import { boxOf, portPoints, wirePath, wirePoint } from '../geometry'
 
-/** `share`: effective % when the edge leaves a weighted load balancer. */
-export type ArchEdgeData = { rule?: EdgeRule; share?: number; down?: boolean }
+/** `share`: effective % when the edge leaves a weighted load balancer. `pull`: consumer pulls from a queue/broker. */
+export type ArchEdgeData = { rule?: EdgeRule; share?: number; down?: boolean; pull?: boolean }
 export type ArchFlowEdge = Edge<ArchEdgeData, 'arch'>
 
 /** Wire from the source's output port to the target's input port. */
-export function ArchEdge({ id, source, target, data, markerEnd, style, selected }: EdgeProps<ArchFlowEdge>) {
+export function ArchEdge({ id, source, target, data, markerStart, markerEnd, style, selected }: EdgeProps<ArchFlowEdge>) {
   const src = useInternalNode(source)
   const tgt = useInternalNode(target)
   const t = useT()
@@ -20,7 +20,7 @@ export function ArchEdge({ id, source, target, data, markerEnd, style, selected 
   const mid = wirePoint(p0, p1, 0.5)
   return (
     <>
-      <BaseEdge id={id} path={wirePath(p0, p1)} markerEnd={markerEnd} style={style} interactionWidth={16} />
+      <BaseEdge id={id} path={wirePath(p0, p1)} markerStart={markerStart} markerEnd={markerEnd} style={style} interactionWidth={16} />
       {label && (
         <EdgeLabelRenderer>
           <div

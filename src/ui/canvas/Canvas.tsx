@@ -47,6 +47,18 @@ type Size = { width: number; height: number }
 
 const isSelected = (sel: Selection, kind: 'node' | 'edge', id: string) => sel?.kind === kind && sel.id === id
 
+/** A queue/broker hands work to these consumer types only when the consumer pulls. */
+const PULL_CONSUMERS = new Set(['worker', 'subscriber', 'service'])
+
+/**
+ * True when the edge is a pull edge: a queue or broker feeding a consumer, which takes work on its
+ * own initiative. A DLQ (dead-letter) or a queue downstream of a broker (fire-and-forget) is a push,
+ * so this is false and the arrow stays pointing at the target.
+ */
+export function isPullEdge(sourceType: string | undefined, targetType: string | undefined): boolean {
+  return (sourceType === 'queue' || sourceType === 'broker') && PULL_CONSUMERS.has(targetType ?? '')
+}
+
 /** Applies React Flow 'select' changes to the single-element store selection. */
 function applySelect(kind: 'node' | 'edge', changes: { type: string; id?: string; selected?: boolean }[]) {
   const { select } = useEditor.getState()
@@ -109,16 +121,23 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
   const weightInfo = useMemo(() => JSON.parse(weightKey) as ReturnType<typeof weightedEdgeLabels>, [weightKey])
 
   const edges = useMemo<ArchFlowEdge[]>(() => {
-    return graph.edges.map((e) => ({
+    const typeOf = new Map(graph.nodes.map((n) => [n.id, n.type]))
+    return graph.edges.map((e) => {
+      const selected = isSelected(selection, 'edge', e.id)
+      const marker = selected ? MARKER_SELECTED : MARKER
+      const pull = isPullEdge(typeOf.get(e.source), typeOf.get(e.target))
+      return {
         id: e.id,
         type: 'arch',
         source: e.source,
         target: e.target,
-        data: { rule: e.rule, share: weightInfo[e.id]?.share, down: weightInfo[e.id]?.down },
-        selected: isSelected(selection, 'edge', e.id),
-        markerEnd: isSelected(selection, 'edge', e.id) ? MARKER_SELECTED : MARKER,
-      }))
-  }, [graph.edges, selection, weightInfo])
+        data: { rule: e.rule, share: weightInfo[e.id]?.share, down: weightInfo[e.id]?.down, pull },
+        selected,
+        // Pull: arrowhead at the source (the queue/broker the consumer pulls from). Push: at the target.
+        ...(pull ? { markerStart: marker } : { markerEnd: marker }),
+      }
+    })
+  }, [graph.nodes, graph.edges, selection, weightInfo])
 
   // Entering/leaving read-only (mobile) mode changes the canvas size: refit, and drop the selection
   // since it can no longer be changed or inspected.
