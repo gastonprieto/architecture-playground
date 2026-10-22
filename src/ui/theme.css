@@ -268,13 +268,13 @@ body {
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
 }
 
-/* Range slider: cyan track + white glowing thumb. */
+/* Range slider: cyan track filled to the current value + white glowing thumb. */
 .field input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   height: 6px;
   border-radius: 4px;
-  background: linear-gradient(90deg, var(--cyan), var(--cyan) 62%, rgba(130, 150, 200, 0.2) 62%);
+  background: linear-gradient(90deg, var(--cyan), var(--cyan) var(--fill, 0%), rgba(130, 150, 200, 0.2) var(--fill, 0%));
 }
 .field input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;

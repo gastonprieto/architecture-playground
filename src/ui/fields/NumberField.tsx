@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react'
 import { useT } from '../../i18n'
 
 interface Props {
@@ -41,7 +41,16 @@ export function NumberField({ label, value, min, max, step = 1, unit, extra, onC
     <div className="field">
       <label htmlFor={id}>{label}</label>
       <div className="field-row">
-        <input type="range" aria-label={t('widgets.slider', { label })} min={min} max={max} step={step} value={value} onChange={(e) => onChange(clamp(Number(e.target.value), min, max))} />
+        <input
+          type="range"
+          aria-label={t('widgets.slider', { label })}
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          style={{ '--fill': `${max > min ? ((clamp(value, min, max) - min) / (max - min)) * 100 : 0}%` } as CSSProperties}
+          onChange={(e) => onChange(clamp(Number(e.target.value), min, max))}
+        />
         <input
           id={id}
           type="number"
