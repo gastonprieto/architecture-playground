@@ -697,6 +697,7 @@ body {
 .lb-adv-bar { height: 16px; border-radius: 6px; background: rgba(130, 150, 200, 0.12); overflow: hidden; display: flex; }
 .lb-adv-seg { height: 100%; transition: width 0.4s ease; }
 .lb-adv-pct { margin-top: 3px; font: 10px var(--mono); color: var(--dim); text-align: right; }
+.broker-adv-line { margin: 0; display: flex; gap: 12px; font: 11px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 .lb-adv-foot { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--line-soft); font: 11px var(--mono); color: var(--muted); }
 
 /* ---------- color swatches (Cliente color) ---------- */

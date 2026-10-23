@@ -22,6 +22,8 @@ interface BrokerState {
   lanes: Record<string, Message[]>
   inFlight: Record<string, number>
   pending: Record<string, string>
+  delivered: Record<string, number>
+  acks: Record<string, { ok: number; errors: number }>
 }
 
 /** Business messages sent by `from` (not responses, not pull probes). */
@@ -75,6 +77,20 @@ describe('catalog', () => {
 })
 
 describe('broker', () => {
+  it('counts what it delivered to each output and the acks of each subscriber', () => {
+    const g = brokerGraph({ subs: [{}, { rule: ev('B') }] })
+    g.nodes.push(node('Q', 'queue'))
+    g.edges.push(edge('B', 'Q'))
+    const s = sim(g)
+    s.runAction('C', 'send1')
+    s.runAction('C', 'send1')
+    s.advance(20 * HOP_MS)
+    const st = s.nodeState<BrokerState>('B')
+    // S2 only takes events of type B: nothing reaches it.
+    expect(st.delivered).toEqual({ S1: 2, Q: 2 })
+    expect(st.acks).toEqual({ S1: { ok: 2, errors: 0 } })
+  })
+
   it('an event without rules fans out to all 4 subscribers', () => {
     const s = sim(brokerGraph({ subs: [{}, {}, {}, {}] }))
     const fromB = sentFrom(s, 'B')

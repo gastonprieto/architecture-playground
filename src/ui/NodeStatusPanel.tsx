@@ -1,5 +1,6 @@
 import type { Graph, NodeStats } from '../engine/types'
 import { useT, type TFn } from '../i18n'
+import { BrokerAdvancedSection } from './BrokerAdvancedSection'
 import { LbAdvancedSection } from './LbAdvancedSection'
 import { ZERO_STATS, useRuntime } from './runtime/runtimeStore'
 import type { UiState } from './runtime/useSimulation'
@@ -13,31 +14,17 @@ export interface StatusRow {
   value: string
 }
 
-const nameIn = (graph: Graph, id: string) => {
-  const n = graph.nodes.find((x) => x.id === id)
-  return typeof n?.config.name === 'string' && n.config.name.trim() ? n.config.name.trim() : id
-}
-
 /** Whether a node shows cache counters: a Cache always, a Reverse Proxy with its edge cache on. */
 const cacheShown = (kind: string, config: Record<string, unknown>) =>
   kind === 'cache' || (kind === 'reverse-proxy' && (config.cache === 'keys' || config.cache === 'random'))
 
 /**
  * The type-specific rows of the Estado tab, from data the runtime already exposes (pure, testable):
- * queue/DLQ depth, broker depth per subscriber, cache keys/HITs/MISSes/hit %, sessions and cookies.
- * The Load Balancer draws its own advanced view instead.
+ * cache keys/HITs/MISSes/hit %, sessions and cookies. Queue/DLQ/broker depth goes in the "En cola"
+ * tile; the Load Balancer and the Broker draw their own advanced view.
  */
-export function statusRows(kind: string, config: Record<string, unknown>, ui: UiState | undefined, graph: Graph, t: TFn): StatusRow[] {
+export function statusRows(kind: string, config: Record<string, unknown>, ui: UiState | undefined, t: TFn): StatusRow[] {
   const rows: StatusRow[] = []
-  if (kind === 'queue' || kind === 'dlq') rows.push({ key: 'depth', label: t('inspector.depth'), value: String(ui?.items?.total ?? 0) })
-  if (kind === 'broker') {
-    // Lanes of subscribers that are gone from the graph are skipped, as on the canvas.
-    for (const [id, cells] of Object.entries(ui?.lanes ?? {})) {
-      if (!graph.nodes.some((n) => n.id === id)) continue
-      rows.push({ key: `lane:${id}`, label: t('inspector.laneDepth', { name: nameIn(graph, id) }), value: String(cells.total) })
-    }
-    if (rows.length === 0) rows.push({ key: 'lanes', label: t('inspector.depth'), value: '0' })
-  }
   if (cacheShown(kind, config)) {
     const keysMode = kind === 'cache' ? config.mode !== 'random' : config.cache === 'keys'
     const hits = ui?.cacheHits ?? 0
@@ -52,8 +39,42 @@ export function statusRows(kind: string, config: Record<string, unknown>, ui: Ui
   return rows
 }
 
-/** Whether a node has seen no traffic yet (all its counters at zero). */
-export const isIdle = (s: NodeStats) => s.inFlight + s.queued + s.ok + s.errors === 0
+/** One generic counter tile of the Estado tab. */
+export interface StatusTile {
+  key: keyof NodeStats
+  value: number
+}
+
+const sum = (r: Record<string, number> | undefined) => Object.values(r ?? {}).reduce((a, b) => a + b, 0)
+
+/**
+ * The counter tiles a node type shows (pure, testable): only the ones that mean something for it,
+ * with "En proceso"/"En cola" taken from the component's own state where the engine has none —
+ * the LB's in-flight per server, a queue's buffer, a broker's lanes.
+ */
+export function statusTiles(kind: string, stats: NodeStats, ui: UiState | undefined, graph: Graph): StatusTile[] {
+  const ok: StatusTile = { key: 'ok', value: stats.ok }
+  const errors: StatusTile = { key: 'errors', value: stats.errors }
+  switch (kind) {
+    case 'load-balancer':
+      return [{ key: 'inFlight', value: sum(ui?.lb?.inflight) }, ok, errors]
+    case 'queue':
+    case 'dlq':
+      return [{ key: 'queued', value: ui?.items?.total ?? 0 }, ok, errors]
+    case 'broker': {
+      // Lanes of subscribers that are gone from the graph are skipped, as on the canvas.
+      const lanes = Object.entries(ui?.lanes ?? {}).filter(([id]) => graph.nodes.some((n) => n.id === id))
+      return [{ key: 'queued', value: lanes.reduce((n, [, cells]) => n + cells.total, 0) }, ok, errors]
+    }
+    case 'client':
+    case 'reverse-proxy':
+      return [ok, errors]
+    default:
+      return [{ key: 'inFlight', value: stats.inFlight }, { key: 'queued', value: stats.queued }, ok, errors]
+  }
+}
+
+const TILE_ICON: Record<keyof NodeStats, string> = { inFlight: '⏳', queued: '☰', ok: '✔', errors: '✖' }
 
 function Tile({ icon, label, value, tone }: { icon: string; label: string; value: number; tone?: 'ok' | 'err' }) {
   return (
@@ -72,17 +93,24 @@ export function NodeStatusPanel({ nodeId, kind, config }: { nodeId: string; kind
   const stats = useRuntime((s) => s.stats[nodeId]) ?? ZERO_STATS
   const ui = useRuntime((s) => s.states[nodeId]) as UiState | undefined
   const graph = useEditor((s) => s.graph)
-  const rows = statusRows(kind, config, ui, graph, t)
+  const rows = statusRows(kind, config, ui, t)
+  const tiles = statusTiles(kind, stats, ui, graph)
+  const idle = tiles.every((x) => x.value === 0)
   return (
     <div className="status-panel">
       <div className="status-tiles">
-        <Tile icon="⏳" label={t('node.inFlight')} value={stats.inFlight} />
-        <Tile icon="☰" label={t('node.queued')} value={stats.queued} />
-        <Tile icon="✔" label={t('node.ok')} value={stats.ok} tone="ok" />
-        <Tile icon="✖" label={t('node.errors')} value={stats.errors} tone={stats.errors > 0 ? 'err' : undefined} />
+        {tiles.map((x) => (
+          <Tile
+            key={x.key}
+            icon={TILE_ICON[x.key]}
+            label={t(`node.${x.key}`)}
+            value={x.value}
+            tone={x.key === 'ok' ? 'ok' : x.key === 'errors' && x.value > 0 ? 'err' : undefined}
+          />
+        ))}
       </div>
       {/* The LB view has its own empty hint. */}
-      {isIdle(stats) && kind !== 'load-balancer' && <p className="status-empty">{t('inspector.statusEmpty')}</p>}
+      {idle && kind !== 'load-balancer' && <p className="status-empty">{t('inspector.statusEmpty')}</p>}
       {rows.length > 0 && (
         <dl className="status-rows">
           {rows.map((r) => (
@@ -93,6 +121,7 @@ export function NodeStatusPanel({ nodeId, kind, config }: { nodeId: string; kind
           ))}
         </dl>
       )}
+      {kind === 'broker' && <BrokerAdvancedSection brokerId={nodeId} />}
       {kind === 'load-balancer' && <LbAdvancedSection lbId={nodeId} algorithm={typeof config.algorithm === 'string' ? config.algorithm : 'round-robin'} />}
     </div>
   )

@@ -3,7 +3,8 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useLang } from '../../src/i18n'
 import { Inspector } from '../../src/ui/Inspector'
-import { statusRows } from '../../src/ui/NodeStatusPanel'
+import { brokerRows } from '../../src/ui/BrokerAdvancedSection'
+import { statusRows, statusTiles } from '../../src/ui/NodeStatusPanel'
 import { useEditor } from '../../src/ui/store/editor'
 import { useInspectorTab } from '../../src/ui/store/inspectorTab'
 import { useRuntime } from '../../src/ui/runtime/runtimeStore'
@@ -328,32 +329,18 @@ describe('Inspector: Estado / Configuración tabs', () => {
 })
 
 describe('statusRows', () => {
-  const t = (key: string, p?: Record<string, string | number>) => (p ? `${key}(${Object.values(p).join(',')})` : key)
-  const g = (nodes: { id: string; name?: string }[]) => ({
-    nodes: nodes.map((n) => ({ id: n.id, type: 'subscriber', position: { x: 0, y: 0 }, config: n.name ? { name: n.name } : {} })),
-    edges: [],
-  })
+  const t = (key: string) => key
   const rows = (...a: Parameters<typeof statusRows>) => statusRows(...a).map((r) => [r.label, r.value])
-
-  it('queue and DLQ show their depth', () => {
-    expect(rows('queue', {}, { items: { head: [], total: 7 } }, g([]), t)).toEqual([['inspector.depth', '7']])
-    expect(rows('dlq', {}, undefined, g([]), t)).toEqual([['inspector.depth', '0']])
-  })
-
-  it('a broker shows the depth of each existing subscriber lane', () => {
-    const ui = { lanes: { a: { head: [], total: 3 }, gone: { head: [], total: 9 } } }
-    expect(rows('broker', {}, ui, g([{ id: 'a', name: 'Mailer' }]), t)).toEqual([['inspector.laneDepth(Mailer)', '3']])
-  })
 
   it('a cache shows keys, HITs, MISSes and hit % (keys only in keys mode)', () => {
     const ui = { cacheKeys: 4, cacheHits: 3, cacheMisses: 1 }
-    expect(rows('cache', { mode: 'keys' }, ui, g([]), t)).toEqual([
+    expect(rows('cache', { mode: 'keys' }, ui, t)).toEqual([
       ['node.cacheKeys', '4'],
       ['HITs', '3'],
       ['MISSes', '1'],
       ['inspector.hitRate', '75%'],
     ])
-    expect(rows('cache', { mode: 'random' }, undefined, g([]), t)).toEqual([
+    expect(rows('cache', { mode: 'random' }, undefined, t)).toEqual([
       ['HITs', '0'],
       ['MISSes', '0'],
       ['inspector.hitRate', '—'],
@@ -361,12 +348,85 @@ describe('statusRows', () => {
   })
 
   it('a reverse proxy shows cache rows only with its cache on', () => {
-    expect(rows('reverse-proxy', { cache: 'off' }, undefined, g([]), t)).toEqual([])
-    expect(rows('reverse-proxy', { cache: 'keys' }, undefined, g([]), t)[0]).toEqual(['node.cacheKeys', '0'])
+    expect(rows('reverse-proxy', { cache: 'off' }, undefined, t)).toEqual([])
+    expect(rows('reverse-proxy', { cache: 'keys' }, undefined, t)[0]).toEqual(['node.cacheKeys', '0'])
   })
 
   it('a client with several users shows its logged-in users; a plain service shows nothing', () => {
-    expect(rows('client', { users: 5, auth: 'login' }, { cookies: 2 }, g([]), t)).toEqual([['node.loggedIn', '🍪 2/5']])
-    expect(rows('service', {}, undefined, g([]), t)).toEqual([])
+    expect(rows('client', { users: 5, auth: 'login' }, { cookies: 2 }, t)).toEqual([['node.loggedIn', '🍪 2/5']])
+    expect(rows('service', {}, undefined, t)).toEqual([])
+  })
+})
+
+describe('statusTiles', () => {
+  const stats = { inFlight: 2, queued: 1, ok: 10, errors: 3 }
+  const g = (ids: string[]) => ({ nodes: ids.map((id) => ({ id, type: 'subscriber', position: { x: 0, y: 0 }, config: {} })), edges: [] })
+  const tiles = (...a: Parameters<typeof statusTiles>) => statusTiles(...a).map((x) => `${x.key}=${x.value}`)
+
+  it('a processing node shows its four engine counters', () => {
+    expect(tiles('service', stats, undefined, g([]))).toEqual(['inFlight=2', 'queued=1', 'ok=10', 'errors=3'])
+  })
+
+  it('a load balancer takes "En proceso" from its in-flight per server and has no "En cola"', () => {
+    const lb = { next: 0, inflight: { w1: 2, w2: 3 }, current: {}, stickyCount: 0, routed: {} }
+    expect(tiles('load-balancer', stats, { lb }, g([]))).toEqual(['inFlight=5', 'ok=10', 'errors=3'])
+  })
+
+  it('queue and DLQ take "En cola" from their buffer; a broker from its existing lanes', () => {
+    expect(tiles('queue', stats, { items: { head: [], total: 7 } }, g([]))).toEqual(['queued=7', 'ok=10', 'errors=3'])
+    expect(tiles('dlq', stats, undefined, g([]))).toEqual(['queued=0', 'ok=10', 'errors=3'])
+    const lanes = { a: { head: [], total: 3 }, gone: { head: [], total: 9 } }
+    expect(tiles('broker', stats, { lanes }, g(['a']))).toEqual(['queued=3', 'ok=10', 'errors=3'])
+  })
+
+  it('a client and a reverse proxy only show ok and errors', () => {
+    expect(tiles('client', stats, undefined, g([]))).toEqual(['ok=10', 'errors=3'])
+    expect(tiles('reverse-proxy', stats, undefined, g([]))).toEqual(['ok=10', 'errors=3'])
+  })
+
+})
+
+describe('brokerRows', () => {
+  const graph = {
+    nodes: [
+      { id: 'b', type: 'broker', position: { x: 0, y: 0 }, config: { name: 'Bus' } },
+      { id: 's1', type: 'subscriber', position: { x: 0, y: 0 }, config: { name: 'Mailer' } },
+      { id: 'q1', type: 'queue', position: { x: 0, y: 0 }, config: { name: '' } },
+    ],
+    edges: [
+      { id: 'e1', source: 'b', target: 's1' },
+      { id: 'e2', source: 'b', target: 'q1' },
+    ],
+  }
+
+  it('one row per output with its lane, in-flight, deliveries and acks; zeros before traffic', () => {
+    const ui = {
+      lanes: { s1: { head: [], total: 4 } },
+      broker: { inFlight: { s1: 1 }, delivered: { s1: 12, q1: 16 }, acks: { s1: { ok: 10, errors: 1 } } },
+    }
+    expect(brokerRows(graph, 'b', ui)).toEqual([
+      { target: 's1', name: 'Mailer', isQueue: false, pending: 4, inFlight: 1, delivered: 12, ok: 10, errors: 1 },
+      { target: 'q1', name: 'q1', isQueue: true, pending: 0, inFlight: 0, delivered: 16, ok: 0, errors: 0 },
+    ])
+    expect(brokerRows(graph, 'b', undefined).map((r) => r.delivered)).toEqual([0, 0])
+  })
+
+  it('the Estado tab of a broker draws a row per subscriber', () => {
+    act(() => useEditor.getState().loadGraph(structuredClone(graph)))
+    act(() =>
+      useRuntime.setState({
+        states: { b: { lanes: { s1: { head: [], total: 4 } }, broker: { inFlight: {}, delivered: { s1: 12, q1: 16 }, acks: { s1: { ok: 10, errors: 1 } } } } },
+      }),
+    )
+    render(<Inspector />)
+    select({ kind: 'node', id: 'b' })
+    const status = screen.getByRole('tabpanel', { name: 'Estado' })
+    expect(within(status).getByText('Mailer')).toBeTruthy()
+    expect(within(status).getByText('12 entregados')).toBeTruthy()
+    expect(within(status).getByText('16 entregados')).toBeTruthy()
+    expect(within(status).getByText('Cola: recibe sin ack (fire-and-forget)')).toBeTruthy()
+    // the En cola tile adds up the lanes
+    expect(within(status).getByText('En cola').previousSibling?.textContent).toBe('☰ 4')
+    act(() => useRuntime.setState({ states: {}, stats: {} }))
   })
 })

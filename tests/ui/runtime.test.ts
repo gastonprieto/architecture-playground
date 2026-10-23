@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Message } from '../../src/engine/types'
-import { UI_CELLS, uiCopy } from '../../src/ui/runtime/useSimulation'
+import { UI_CELLS, uiCopy, uiSignature } from '../../src/ui/runtime/useSimulation'
 import { formatMetrics } from '../../src/ui/MetricsBar'
 import { SPEEDS, stepSpeed } from '../../src/ui/runtime/runtimeStore'
 
@@ -44,5 +44,15 @@ describe('uiCopy', () => {
     expect(ui.lanes!.S1.total).toBe(500)
     expect(ui.lanes!.S1.head).toHaveLength(UI_CELLS)
     expect(ui.lanes!.S2).toEqual({ total: 3, head: msgs(3, 'b') })
+  })
+
+  it('copies the broker per-output counters, and its signature moves when an ack arrives', () => {
+    const state = { lanes: { S1: msgs(2, 'a') }, inFlight: { S1: 1 }, pending: {}, delivered: { S1: 5, Q: 7 }, acks: { S1: { ok: 3, errors: 1 } } }
+    const ui = uiCopy(state)
+    expect(ui.broker).toEqual({ inFlight: { S1: 1 }, delivered: { S1: 5, Q: 7 }, acks: { S1: { ok: 3, errors: 1 } } })
+    const before = uiSignature(state)
+    state.acks.S1.ok++
+    expect(ui.broker!.acks.S1.ok).toBe(3)
+    expect(uiSignature(state)).not.toBe(before)
   })
 })

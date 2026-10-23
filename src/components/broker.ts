@@ -14,6 +14,10 @@ export interface BrokerState {
   inFlight: Record<NodeId, number>
   /** Lane copy id → the subscriber it was handed to, until its ack/nack arrives. */
   pending: Record<string, NodeId>
+  /** Events handed to each output (subscribers on pull, queues on publish), for the inspector. */
+  delivered: Record<NodeId, number>
+  /** Acks (ok) and nacks (errors) each subscriber answered. Queues never ack. */
+  acks: Record<NodeId, { ok: number; errors: number }>
 }
 
 type BrokerCtx = Ctx<BrokerConfig, BrokerState>
@@ -34,8 +38,10 @@ function publish(ctx: BrokerCtx, ev: Message): void {
   }
   for (const out of matching) {
     const copy = ctx.newMessage('event', ev.meta, ev)
-    if (out.targetType === 'queue') ctx.send(out.target, copy)
-    else (ctx.state.lanes[out.target] ??= []).push(copy)
+    if (out.targetType === 'queue') {
+      ctx.send(out.target, copy)
+      ctx.state.delivered[out.target] = (ctx.state.delivered[out.target] ?? 0) + 1
+    } else (ctx.state.lanes[out.target] ??= []).push(copy)
   }
 }
 
@@ -46,7 +52,7 @@ export const broker = defineComponent<BrokerConfig, BrokerState>({
   color: 'hc',
   group: 'messaging',
   config: {},
-  initialState: () => ({ lanes: {}, inFlight: {}, pending: {} }),
+  initialState: () => ({ lanes: {}, inFlight: {}, pending: {}, delivered: {}, acks: {} }),
   onMessage(msg, ctx) {
     if (msg.kind === 'request') {
       ctx.reply(msg, { status: 'ok', code: 202 })
@@ -71,6 +77,7 @@ export const broker = defineComponent<BrokerConfig, BrokerState>({
     const next = lane.shift()!
     ctx.state.inFlight[sub] = (ctx.state.inFlight[sub] ?? 0) + 1
     ctx.state.pending[next.id] = sub
+    ctx.state.delivered[sub] = (ctx.state.delivered[sub] ?? 0) + 1
     ctx.send(sub, next)
   },
   onResponse(res, ctx) {
@@ -82,5 +89,8 @@ export const broker = defineComponent<BrokerConfig, BrokerState>({
     // Ack or nack alike: the slot is freed. No redelivery in the MVP.
     delete ctx.state.pending[res.replyTo!]
     release(ctx.state.inFlight, target)
+    const acks = (ctx.state.acks[target] ??= { ok: 0, errors: 0 })
+    if (res.status === 'ok') acks.ok++
+    else acks.errors++
   },
 })

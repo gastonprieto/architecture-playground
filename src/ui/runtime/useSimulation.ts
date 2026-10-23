@@ -58,6 +58,14 @@ export type UiState = {
   cacheHits?: number
   cacheMisses?: number
   lb?: LbView
+  broker?: BrokerView
+}
+
+/** Live per-output counters of a Broker for the advanced inspector view (lanes hold the depth). */
+export type BrokerView = {
+  inFlight: Record<NodeId, number>
+  delivered: Record<NodeId, number>
+  acks: Record<NodeId, { ok: number; errors: number }>
 }
 
 /** Live Load Balancer state the advanced inspector view draws. */
@@ -89,6 +97,21 @@ const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object
 const isLbState = (s: Record<string, unknown>): s is LbState =>
   typeof s.next === 'number' && isObj(s.inflight) && isObj(s.current) && isObj(s.routed)
 
+/** The Broker state: lanes plus its per-output counters. */
+type BrokerState = BrokerView & { lanes: Record<NodeId, Message[]> }
+const isBrokerState = (s: Record<string, unknown>): s is BrokerState => isObj(s.lanes) && isObj(s.inFlight) && isObj(s.delivered) && isObj(s.acks)
+
+const countsSig = (r: Record<string, unknown>) =>
+  Object.entries(r)
+    .map(([k, v]) => `${k}:${isObj(v) ? `${v.ok}/${v.errors}` : v}`)
+    .join(',')
+
+const brokerCopy = (s: BrokerState): BrokerView => ({
+  inFlight: { ...s.inFlight },
+  delivered: { ...s.delivered },
+  acks: Object.fromEntries(Object.entries(s.acks).map(([k, v]) => [k, { ...v }])),
+})
+
 /** Fingerprint: changes when routing totals, inflight, the cursor or the sticky map move. */
 function lbSignature(s: LbState): string {
   const routed = Object.entries(s.routed)
@@ -110,9 +133,11 @@ export function uiSignature(state: unknown): string | null {
   const s = state as { items?: unknown; lanes?: unknown; cookies?: unknown; sessions?: unknown; keys?: unknown; hits?: unknown; misses?: unknown; next?: unknown; inflight?: unknown; current?: unknown; routed?: unknown }
   if (Array.isArray(s.items)) return sigOf(s.items as Message[])
   if (typeof s.lanes === 'object' && s.lanes !== null) {
-    return Object.entries(s.lanes as Record<string, Message[]>)
+    const lanes = Object.entries(s.lanes as Record<string, Message[]>)
       .map(([k, v]) => `${k}=${sigOf(v)}`)
       .join('|')
+    const b = state as Record<string, unknown>
+    return isBrokerState(b) ? `${lanes}|f:${countsSig(b.inFlight)}|d:${countsSig(b.delivered)}|a:${countsSig(b.acks)}` : lanes
   }
   if (Array.isArray(s.cookies)) return `c:${loggedIn(s.cookies)}`
   if (Array.isArray(s.sessions)) return `s:${s.sessions.length}`
@@ -144,7 +169,9 @@ export function uiCopy(state: unknown): UiState {
   const s = state as { items?: Message[]; lanes?: Record<NodeId, Message[]>; cookies?: unknown[]; sessions?: unknown[]; keys?: unknown; hits?: unknown; misses?: unknown; next?: unknown; inflight?: unknown; current?: unknown; routed?: unknown }
   if (Array.isArray(s.items)) return { items: view(s.items) }
   if (typeof s.lanes === 'object' && s.lanes !== null) {
-    return { lanes: Object.fromEntries(Object.entries(s.lanes).map(([k, v]) => [k, view(v)])) }
+    const lanes = Object.fromEntries(Object.entries(s.lanes).map(([k, v]) => [k, view(v)]))
+    const b = state as Record<string, unknown>
+    return isBrokerState(b) ? { lanes, broker: brokerCopy(b) } : { lanes }
   }
   if (Array.isArray(s.cookies)) return { cookies: loggedIn(s.cookies) }
   if (Array.isArray(s.sessions)) return { sessions: s.sessions.length }
