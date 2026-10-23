@@ -3,7 +3,7 @@ import { useT } from '../../i18n'
 
 export type MixRow = { value: string; weight: number }
 
-export function MixField({ label, value, onChange }: { label: string; value: MixRow[]; onChange(v: MixRow[]): void }) {
+export function MixField({ label, placeholder, value, onChange }: { label: string; placeholder?: string; value: MixRow[]; onChange(v: MixRow[]): void }) {
   const id = useId()
   const t = useT()
   const patch = (i: number, p: Partial<MixRow>) => onChange(value.map((r, j) => (j === i ? { ...r, ...p } : r)))
@@ -14,7 +14,7 @@ export function MixField({ label, value, onChange }: { label: string; value: Mix
       </span>
       {value.map((row, i) => (
         <div className="field-row mix-row" key={i}>
-          <input type="text" aria-label={t('widgets.mixValue', { n: i + 1 })} value={row.value} onChange={(e) => patch(i, { value: e.target.value })} />
+          <input type="text" aria-label={t('widgets.mixValue', { n: i + 1 })} placeholder={placeholder} value={row.value} onChange={(e) => patch(i, { value: e.target.value })} />
           <WeightInput label={t('widgets.mixWeight', { n: i + 1 })} value={row.weight} onChange={(weight) => patch(i, { weight })} />
           <button type="button" onClick={() => onChange(value.filter((_, j) => j !== i))}>
             {t('widgets.remove')}

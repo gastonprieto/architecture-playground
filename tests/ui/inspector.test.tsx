@@ -74,16 +74,17 @@ describe('Inspector', () => {
     const runAction = vi.fn()
     render(<Inspector runAction={runAction} />)
     select({ kind: 'node', id: 'c1' })
-    fireEvent.click(screen.getByText('Enviar 1'))
-    fireEvent.click(screen.getByText('Ráfaga'))
-    expect(runAction).toHaveBeenNthCalledWith(1, 'c1', 'send1')
-    expect(runAction).toHaveBeenNthCalledWith(2, 'c1', 'burst')
+    // One "Enviar" with its amount beside it; "Enviar 1" is hidden.
+    expect(screen.queryByText('Enviar 1')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    expect(runAction).toHaveBeenCalledWith('c1', 'burst')
+    expect((screen.getByLabelText('Cantidad a enviar') as HTMLInputElement).value).toBe('20')
   })
 
   it('disables actions without runAction', () => {
     render(<Inspector />)
     select({ kind: 'node', id: 'c1' })
-    expect((screen.getByText('Enviar 1') as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Enviar' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('edits the mix', () => {
@@ -127,7 +128,7 @@ describe('NumberField typing', () => {
   })
   it('clamps on blur and Enter', () => {
     setup()
-    const input = screen.getByLabelText('Tamaño de ráfaga', { selector: 'input[type=number]' }) as HTMLInputElement
+    const input = screen.getByLabelText('Cantidad a enviar', { selector: 'input[type=number]' }) as HTMLInputElement
     fireEvent.change(input, { target: { value: '999' } })
     expect(useEditor.getState().graph.nodes[0].config.burstSize).toBe(20)
     fireEvent.blur(input)
@@ -301,10 +302,10 @@ describe('Inspector: Estado / Configuración tabs', () => {
   it('actions and Borrar stay visible on both tabs', () => {
     render(<Inspector runAction={vi.fn()} />)
     select({ kind: 'node', id: 'c1' })
-    expect(screen.getByRole('button', { name: 'Ráfaga' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Borrar' })).toBeTruthy()
     fireEvent.click(screen.getByRole('tab', { name: 'Configuración' }))
-    expect(screen.getByRole('button', { name: 'Ráfaga' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Borrar' })).toBeTruthy()
   })
 
@@ -325,6 +326,30 @@ describe('Inspector: Estado / Configuración tabs', () => {
     select({ kind: 'node', id: 'lb1' })
     expect(within(panel('Estado')).getByText('Corré la simulación para ver el reparto en vivo.')).toBeTruthy()
     expect(within(panel('Estado')).queryByText('Dale ▶ para ver tráfico.')).toBeNull()
+  })
+})
+
+describe('Inspector: actions strip', () => {
+  it('the Cliente amount lives beside Enviar, not among the fields', () => {
+    useInspectorTab.getState().setTab('config')
+    render(<Inspector />)
+    select({ kind: 'node', id: 'c1' })
+    const amount = screen.getByLabelText('Cantidad a enviar') as HTMLInputElement
+    expect(amount.closest('.inspector-actions')).toBeTruthy()
+    fireEvent.change(amount, { target: { value: '1' } })
+    fireEvent.keyDown(amount, { key: 'Enter' })
+    expect(useEditor.getState().graph.nodes[0].config.burstSize).toBe(1)
+  })
+
+  it('the Cliente mix is labelled Paths for requests and Eventos for events', () => {
+    useInspectorTab.getState().setTab('config')
+    render(<Inspector />)
+    select({ kind: 'node', id: 'c1' })
+    expect(screen.getByRole('group', { name: 'Paths' })).toBeTruthy()
+    expect((screen.getByLabelText('Valor 1') as HTMLInputElement).placeholder).toBe('/ordenes')
+    fireEvent.change(screen.getByLabelText('Tipo'), { target: { value: 'event' } })
+    expect(screen.getByRole('group', { name: 'Eventos' })).toBeTruthy()
+    expect((screen.getByLabelText('Valor 1') as HTMLInputElement).placeholder).toBe('order.created')
   })
 })
 

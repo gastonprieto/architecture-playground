@@ -125,7 +125,12 @@ export interface ComponentDef<C = any, S = any> {
   onConfig?(ctx: Ctx<C, S>, prev: C): void
   /** Icon derived from the config (e.g. the database kind); `icon` is the base one the palette uses. */
   iconFor?(config: C): string
-  actions?: Record<string, { label: string; run(ctx: Ctx<C, S>): void }>
+  /**
+   * Things the user triggers on a running node. `param` names a number config field the inspector
+   * shows next to the button (and not among the fields); `hidden` keeps an action out of the UI
+   * (still callable by name, e.g. from tests).
+   */
+  actions?: Record<string, { label: string; param?: string; hidden?: boolean; run(ctx: Ctx<C, S>): void }>
   /** True only for client. */
   recordsMetrics?: boolean
   /** False for source-only components (Cliente): no input port, nothing can be wired into them. Default true. */

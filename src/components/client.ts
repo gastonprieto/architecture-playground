@@ -116,7 +116,7 @@ export const client = defineComponent<ClientConfig, ClientState>({
     },
     rate: { type: 'number', label: 'Tasa', default: 0, min: 0, max: 50, step: 1, unit: 'req/s' },
     mix: { type: 'mix', label: 'Mix (path / evento)', default: [{ value: '/', weight: 1 }] },
-    burstSize: { type: 'number', label: 'Tamaño de ráfaga', default: 20, min: 1, max: 200, step: 1 },
+    burstSize: { type: 'number', label: 'Cantidad a enviar', default: 20, min: 1, max: 200, step: 1 },
     users: { type: 'number', label: 'Usuarios', default: 1, min: 1, max: 50, step: 1 },
     auth: {
       type: 'select',
@@ -164,11 +164,14 @@ export const client = defineComponent<ClientConfig, ClientState>({
     }
   },
   actions: {
-    send1: { label: 'Enviar 1', run: (ctx) => sendOne(ctx) },
+    send1: { label: 'Enviar 1', hidden: true, run: (ctx) => sendOne(ctx) },
+    /** "Enviar ×N": one request right away, or N spread over the burst window. */
     burst: {
-      label: 'Ráfaga',
+      label: 'Enviar',
+      param: 'burstSize',
       run(ctx) {
         const n = ctx.config.burstSize
+        if (n <= 1) return sendOne(ctx)
         for (let i = 0; i < n; i++) ctx.schedule((i * BURST_WINDOW_MS) / n, () => sendOne(ctx))
       },
     },

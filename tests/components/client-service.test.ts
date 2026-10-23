@@ -161,8 +161,9 @@ describe('client', () => {
       ],
     })
     expect(client.config.mix).toMatchObject({ type: 'mix', default: [{ value: '/', weight: 1 }] })
-    expect(client.actions!.send1.label).toBe('Enviar 1')
-    expect(client.actions!.burst.label).toBe('Ráfaga')
+    // The UI shows one "Enviar ×N" (N = burstSize); send1 stays callable by name, hidden from the UI.
+    expect(client.actions!.send1).toMatchObject({ label: 'Enviar 1', hidden: true })
+    expect(client.actions!.burst).toMatchObject({ label: 'Enviar', param: 'burstSize' })
   })
 
   it('event kind sends events with meta.eventType from the weighted mix', () => {

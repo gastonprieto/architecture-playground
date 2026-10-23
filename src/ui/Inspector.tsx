@@ -1,4 +1,4 @@
-import { useId, type KeyboardEvent } from 'react'
+import { useId, useState, type KeyboardEvent } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { DEFAULT_WEIGHT } from '../engine/weights'
 import type { DbKind } from '../components/database'
@@ -33,13 +33,18 @@ interface FieldControlProps {
   fieldKey: string
   field: Field
   value: unknown
+  /** The node's whole config, for labels that depend on another field (the Cliente mix). */
+  config: Record<string, unknown>
   onChange(v: unknown): void
 }
 
-function FieldControl({ nodeId, def, fieldKey, field, value, onChange }: FieldControlProps) {
+function FieldControl({ nodeId, def, fieldKey, field, value, config, onChange }: FieldControlProps) {
   const lang = useLang((s) => s.lang)
   const t = useT()
-  const label = fieldLabel(lang, def, fieldKey)
+  // A Cliente's mix holds paths for requests and event types for events.
+  const clientMix = def.type === 'client' && fieldKey === 'mix'
+  const isEvent = config.kind === 'event'
+  const label = clientMix ? t(isEvent ? 'inspector.mixEvents' : 'inspector.mixPaths') : fieldLabel(lang, def, fieldKey)
   switch (field.type) {
     case 'number':
       return <NumberField {...field} label={label} value={typeof value === 'number' ? value : field.default} onChange={onChange} />
@@ -62,7 +67,14 @@ function FieldControl({ nodeId, def, fieldKey, field, value, onChange }: FieldCo
         />
       )
     case 'mix':
-      return <MixField label={label} value={Array.isArray(value) ? (value as MixRow[]) : field.default} onChange={onChange} />
+      return (
+        <MixField
+          label={label}
+          placeholder={clientMix ? t(isEvent ? 'inspector.eventPlaceholder' : 'inspector.pathPlaceholder') : undefined}
+          value={Array.isArray(value) ? (value as MixRow[]) : field.default}
+          onChange={onChange}
+        />
+      )
     case 'list': {
       // Every list field so far (cacheable paths) treats an empty list as "all".
       const list = Array.isArray(value) ? (value as unknown[]).map(String) : field.default
@@ -71,6 +83,35 @@ function FieldControl({ nodeId, def, fieldKey, field, value, onChange }: FieldCo
     case 'behavior':
       return <BehaviorField nodeId={nodeId} label={label} value={typeof value === 'string' ? value : field.default} />
   }
+}
+
+/** The compact "×N" number beside an action button; clamps to the field's range on blur or Enter. */
+function ActionParam({ label, field, value, onChange }: { label: string; field: Extract<Field, { type: 'number' }>; value: number; onChange(v: number): void }) {
+  // What the user is typing, until blur/Enter; otherwise the input shows the stored value.
+  const [draft, setDraft] = useState<string | null>(null)
+  const text = draft ?? String(value)
+  const commit = () => {
+    const n = Number(text)
+    const v = text.trim() === '' || Number.isNaN(n) ? value : Math.min(field.max, Math.max(field.min, Math.round(n)))
+    setDraft(null)
+    if (v !== value) onChange(v)
+  }
+  return (
+    <label className="action-param" title={label}>
+      <span aria-hidden>×</span>
+      <input
+        type="number"
+        aria-label={label}
+        min={field.min}
+        max={field.max}
+        step={field.step ?? 1}
+        value={text}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && commit()}
+      />
+    </label>
+  )
 }
 
 /** Slider range; an imported larger weight widens it instead of being clamped. */
@@ -217,6 +258,8 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
       </div>
     )
   }
+  const actions = Object.entries(def.actions ?? {}).filter(([, a]) => !a.hidden)
+  const actionParams = new Set(actions.flatMap(([, a]) => (a.param ? [a.param] : [])))
   const tabs: { id: InspectorTab; label: string }[] = [
     { id: 'status', label: t('inspector.tabStatus') },
     { id: 'config', label: t('inspector.tabConfig') },
@@ -237,13 +280,28 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
         </h2>
         <InfoButton type={def.type} label={componentLabel(lang, def.type, def)} />
       </div>
-      {def.actions && (
+      {actions.length > 0 && (
         <div className="inspector-actions">
-          {Object.keys(def.actions).map((name) => (
-            <button key={name} type="button" disabled={!runAction} onClick={() => runAction?.(id, name)}>
-              {actionLabel(lang, def, name)}
-            </button>
-          ))}
+          {actions.map(([name, action]) => {
+            const param = action.param ? def.config[action.param] : undefined
+            const button = (
+              <button key={name} type="button" disabled={!runAction} onClick={() => runAction?.(id, name)}>
+                {actionLabel(lang, def, name)}
+              </button>
+            )
+            if (!action.param || param?.type !== 'number') return button
+            return (
+              <span key={name} className="action-group">
+                {button}
+                <ActionParam
+                  label={fieldLabel(lang, def, action.param)}
+                  field={param}
+                  value={typeof node.config[action.param] === 'number' ? (node.config[action.param] as number) : param.default}
+                  onChange={(v) => updateNodeConfig(id, { [action.param!]: v })}
+                />
+              </span>
+            )
+          })}
         </div>
       )}
       <div className="inspector-tabs" role="tablist" aria-label={t('inspector.tabsLabel')}>
@@ -270,9 +328,19 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
       </div>
       <div id={`${tabsId}-panel-config`} role="tabpanel" aria-labelledby={`${tabsId}-tab-config`} hidden={tab !== 'config'} className="inspector-panel">
         {Object.entries(def.config).map(([key, field]) => {
-          if (!fieldVisible(field, node.config, def)) return null
+          // The action params live in the actions strip, always visible.
+          if (actionParams.has(key) || !fieldVisible(field, node.config, def)) return null
           const control = (
-            <FieldControl key={key} nodeId={id} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, patchFor(key, v))} />
+            <FieldControl
+              key={key}
+              nodeId={id}
+              def={def}
+              fieldKey={key}
+              field={field}
+              value={node.config[key]}
+              config={node.config}
+              onChange={(v) => updateNodeConfig(id, patchFor(key, v))}
+            />
           )
           if (behavior.kind !== 'active' || !OVERRIDDEN_BY_BEHAVIOR[def.type]?.includes(key)) return control
           return (

@@ -64,9 +64,9 @@ describe('language switch', () => {
     act(() => useEditor.getState().select({ kind: 'node', id: client.id }))
     fireEvent.click(screen.getByRole('button', { name: 'EN' }))
     expect(screen.getByLabelText('Name')).toBeTruthy()
-    expect(screen.getByLabelText('Burst size', { selector: 'input[type=number]' })).toBeTruthy()
+    expect(screen.getByLabelText('Amount to send', { selector: 'input[type=number]' })).toBeTruthy()
     expect(screen.getByRole('option', { name: 'Event' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Burst' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy()
     // The graph was loaded in Spanish: switching the UI language does not rename user data.
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Navegador')
   })

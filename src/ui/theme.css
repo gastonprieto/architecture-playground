@@ -243,7 +243,23 @@ body {
 .inspector-help { margin: 0; color: var(--muted); font-size: 13px; }
 .inspector-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .inspector-edge { margin: 0; color: var(--text); font-family: var(--mono); font-size: 12px; }
-.inspector-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.inspector-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.action-group { display: inline-flex; align-items: center; gap: 4px; }
+.action-param { display: inline-flex; align-items: center; gap: 2px; font: 12px var(--mono); color: var(--muted); }
+.action-param input {
+  width: calc(4ch + 14px);
+  padding: 5px 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: 12px var(--mono);
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.action-param input::-webkit-inner-spin-button, .action-param input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.action-param input:focus { outline: none; border-color: rgba(56, 189, 248, 0.5); }
 .inspector-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); }
 .inspector .inspector-tabs button {
   flex: 1;

@@ -28,10 +28,10 @@ describe('componentText', () => {
     expect(componentLabel('en', 'client', client)).toBe('Client')
     expect(componentLabel('es', 'client', client)).toBe('Cliente')
     expect(fieldLabel('en', client, 'kind')).toBe('Type')
-    expect(fieldLabel('en', client, 'burstSize')).toBe('Burst size')
+    expect(fieldLabel('en', client, 'burstSize')).toBe('Amount to send')
     expect(optionLabel('en', client, 'kind', 'event')).toBe('Event')
     expect(optionLabel('es', client, 'kind', 'event')).toBe('Evento')
-    expect(actionLabel('en', client, 'burst')).toBe('Burst')
+    expect(actionLabel('en', client, 'burst')).toBe('Send')
     expect(fieldLabel('en', queue, 'maxRetries')).toBe('Max retries')
   })
 
