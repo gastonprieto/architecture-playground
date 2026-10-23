@@ -68,6 +68,13 @@ export const en: Dict = {
     lbEmpty: 'Run the simulation to see the live split.',
     lbNoTargets: 'Connect the Load Balancer to its targets.',
     unknownType: 'Unknown type: {type}',
+    tabsLabel: 'Component view',
+    tabStatus: 'Status',
+    tabConfig: 'Configuration',
+    statusEmpty: 'Press ▶ to see traffic.',
+    depth: 'Queued messages',
+    laneDepth: 'Pending for {name}',
+    hitRate: 'Hit %',
   },
   widgets: {
     slider: '{label} (slider)',

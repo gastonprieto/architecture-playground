@@ -10,6 +10,7 @@ import { CLIENT_COLORS } from '../../src/ui/colors'
 import { useRuntime } from '../../src/ui/runtime/runtimeStore'
 import { useInfoPanel } from '../../src/ui/store/infoPanel'
 import { useEditor } from '../../src/ui/store/editor'
+import { useInspectorTab } from '../../src/ui/store/inspectorTab'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -24,6 +25,8 @@ beforeAll(() => {
   } as unknown as typeof DOMMatrixReadOnly
 })
 
+// These tests edit configuration: start every inspector on the Configuración tab.
+beforeEach(() => useInspectorTab.getState().setTab('config'))
 beforeEach(() => {
   localStorage.clear()
   act(() => useLang.getState().setLang('es'))

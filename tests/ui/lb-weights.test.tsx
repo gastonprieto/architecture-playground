@@ -6,6 +6,7 @@ import { useLang } from '../../src/i18n'
 import App from '../../src/ui/App'
 import { weightedEdgeShares } from '../../src/ui/lbWeights'
 import { useEditor } from '../../src/ui/store/editor'
+import { useInspectorTab } from '../../src/ui/store/inspectorTab'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -20,6 +21,8 @@ beforeAll(() => {
   } as unknown as typeof DOMMatrixReadOnly
 })
 
+// These tests edit configuration: start every inspector on the Configuración tab.
+beforeEach(() => useInspectorTab.getState().setTab('config'))
 beforeEach(() => {
   localStorage.clear()
   act(() => useLang.getState().setLang('es'))

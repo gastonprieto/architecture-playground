@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, type KeyboardEvent } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { DEFAULT_WEIGHT } from '../engine/weights'
 import type { DbKind } from '../components/database'
@@ -17,8 +17,9 @@ import { SelectField } from './fields/SelectField'
 import { TextField } from './fields/TextField'
 import { InfoButton } from './InfoDialog'
 import { isWeightedLb, lbShares } from './lbWeights'
-import { LbAdvancedSection } from './LbAdvancedSection'
+import { NodeStatusPanel } from './NodeStatusPanel'
 import { useEditor } from './store/editor'
+import { useInspectorTab, type InspectorTab } from './store/inspectorTab'
 import { databaseKindPatch } from './sessions'
 import { useBehaviorStatus } from './useBehaviorStatus'
 
@@ -195,6 +196,9 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
   const removeElements = useEditor((s) => s.removeElements)
   const lang = useLang((s) => s.lang)
   const t = useT()
+  const tab = useInspectorTab((s) => s.tab)
+  const setTab = useInspectorTab((s) => s.setTab)
+  const tabsId = useId()
   if (!node) return null
   const def = defaultRegistry.get(node.type)
   // A database Tipo change brings its suggested processingTime along (one undo step, spec §5).
@@ -213,6 +217,18 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
       </div>
     )
   }
+  const tabs: { id: InspectorTab; label: string }[] = [
+    { id: 'status', label: t('inspector.tabStatus') },
+    { id: 'config', label: t('inspector.tabConfig') },
+  ]
+  // Tabs pattern: arrows move between tabs (and select them), the active one is the only tab stop.
+  const onTabKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+    e.preventDefault()
+    const next = tabs[(tabs.findIndex((x) => x.id === tab) + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length].id
+    setTab(next)
+    document.getElementById(`${tabsId}-tab-${next}`)?.focus()
+  }
   return (
     <div className="inspector-body">
       <div className="inspector-head">
@@ -221,23 +237,6 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
         </h2>
         <InfoButton type={def.type} label={componentLabel(lang, def.type, def)} />
       </div>
-      {Object.entries(def.config).map(([key, field]) => {
-        if (!fieldVisible(field, node.config, def)) return null
-        const control = (
-          <FieldControl key={key} nodeId={id} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, patchFor(key, v))} />
-        )
-        if (behavior.kind !== 'active' || !OVERRIDDEN_BY_BEHAVIOR[def.type]?.includes(key)) return control
-        return (
-          <div key={key} className="field-overridden">
-            {control}
-            <p className="field-note">{t('behavior.overridden')}</p>
-          </div>
-        )
-      })}
-      {def.type === 'load-balancer' && node.config.algorithm === 'weighted' && <WeightsSection lbId={id} />}
-      {def.type === 'load-balancer' && (
-        <LbAdvancedSection lbId={id} algorithm={typeof node.config.algorithm === 'string' ? node.config.algorithm : 'round-robin'} />
-      )}
       {def.actions && (
         <div className="inspector-actions">
           {Object.keys(def.actions).map((name) => (
@@ -247,6 +246,44 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
           ))}
         </div>
       )}
+      <div className="inspector-tabs" role="tablist" aria-label={t('inspector.tabsLabel')}>
+        {tabs.map((x) => (
+          <button
+            key={x.id}
+            id={`${tabsId}-tab-${x.id}`}
+            type="button"
+            role="tab"
+            aria-selected={tab === x.id}
+            aria-controls={`${tabsId}-panel-${x.id}`}
+            tabIndex={tab === x.id ? 0 : -1}
+            className={tab === x.id ? 'active' : undefined}
+            onClick={() => setTab(x.id)}
+            onKeyDown={onTabKey}
+          >
+            {x.label}
+          </button>
+        ))}
+      </div>
+      {/* Both panels stay mounted (the hidden one keeps its local input state); only the active one shows. */}
+      <div id={`${tabsId}-panel-status`} role="tabpanel" aria-labelledby={`${tabsId}-tab-status`} hidden={tab !== 'status'} className="inspector-panel">
+        <NodeStatusPanel nodeId={id} kind={def.type} config={node.config} />
+      </div>
+      <div id={`${tabsId}-panel-config`} role="tabpanel" aria-labelledby={`${tabsId}-tab-config`} hidden={tab !== 'config'} className="inspector-panel">
+        {Object.entries(def.config).map(([key, field]) => {
+          if (!fieldVisible(field, node.config, def)) return null
+          const control = (
+            <FieldControl key={key} nodeId={id} def={def} fieldKey={key} field={field} value={node.config[key]} onChange={(v) => updateNodeConfig(id, patchFor(key, v))} />
+          )
+          if (behavior.kind !== 'active' || !OVERRIDDEN_BY_BEHAVIOR[def.type]?.includes(key)) return control
+          return (
+            <div key={key} className="field-overridden">
+              {control}
+              <p className="field-note">{t('behavior.overridden')}</p>
+            </div>
+          )
+        })}
+        {def.type === 'load-balancer' && node.config.algorithm === 'weighted' && <WeightsSection lbId={id} />}
+      </div>
       {del}
     </div>
   )

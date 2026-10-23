@@ -69,6 +69,13 @@ export const es = {
     lbEmpty: 'Corré la simulación para ver el reparto en vivo.',
     lbNoTargets: 'Conectá el Load Balancer a sus destinos.',
     unknownType: 'Tipo desconocido: {type}',
+    tabsLabel: 'Vista del componente',
+    tabStatus: 'Estado',
+    tabConfig: 'Configuración',
+    statusEmpty: 'Dale ▶ para ver tráfico.',
+    depth: 'Mensajes en cola',
+    laneDepth: 'Pendientes de {name}',
+    hitRate: 'Hit %',
   },
   widgets: {
     slider: '{label} (deslizador)',

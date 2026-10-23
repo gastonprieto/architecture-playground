@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useLang } from '../../src/i18n'
 import { Inspector } from '../../src/ui/Inspector'
+import { statusRows } from '../../src/ui/NodeStatusPanel'
 import { useEditor } from '../../src/ui/store/editor'
+import { useInspectorTab } from '../../src/ui/store/inspectorTab'
 import { useRuntime } from '../../src/ui/runtime/runtimeStore'
 import type { LbView } from '../../src/ui/runtime/useSimulation'
 
@@ -20,6 +22,7 @@ const graph = {
 const select = (sel: { kind: 'node' | 'edge'; id: string } | null) => act(() => useEditor.getState().select(sel))
 
 beforeEach(() => act(() => useEditor.getState().loadGraph(structuredClone(graph))))
+beforeEach(() => useInspectorTab.getState().setTab('status'))
 // jsdom reports navigator.language 'en-US': these tests check the Spanish copy.
 beforeEach(() => useLang.getState().setLang('es'))
 afterEach(cleanup)
@@ -144,6 +147,8 @@ describe('NumberField typing', () => {
 })
 
 describe('Inspector: conditional fields', () => {
+  beforeEach(() => useInspectorTab.getState().setTab('config'))
+
   it('a Cache shows only the fields of its mode (showIf)', () => {
     act(() =>
       useEditor.getState().loadGraph({ nodes: [{ id: 'k1', type: 'cache', position: { x: 0, y: 0 }, config: { name: 'Cache', mode: 'keys' } }], edges: [] }),
@@ -264,5 +269,104 @@ describe('Inspector: LB advanced view', () => {
     select({ kind: 'node', id: 'lb1' })
     expect(screen.getByText(/próxima/)).toBeTruthy()
     expect(screen.getByText(/next → web-2/)).toBeTruthy()
+  })
+})
+
+describe('Inspector: Estado / Configuración tabs', () => {
+  afterEach(() => act(() => useRuntime.setState({ states: {}, stats: {} })))
+  const panel = (name: string) => screen.getByRole('tabpanel', { name })
+
+  it('opens on Estado; Configuración shows the fields; the choice is kept across selections', () => {
+    render(<Inspector />)
+    select({ kind: 'node', id: 's1' })
+    expect(screen.getByRole('tab', { name: 'Estado' }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.queryByRole('tabpanel', { name: 'Configuración' })).toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: 'Configuración' }))
+    expect(within(panel('Configuración')).getByLabelText('Nombre')).toBeTruthy()
+    select({ kind: 'node', id: 'lb1' })
+    expect(screen.getByRole('tab', { name: 'Configuración' }).getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('arrow keys move between the tabs', () => {
+    render(<Inspector />)
+    select({ kind: 'node', id: 's1' })
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Estado' }), { key: 'ArrowRight' })
+    expect(useInspectorTab.getState().tab).toBe('config')
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Configuración' }))
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Configuración' }), { key: 'ArrowRight' })
+    expect(useInspectorTab.getState().tab).toBe('status')
+  })
+
+  it('actions and Borrar stay visible on both tabs', () => {
+    render(<Inspector runAction={vi.fn()} />)
+    select({ kind: 'node', id: 'c1' })
+    expect(screen.getByRole('button', { name: 'Ráfaga' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Borrar' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: 'Configuración' }))
+    expect(screen.getByRole('button', { name: 'Ráfaga' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Borrar' })).toBeTruthy()
+  })
+
+  it('Estado shows the counters at zero with a hint before any traffic, then the live values', () => {
+    render(<Inspector />)
+    select({ kind: 'node', id: 's1' })
+    expect(within(panel('Estado')).getByText('Dale ▶ para ver tráfico.')).toBeTruthy()
+    act(() => useRuntime.setState({ stats: { s1: { inFlight: 2, queued: 1, ok: 40, errors: 3 } } }))
+    const status = panel('Estado')
+    expect(within(status).queryByText('Dale ▶ para ver tráfico.')).toBeNull()
+    expect(within(status).getByText('En proceso').previousSibling?.textContent).toBe('⏳ 2')
+    expect(within(status).getByText('OK').previousSibling?.textContent).toBe('✔ 40')
+    expect(within(status).getByText('Errores').previousSibling?.textContent).toBe('✖ 3')
+  })
+
+  it('a load balancer shows its advanced view in Estado, not in Configuración', () => {
+    render(<Inspector />)
+    select({ kind: 'node', id: 'lb1' })
+    expect(within(panel('Estado')).getByText('Corré la simulación para ver el reparto en vivo.')).toBeTruthy()
+    expect(within(panel('Estado')).queryByText('Dale ▶ para ver tráfico.')).toBeNull()
+  })
+})
+
+describe('statusRows', () => {
+  const t = (key: string, p?: Record<string, string | number>) => (p ? `${key}(${Object.values(p).join(',')})` : key)
+  const g = (nodes: { id: string; name?: string }[]) => ({
+    nodes: nodes.map((n) => ({ id: n.id, type: 'subscriber', position: { x: 0, y: 0 }, config: n.name ? { name: n.name } : {} })),
+    edges: [],
+  })
+  const rows = (...a: Parameters<typeof statusRows>) => statusRows(...a).map((r) => [r.label, r.value])
+
+  it('queue and DLQ show their depth', () => {
+    expect(rows('queue', {}, { items: { head: [], total: 7 } }, g([]), t)).toEqual([['inspector.depth', '7']])
+    expect(rows('dlq', {}, undefined, g([]), t)).toEqual([['inspector.depth', '0']])
+  })
+
+  it('a broker shows the depth of each existing subscriber lane', () => {
+    const ui = { lanes: { a: { head: [], total: 3 }, gone: { head: [], total: 9 } } }
+    expect(rows('broker', {}, ui, g([{ id: 'a', name: 'Mailer' }]), t)).toEqual([['inspector.laneDepth(Mailer)', '3']])
+  })
+
+  it('a cache shows keys, HITs, MISSes and hit % (keys only in keys mode)', () => {
+    const ui = { cacheKeys: 4, cacheHits: 3, cacheMisses: 1 }
+    expect(rows('cache', { mode: 'keys' }, ui, g([]), t)).toEqual([
+      ['node.cacheKeys', '4'],
+      ['HITs', '3'],
+      ['MISSes', '1'],
+      ['inspector.hitRate', '75%'],
+    ])
+    expect(rows('cache', { mode: 'random' }, undefined, g([]), t)).toEqual([
+      ['HITs', '0'],
+      ['MISSes', '0'],
+      ['inspector.hitRate', '—'],
+    ])
+  })
+
+  it('a reverse proxy shows cache rows only with its cache on', () => {
+    expect(rows('reverse-proxy', { cache: 'off' }, undefined, g([]), t)).toEqual([])
+    expect(rows('reverse-proxy', { cache: 'keys' }, undefined, g([]), t)[0]).toEqual(['node.cacheKeys', '0'])
+  })
+
+  it('a client with several users shows its logged-in users; a plain service shows nothing', () => {
+    expect(rows('client', { users: 5, auth: 'login' }, { cookies: 2 }, g([]), t)).toEqual([['node.loggedIn', '🍪 2/5']])
+    expect(rows('service', {}, undefined, g([]), t)).toEqual([])
   })
 })

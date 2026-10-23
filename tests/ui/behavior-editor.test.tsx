@@ -6,6 +6,7 @@ import App from '../../src/ui/App'
 import { behaviorExample } from '../../src/ui/behaviorText'
 import { useBehaviorEditor } from '../../src/ui/store/behaviorEditor'
 import { useEditor } from '../../src/ui/store/editor'
+import { useInspectorTab } from '../../src/ui/store/inspectorTab'
 import { useInfoPanel } from '../../src/ui/store/infoPanel'
 
 beforeAll(() => {
@@ -59,6 +60,8 @@ function setBehavior(id: string, behavior: string) {
   act(() => useEditor.getState().updateNodeConfig(id, { behavior }, { coalesce: false }))
 }
 
+// These tests edit configuration: start every inspector on the Configuración tab.
+beforeEach(() => useInspectorTab.getState().setTab('config'))
 beforeEach(() => {
   localStorage.clear()
   act(() => useLang.getState().setLang('es'))
