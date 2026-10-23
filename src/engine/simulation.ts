@@ -235,6 +235,9 @@ export class Simulation {
 
   private forwardResponse(from: NodeId, res: Message): void {
     if (res.trail.length === 0) return // reached the originator: the response ends here
+    // A relay (LB, proxy…) counts the requests it resolved through others, like the ones it answers.
+    const rec = this.nodes.get(from)
+    if (rec) this.bump(rec, res.status === 'ok' ? 'ok' : 'errors')
     this.transmit(from, res.trail[res.trail.length - 1], { ...res, trail: res.trail.slice(0, -1) })
   }
 

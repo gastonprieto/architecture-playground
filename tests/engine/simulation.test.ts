@@ -67,6 +67,8 @@ describe('Simulation', () => {
     expect(sent[1].p.msg.trail).toEqual(['A', 'B'])
     expect(sent[2].p.msg.trail).toEqual(['A'])
     expect(sim.nodeStats('C')).toEqual({ inFlight: 0, queued: 0, ok: 1, errors: 0 })
+    // B only relayed C's answer, and still counts it as resolved through it
+    expect(sim.nodeStats('B')).toEqual({ inFlight: 0, queued: 0, ok: 1, errors: 0 })
   })
 
   it('send without edge uses edgeId null', () => {
@@ -149,6 +151,7 @@ describe('Simulation', () => {
     sim.advance(10 * HOP_MS)
     expect(of(log, 'node:stats').map((e) => e.p)).toEqual([
       { nodeId: 'C', stats: { inFlight: 0, queued: 0, ok: 1, errors: 0 } },
+      { nodeId: 'B', stats: { inFlight: 0, queued: 0, ok: 1, errors: 0 } },
     ])
   })
 
