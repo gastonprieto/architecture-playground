@@ -27,6 +27,7 @@ export const worker = defineComponent<WorkerConfig, WorkerState>({
   label: 'Worker',
   icon: '🛠️',
   color: 'ok',
+  group: 'compute',
   config: {
     ...processingFields,
     failRate: { type: 'number', label: 'Tasa de fallo', default: 0, min: 0, max: 1, step: 0.05 },

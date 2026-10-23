@@ -20,7 +20,7 @@ export interface DatabaseState {
 
 /** Suggested processingTime and node icon per kind. Key-value is also volatile (see syncUp). */
 export const DB_KIND_DEFAULTS: Record<DbKind, { processingTime: number; icon: string }> = {
-  relational: { processingTime: 300, icon: '🗄️' },
+  relational: { processingTime: 300, icon: '🛢️' },
   'key-value': { processingTime: 20, icon: '🗝️' },
   document: { processingTime: 80, icon: '📄' },
 }
@@ -50,6 +50,7 @@ export const database = defineComponent<DatabaseConfig, DatabaseState>({
   label: 'Base de datos',
   icon: DB_KIND_DEFAULTS.relational.icon,
   color: 'db',
+  group: 'data',
   config: {
     kind: {
       type: 'select',

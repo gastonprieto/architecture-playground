@@ -107,6 +107,8 @@ export interface ComponentDef<C = any, S = any> {
   label: string
   icon: string
   color: Tone
+  /** Palette group this component belongs to (see ui/Palette). Missing = ungrouped (shown last). */
+  group?: 'edge' | 'compute' | 'data' | 'messaging'
   config: Record<string, Field>
   initialState(): S
   onMessage(msg: Message, ctx: Ctx<C, S>): void

@@ -68,9 +68,13 @@ export function FloatingLabels() {
 
     const offs = [
       // Labels are translated when they appear; ones already floating keep their language.
-      sim.on('message:dropped', ({ at, reason, code }) =>
-        add(at, code !== undefined ? String(code) : codeText(useLang.getState().lang, 'reasons', reason), C.err),
-      ),
+      // A drop because the node is down or gone (down/removed) shows nothing: a dead node is not
+      // answering anything, so no 503 (nor any reason) floats over it. The 503 still travels back to
+      // the caller in the response; only the on-screen label is suppressed.
+      sim.on('message:dropped', ({ at, reason, code }) => {
+        if (reason === 'down' || reason === 'removed') return
+        add(at, code !== undefined ? String(code) : codeText(useLang.getState().lang, 'reasons', reason), C.err)
+      }),
       sim.on('node:label', ({ nodeId, text, tone }) => add(nodeId, codeText(useLang.getState().lang, 'labels', text), toneColor(tone))),
       onFrame(() => {
         if (buffer.length === 0 && bumps.size === 0) return

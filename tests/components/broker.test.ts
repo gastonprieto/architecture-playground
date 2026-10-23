@@ -67,8 +67,8 @@ describe('catalog', () => {
   it('registers broker and subscriber with their metadata and config', () => {
     const b = defaultRegistry.get('broker')!
     const sub = defaultRegistry.get('subscriber')!
-    expect([b.label, b.icon, b.color]).toEqual(['Broker', '📡', 'hc'])
-    expect([sub.label, sub.icon, sub.color]).toEqual(['Suscriptor', '📥', 'ok'])
+    expect([b.label, b.icon, b.color]).toEqual(['Broker', '📣', 'hc'])
+    expect([sub.label, sub.icon, sub.color]).toEqual(['Suscriptor', '🔔', 'ok'])
     expect(sub.config.emits).toEqual({ type: 'text', label: 'Emite evento', default: '' })
     expect(Object.keys(sub.config)).toEqual(expect.arrayContaining(['up', 'processingTime', 'capacity', 'queueMax']))
   })

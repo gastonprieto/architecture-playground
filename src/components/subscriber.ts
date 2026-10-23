@@ -22,8 +22,9 @@ type SubscriberState = BehaviorState & PullState
 export const subscriber = defineComponent<SubscriberConfig, SubscriberState>({
   type: 'subscriber',
   label: 'Suscriptor',
-  icon: '📥',
+  icon: '🔔',
   color: 'ok',
+  group: 'compute',
   config: {
     ...processingFields,
     emits: { type: 'text', label: 'Emite evento', default: '' },

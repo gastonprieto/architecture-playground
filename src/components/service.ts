@@ -27,6 +27,7 @@ export const service = defineComponent<ServiceConfig, DependencyState & Behavior
   label: 'Servicio',
   icon: '⚙️',
   color: 'ok',
+  group: 'compute',
   config: {
     ...processingFields,
     mode: {

@@ -43,7 +43,7 @@ describe('defaultRegistry', () => {
     expect(meta).toEqual([
       ['client', 'Cliente', '💻', 'req'],
       ['service', 'Servicio', '⚙️', 'ok'],
-      ['database', 'Base de datos', '🗄️', 'db'],
+      ['database', 'Base de datos', '🛢️', 'db'],
     ])
     expect(defaultRegistry.get('client')!.recordsMetrics).toBe(true)
   })

@@ -38,6 +38,12 @@ export const en: Dict = {
   palette: {
     title: 'Components',
     dragHint: 'Drag {label} onto the canvas',
+    groups: {
+      edge: 'Traffic',
+      compute: 'Compute',
+      data: 'Data',
+      messaging: 'Messaging',
+    },
   },
   inspector: {
     label: 'Inspector',

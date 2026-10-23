@@ -90,6 +90,7 @@ export const reverseProxy = defineComponent<ReverseProxyConfig, ReverseProxyStat
   label: 'Reverse Proxy',
   icon: '🚪',
   color: 'req',
+  group: 'edge',
   config: {
     auth: {
       type: 'select',

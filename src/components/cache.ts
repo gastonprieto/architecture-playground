@@ -109,6 +109,7 @@ export const cache = defineComponent<CacheConfig, CacheState>({
   label: 'Cache',
   icon: '⚡',
   color: 'redis',
+  group: 'data',
   config: {
     mode: {
       type: 'select',

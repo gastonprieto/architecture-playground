@@ -40,6 +40,7 @@ export const queue = defineComponent<QueueConfig, QueueState>({
   label: 'Cola',
   icon: '📬',
   color: 'req',
+  group: 'messaging',
   config: {
     queueMax: { type: 'number', label: 'Cola máx.', default: 50, min: 0, max: 500 },
     maxRetries: { type: 'number', label: 'Reintentos máx.', default: 3, min: 0, max: 10 },

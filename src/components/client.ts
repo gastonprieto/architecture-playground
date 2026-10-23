@@ -99,6 +99,7 @@ export const client = defineComponent<ClientConfig, ClientState>({
   label: 'Cliente',
   icon: '💻',
   color: 'req',
+  group: 'edge',
   recordsMetrics: true,
   inputs: false,
   config: {

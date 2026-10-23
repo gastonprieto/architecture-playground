@@ -39,6 +39,12 @@ export const es = {
   palette: {
     title: 'Componentes',
     dragHint: 'Arrastrá {label} al canvas',
+    groups: {
+      edge: 'Tráfico',
+      compute: 'Cómputo',
+      data: 'Datos',
+      messaging: 'Mensajería',
+    },
   },
   inspector: {
     label: 'Inspector',

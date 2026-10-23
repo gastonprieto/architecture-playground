@@ -96,7 +96,7 @@ describe('inspector fields', () => {
 describe('database on the canvas', () => {
   it('shows the kind icon and "Base de datos · <tipo>"', () => {
     renderWith()
-    expect(nodeEl('db1').querySelector('.arch-node-icon')!.textContent).toBe('🗄️')
+    expect(nodeEl('db1').querySelector('.arch-node-icon')!.textContent).toBe('🛢️')
     expect(nodeEl('db1').querySelector('.arch-node-type')!.textContent).toBe('Base de datos · relacional')
     expect(nodeEl('db2').querySelector('.arch-node-icon')!.textContent).toBe('🗝️')
     expect(nodeEl('db2').querySelector('.arch-node-type')!.textContent).toBe('Base de datos · clave-valor')
@@ -115,7 +115,7 @@ describe('database on the canvas', () => {
   it('the palette keeps the base icon', () => {
     renderWith()
     const nav = screen.getByRole('navigation', { name: 'Componentes' })
-    expect(within(nav).getByText('Base de datos').previousElementSibling!.textContent).toBe('🗄️')
+    expect(within(nav).getByText('Base de datos').previousElementSibling!.textContent).toBe('🛢️')
   })
 })
 

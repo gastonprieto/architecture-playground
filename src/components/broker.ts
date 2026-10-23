@@ -42,8 +42,9 @@ function publish(ctx: BrokerCtx, ev: Message): void {
 export const broker = defineComponent<BrokerConfig, BrokerState>({
   type: 'broker',
   label: 'Broker',
-  icon: '📡',
+  icon: '📣',
   color: 'hc',
+  group: 'messaging',
   config: {},
   initialState: () => ({ lanes: {}, inFlight: {}, pending: {} }),
   onMessage(msg, ctx) {

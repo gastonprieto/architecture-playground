@@ -120,6 +120,7 @@ export const loadBalancer = defineComponent<LoadBalancerConfig, LoadBalancerStat
   label: 'Load Balancer',
   icon: '⚖️',
   color: 'hc',
+  group: 'edge',
   config: {
     algorithm: {
       type: 'select',

@@ -15,6 +15,7 @@ export const dlq = defineComponent<DlqConfig, DlqState>({
   label: 'DLQ',
   icon: '☠️',
   color: 'err',
+  group: 'messaging',
   config: {},
   initialState: () => ({ items: [] }),
   // Stores dead messages and events without replying; a request would wait forever, so it fails.
