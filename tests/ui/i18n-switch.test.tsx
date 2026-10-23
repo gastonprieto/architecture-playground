@@ -67,6 +67,7 @@ describe('language switch', () => {
     expect(screen.getByLabelText('Amount to send', { selector: 'input[type=number]' })).toBeTruthy()
     expect(screen.getByRole('option', { name: 'Event' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Burst' })).toBeTruthy()
     // The graph was loaded in Spanish: switching the UI language does not rename user data.
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Navegador')
   })

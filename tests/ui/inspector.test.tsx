@@ -74,11 +74,13 @@ describe('Inspector', () => {
     const runAction = vi.fn()
     render(<Inspector runAction={runAction} />)
     select({ kind: 'node', id: 'c1' })
-    // One "Enviar" with its amount beside it; "Enviar 1" is hidden.
-    expect(screen.queryByText('Enviar 1')).toBeNull()
+    // Two buttons, each with its own amount beside it.
     fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
-    expect(runAction).toHaveBeenCalledWith('c1', 'burst')
-    expect((screen.getByLabelText('Cantidad a enviar') as HTMLInputElement).value).toBe('20')
+    fireEvent.click(screen.getByRole('button', { name: 'Ráfaga' }))
+    expect(runAction).toHaveBeenNthCalledWith(1, 'c1', 'send1')
+    expect(runAction).toHaveBeenNthCalledWith(2, 'c1', 'burst')
+    expect((screen.getByLabelText('Cantidad a enviar') as HTMLInputElement).value).toBe('1')
+    expect((screen.getByLabelText('Tamaño de ráfaga') as HTMLInputElement).value).toBe('20')
   })
 
   it('disables actions without runAction', () => {
@@ -128,7 +130,7 @@ describe('NumberField typing', () => {
   })
   it('clamps on blur and Enter', () => {
     setup()
-    const input = screen.getByLabelText('Cantidad a enviar', { selector: 'input[type=number]' }) as HTMLInputElement
+    const input = screen.getByLabelText('Tamaño de ráfaga', { selector: 'input[type=number]' }) as HTMLInputElement
     fireEvent.change(input, { target: { value: '999' } })
     expect(useEditor.getState().graph.nodes[0].config.burstSize).toBe(20)
     fireEvent.blur(input)
@@ -346,15 +348,16 @@ describe('Inspector: actions strip', () => {
     expect(useEditor.getState().graph.nodes[2].config.up).toBe(true)
   })
 
-  it('the Cliente amount lives beside Enviar, not among the fields', () => {
+  it('the Cliente amounts live beside Enviar and Ráfaga, not among the fields', () => {
     useInspectorTab.getState().setTab('config')
     render(<Inspector />)
     select({ kind: 'node', id: 'c1' })
     const amount = screen.getByLabelText('Cantidad a enviar') as HTMLInputElement
     expect(amount.closest('.inspector-actions')).toBeTruthy()
-    fireEvent.change(amount, { target: { value: '1' } })
+    expect(screen.getByLabelText('Tamaño de ráfaga').closest('.inspector-actions')).toBeTruthy()
+    fireEvent.change(amount, { target: { value: '5' } })
     fireEvent.keyDown(amount, { key: 'Enter' })
-    expect(useEditor.getState().graph.nodes[0].config.burstSize).toBe(1)
+    expect(useEditor.getState().graph.nodes[0].config.sendCount).toBe(5)
   })
 
   it('the Cliente mix is labelled Paths for requests and Eventos for events', () => {

@@ -127,10 +127,9 @@ export interface ComponentDef<C = any, S = any> {
   iconFor?(config: C): string
   /**
    * Things the user triggers on a running node. `param` names a number config field the inspector
-   * shows next to the button (and not among the fields); `hidden` keeps an action out of the UI
-   * (still callable by name, e.g. from tests).
+   * shows next to the button (and not among the fields).
    */
-  actions?: Record<string, { label: string; param?: string; hidden?: boolean; run(ctx: Ctx<C, S>): void }>
+  actions?: Record<string, { label: string; param?: string; run(ctx: Ctx<C, S>): void }>
   /** True only for client. */
   recordsMetrics?: boolean
   /** False for source-only components (Cliente): no input port, nothing can be wired into them. Default true. */

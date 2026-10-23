@@ -11,6 +11,8 @@ export interface ClientConfig {
   kind: 'request' | 'event'
   rate: number
   mix: MixEntry[]
+  /** How many requests "Enviar" sends at once. */
+  sendCount: number
   burstSize: number
   /** How many users share this client (1..50); messages go round robin over them. */
   users: number
@@ -121,7 +123,8 @@ export const client = defineComponent<ClientConfig, ClientState>({
     },
     rate: { type: 'number', label: 'Tasa', default: 0, min: 0, max: 50, step: 1, unit: 'req/s' },
     mix: { type: 'mix', label: 'Mix (path / evento)', default: [{ value: '/', weight: 1 }] },
-    burstSize: { type: 'number', label: 'Cantidad a enviar', default: 20, min: 1, max: 200, step: 1 },
+    sendCount: { type: 'number', label: 'Cantidad a enviar', default: 1, min: 1, max: 200, step: 1 },
+    burstSize: { type: 'number', label: 'Tamaño de ráfaga', default: 20, min: 1, max: 200, step: 1 },
     users: { type: 'number', label: 'Usuarios', default: 1, min: 1, max: 50, step: 1 },
     auth: {
       type: 'select',
@@ -174,14 +177,20 @@ export const client = defineComponent<ClientConfig, ClientState>({
     }
   },
   actions: {
-    send1: { label: 'Enviar 1', hidden: true, run: (ctx) => sendOne(ctx) },
-    /** "Enviar ×N": one request right away, or N spread over the burst window. */
-    burst: {
+    /** "Enviar ×N": N requests at once (1 by default, so tests keep calling it send1). */
+    send1: {
       label: 'Enviar',
+      param: 'sendCount',
+      run(ctx) {
+        for (let i = 0; i < ctx.config.sendCount; i++) sendOne(ctx)
+      },
+    },
+    /** "Ráfaga ×N": N requests spread over the burst window. */
+    burst: {
+      label: 'Ráfaga',
       param: 'burstSize',
       run(ctx) {
         const n = ctx.config.burstSize
-        if (n <= 1) return sendOne(ctx)
         for (let i = 0; i < n; i++) ctx.schedule((i * BURST_WINDOW_MS) / n, () => sendOne(ctx))
       },
     },

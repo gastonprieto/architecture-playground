@@ -260,7 +260,7 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
   }
   const hasPower = def.config.up?.type === 'boolean'
   const down = hasPower && node.config.up === false
-  const actions = Object.entries(def.actions ?? {}).filter(([, a]) => !a.hidden)
+  const actions = Object.entries(def.actions ?? {})
   const actionParams = new Set(actions.flatMap(([, a]) => (a.param ? [a.param] : [])))
   const tabs: { id: InspectorTab; label: string }[] = [
     { id: 'status', label: t('inspector.tabStatus') },

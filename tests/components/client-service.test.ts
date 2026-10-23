@@ -145,6 +145,14 @@ describe('client', () => {
     expect(sent).toHaveLength(1)
   })
 
+  it('"Enviar ×N" sends N requests at once', () => {
+    const s = sim(graph([node('C', 'client', { rate: 0, sendCount: 3 }), node('D', 'database')], [edge('C', 'D')]))
+    const sent = sentFrom(s, 'C')
+    s.runAction('C', 'send1')
+    expect(sent).toHaveLength(3)
+    expect(new Set(sent.map((x) => x.at)).size).toBe(1)
+  })
+
   it('rate field max is 50 and burstSize max is 200', () => {
     const { rate, burstSize } = client.config
     expect(rate).toMatchObject({ type: 'number', min: 0, max: 50, default: 0 })
@@ -162,8 +170,8 @@ describe('client', () => {
     })
     expect(client.config.mix).toMatchObject({ type: 'mix', default: [{ value: '/', weight: 1 }] })
     // The UI shows one "Enviar ×N" (N = burstSize); send1 stays callable by name, hidden from the UI.
-    expect(client.actions!.send1).toMatchObject({ label: 'Enviar 1', hidden: true })
-    expect(client.actions!.burst).toMatchObject({ label: 'Enviar', param: 'burstSize' })
+    expect(client.actions!.send1).toMatchObject({ label: 'Enviar', param: 'sendCount' })
+    expect(client.actions!.burst).toMatchObject({ label: 'Ráfaga', param: 'burstSize' })
   })
 
   it('event kind sends events with meta.eventType from the weighted mix', () => {
