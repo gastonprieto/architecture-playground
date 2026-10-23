@@ -89,6 +89,7 @@ export function NodeStatusPanel({ nodeId, kind, config }: { nodeId: string; kind
   const t = useT()
   const stats = useRuntime((s) => s.stats[nodeId]) ?? ZERO_STATS
   const ui = useRuntime((s) => s.states[nodeId]) as UiState | undefined
+  const playing = useRuntime((s) => s.playing)
   const graph = useEditor((s) => s.graph)
   const rows = statusRows(kind, config, ui, t)
   const tiles = statusTiles(kind, stats, ui, graph)
@@ -107,7 +108,7 @@ export function NodeStatusPanel({ nodeId, kind, config }: { nodeId: string; kind
         ))}
       </div>
       {/* The LB view has its own empty hint. */}
-      {idle && kind !== 'load-balancer' && <p className="status-empty">{t('inspector.statusEmpty')}</p>}
+      {idle && kind !== 'load-balancer' && <p className="status-empty">{t(playing ? 'inspector.statusNoTraffic' : 'inspector.statusPaused')}</p>}
       {rows.length > 0 && (
         <dl className="status-rows">
           {rows.map((r) => (
