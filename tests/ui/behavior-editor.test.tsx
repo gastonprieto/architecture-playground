@@ -344,7 +344,7 @@ describe('behavior editor: backdrop, hints, overridden fields', () => {
     const mode = within(inspector()).getByLabelText('Llamadas')
     expect(mode.closest('.field-overridden')).toBeTruthy()
     expect(within(inspector()).getByText(note)).toBeTruthy()
-    expect(within(inspector()).getByLabelText('Capacidad').closest('.field-overridden')).toBeNull()
+    expect(within(inspector()).getByLabelText('Concurrencia máx.').closest('.field-overridden')).toBeNull()
     setBehavior('s1', INVALID) // errors → default behavior → nothing overridden
     expect(within(inspector()).queryByText(note)).toBeNull()
     act(() => useEditor.getState().select({ kind: 'node', id: 'w1' }))

@@ -1,4 +1,4 @@
-import { defineComponent, processingFields, type Ctx, type Field } from '../engine/registry'
+import { defineComponent, processingFields, waitingClientsField, type Ctx, type Field } from '../engine/registry'
 
 export type DbKind = 'relational' | 'key-value' | 'document'
 
@@ -63,6 +63,7 @@ export const database = defineComponent<DatabaseConfig, DatabaseState>({
       ],
     },
     ...processingFields,
+    queueMax: waitingClientsField,
     processingTime,
   },
   iconFor: (config) => DB_KIND_DEFAULTS[dbKind(config)].icon,

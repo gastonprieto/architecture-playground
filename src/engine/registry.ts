@@ -152,9 +152,12 @@ export const behaviorField: Field = { type: 'behavior', label: 'Comportamiento',
 export const processingFields: Record<'up' | 'processingTime' | 'capacity' | 'queueMax', Field> = {
   up: { type: 'boolean', label: 'Activo', default: true },
   processingTime: { type: 'number', label: 'Tiempo de proceso', default: 400, min: 50, max: 5000, step: 50, unit: 'ms' },
-  capacity: { type: 'number', label: 'Capacidad', default: 2, min: 1, max: 50 },
+  capacity: { type: 'number', label: 'Concurrencia máx.', default: 2, min: 1, max: 50 },
   queueMax: { type: 'number', label: 'Cola máx.', default: 10, min: 0, max: 500 },
 }
+
+/** queueMax as a request-serving component (Servicio, Base de datos) names it: who waits for a slot. */
+export const waitingClientsField: Field = { ...processingFields.queueMax, label: 'Clientes en espera' }
 
 export class Registry {
   private defs = new Map<string, ComponentDef>()

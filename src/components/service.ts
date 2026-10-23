@@ -1,4 +1,4 @@
-import { behaviorField, defineComponent, processingFields } from '../engine/registry'
+import { behaviorField, defineComponent, processingFields, waitingClientsField } from '../engine/registry'
 import { activeProgram, forgetSessionsIfDown, handleBehaviorResponse, initialBehaviorState, runBehavior, sweepBehaviorPending, type BehaviorState } from './behavior/run'
 import { cacheAside, handleCacheAsideResponse, initialCacheAsideState, sweepCacheAsidePending, type CacheAsideState } from './shared/cacheAside'
 import { initialPullState, pollTick, pullUpstreams, type PullState } from './shared/pull'
@@ -30,6 +30,7 @@ export const service = defineComponent<ServiceConfig, DependencyState & Behavior
   group: 'compute',
   config: {
     ...processingFields,
+    queueMax: waitingClientsField,
     mode: {
       type: 'select',
       label: 'Llamadas',

@@ -38,7 +38,7 @@ describe('componentText', () => {
   it('uses the shared fields.<key> for name and processing fields', () => {
     expect(fieldLabel('en', client, 'name')).toBe('Name')
     expect(fieldLabel('en', defaultRegistry.get('service')!, 'processingTime')).toBe('Processing time')
-    expect(fieldLabel('en', thirdParty, 'capacity')).toBe('Capacity')
+    expect(fieldLabel('en', thirdParty, 'capacity')).toBe('Max concurrency')
     expect(fieldLabel('es', thirdParty, 'name')).toBe('Nombre')
   })
 

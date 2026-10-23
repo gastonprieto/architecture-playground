@@ -127,7 +127,7 @@ export const en: Dict = {
     name: 'Name',
     up: 'Up',
     processingTime: 'Processing time',
-    capacity: 'Capacity',
+    capacity: 'Max concurrency',
     queueMax: 'Max queue',
     behavior: 'Behavior',
   },
@@ -145,7 +145,7 @@ export const en: Dict = {
     name: 'What it is called on the canvas.',
     up: 'Off, the component is down and rejects with `503`.',
     processingTime: 'How long it takes to process each message.',
-    capacity: 'How many messages it processes at once.',
+    capacity: 'How many messages it processes at once (the rest wait).',
     queueMax: 'How many can wait while it is busy; beyond that, `503`.',
     behavior: 'What it does with each request, event or message, written in the DSL; empty, the default behavior.',
   },
@@ -295,7 +295,7 @@ export const en: Dict = {
     },
     service: {
       label: 'Service',
-      fields: { mode: 'Calls' },
+      fields: { mode: 'Calls', queueMax: 'Waiting clients' },
       options: {
         mode: { parallel: 'Parallel', sequential: 'Sequential' },
       },
@@ -321,7 +321,7 @@ export const en: Dict = {
     },
     database: {
       label: 'Database',
-      fields: { kind: 'Type' },
+      fields: { kind: 'Type', queueMax: 'Waiting clients' },
       options: {
         kind: { relational: 'Relational', 'key-value': 'Key-value', document: 'Document' },
       },

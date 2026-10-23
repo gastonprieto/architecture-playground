@@ -130,7 +130,7 @@ export const es = {
     name: 'Nombre',
     up: 'Activo',
     processingTime: 'Tiempo de proceso',
-    capacity: 'Capacidad',
+    capacity: 'Concurrencia máx.',
     queueMax: 'Cola máx.',
     behavior: 'Comportamiento',
   },
@@ -148,7 +148,7 @@ export const es = {
     name: 'Cómo se llama en el canvas.',
     up: 'Apagado, el componente está caído y rechaza con `503`.',
     processingTime: 'Cuánto tarda en procesar cada mensaje.',
-    capacity: 'Cuántos mensajes procesa a la vez.',
+    capacity: 'Cuántos mensajes procesa a la vez (los demás esperan).',
     queueMax: 'Cuántos pueden esperar cuando está ocupado; más allá, `503`.',
     behavior: 'Qué hace con cada request, evento o mensaje, escrito en el DSL; vacío, el comportamiento por defecto.',
   },
@@ -298,7 +298,7 @@ export const es = {
     },
     service: {
       label: 'Servicio',
-      fields: { mode: 'Llamadas' },
+      fields: { mode: 'Llamadas', queueMax: 'Clientes en espera' },
       options: {
         mode: { parallel: 'Paralelo', sequential: 'Secuencial' },
       },
@@ -324,7 +324,7 @@ export const es = {
     },
     database: {
       label: 'Base de datos',
-      fields: { kind: 'Tipo' },
+      fields: { kind: 'Tipo', queueMax: 'Clientes en espera' },
       options: {
         kind: { relational: 'Relacional', 'key-value': 'Clave-valor', document: 'Documental' },
       },

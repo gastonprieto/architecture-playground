@@ -46,7 +46,7 @@ describe('Inspector', () => {
   it('clamps number input to max', () => {
     render(<Inspector />)
     select({ kind: 'node', id: 's1' })
-    const input = screen.getByLabelText('Capacidad', { selector: 'input[type=number]' })
+    const input = screen.getByLabelText('Concurrencia máx.', { selector: 'input[type=number]' })
     fireEvent.change(input, { target: { value: '99' } })
     fireEvent.blur(input)
     expect(useEditor.getState().graph.nodes[2].config.capacity).toBe(50)
