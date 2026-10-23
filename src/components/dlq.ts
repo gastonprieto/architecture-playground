@@ -1,8 +1,9 @@
-import { defineComponent } from '../engine/registry'
+import { defineComponent, processingFields } from '../engine/registry'
 import type { Message } from '../engine/types'
 
 export interface DlqConfig {
   name: string
+  up: boolean
 }
 
 export interface DlqState {
@@ -16,7 +17,9 @@ export const dlq = defineComponent<DlqConfig, DlqState>({
   icon: '☠️',
   color: 'err',
   group: 'messaging',
-  config: {},
+  config: {
+    up: processingFields.up,
+  },
   initialState: () => ({ items: [] }),
   // Stores dead messages and events without replying; a request would wait forever, so it fails.
   onMessage(msg, ctx) {

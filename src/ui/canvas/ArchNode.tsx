@@ -81,7 +81,7 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
   return (
     <div className="node-stats">
       <div className="node-counters">
-        {config.up === false && <span className="node-down">{t('node.down')}</span>}
+        {config.up === false && <span className="node-down">⏻ {t('node.down')}</span>}
         {(kind === 'worker' || kind === 'subscriber') && (
           <span className="node-pull" title={t('node.pull')}>
             PULL
@@ -146,7 +146,7 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
   const enterDelay = reduced ? 0 : (data.enterDelay ?? 0)
   return (
     <motion.div
-      className={`arch-node${selected ? ' selected' : ''}${def ? '' : ' unknown'}`}
+      className={`arch-node${selected ? ' selected' : ''}${def ? '' : ' unknown'}${data.config.up === false ? ' down' : ''}`}
       style={{ ['--node-color' as string]: color }}
       initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
       animate={reduced ? { opacity: 1 } : { opacity: 1, scale: 1 }}

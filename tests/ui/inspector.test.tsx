@@ -330,6 +330,19 @@ describe('Inspector: Estado / Configuración tabs', () => {
 })
 
 describe('Inspector: actions strip', () => {
+  it('Apagar / Encender toggles Activo from the strip (not among the fields)', () => {
+    useInspectorTab.getState().setTab('config')
+    render(<Inspector />)
+    select({ kind: 'node', id: 's1' })
+    expect(screen.queryByLabelText('Activo')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Apagar' }))
+    expect(useEditor.getState().graph.nodes[2].config.up).toBe(false)
+    const on = screen.getByRole('button', { name: 'Encender' })
+    expect(on.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(on)
+    expect(useEditor.getState().graph.nodes[2].config.up).toBe(true)
+  })
+
   it('the Cliente amount lives beside Enviar, not among the fields', () => {
     useInspectorTab.getState().setTab('config')
     render(<Inspector />)

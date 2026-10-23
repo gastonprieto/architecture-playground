@@ -258,6 +258,8 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
       </div>
     )
   }
+  const hasPower = def.config.up?.type === 'boolean'
+  const down = hasPower && node.config.up === false
   const actions = Object.entries(def.actions ?? {}).filter(([, a]) => !a.hidden)
   const actionParams = new Set(actions.flatMap(([, a]) => (a.param ? [a.param] : [])))
   const tabs: { id: InspectorTab; label: string }[] = [
@@ -280,12 +282,23 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
         </h2>
         <InfoButton type={def.type} label={componentLabel(lang, def.type, def)} />
       </div>
-      {actions.length > 0 && (
+      {(hasPower || actions.length > 0) && (
         <div className="inspector-actions">
+          {hasPower && (
+            <button
+              type="button"
+              className={`power${down ? ' down' : ''}`}
+              aria-pressed={!down}
+              title={t('inspector.upTitle')}
+              onClick={() => updateNodeConfig(id, { up: down })}
+            >
+              <span aria-hidden>⏻</span> {t(down ? 'inspector.turnOn' : 'inspector.turnOff')}
+            </button>
+          )}
           {actions.map(([name, action]) => {
             const param = action.param ? def.config[action.param] : undefined
             const button = (
-              <button key={name} type="button" disabled={!runAction} onClick={() => runAction?.(id, name)}>
+              <button key={name} type="button" disabled={!runAction || down} onClick={() => runAction?.(id, name)}>
                 {actionLabel(lang, def, name)}
               </button>
             )
@@ -328,8 +341,8 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
       </div>
       <div id={`${tabsId}-panel-config`} role="tabpanel" aria-labelledby={`${tabsId}-tab-config`} hidden={tab !== 'config'} className="inspector-panel">
         {Object.entries(def.config).map(([key, field]) => {
-          // The action params live in the actions strip, always visible.
-          if (actionParams.has(key) || !fieldVisible(field, node.config, def)) return null
+          // Activo and the action params live in the actions strip, always visible.
+          if (key === 'up' || actionParams.has(key) || !fieldVisible(field, node.config, def)) return null
           const control = (
             <FieldControl
               key={key}

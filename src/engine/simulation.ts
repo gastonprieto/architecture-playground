@@ -108,7 +108,8 @@ export class Simulation {
 
   runAction(nodeId: NodeId, action: string): void {
     const rec = this.nodes.get(nodeId)
-    rec?.def?.actions?.[action]?.run(this.ctx(rec))
+    // A node that is off does nothing, not even what the user triggers on it.
+    if (rec && !isDown(rec)) rec.def?.actions?.[action]?.run(this.ctx(rec))
   }
 
   /** Test helper: deliver `msg` to `nodeId` right now (synchronously). */
@@ -178,6 +179,10 @@ export class Simulation {
       else this.forwardResponse(rec.id, msg)
     } else if (!def) {
       this.drop(rec.id, msg, 'unknown-type')
+    } else if (isDown(rec)) {
+      // Off: rejects whatever reaches it with 503 (a poll just finds nobody home). Responses to what it
+      // sent before going down still pass, so the requests in flight end.
+      if (msg.kind !== 'poll') this.drop(rec.id, msg, 'down', 503)
     } else if (msg.kind === 'poll') {
       // A pull request: the upstream hands over work if it has any. No onPoll (or no work) = nothing
       // happens; the consumer re-polls on its own interval. Polls never get a response.
@@ -389,6 +394,9 @@ export class Simulation {
     }
   }
 }
+
+/** Any component can be switched off (`up: false`), whether or not it processes. */
+const isDown = (rec: NodeRecord) => rec.config.up === false
 
 /** The config a node's processing reads: its def's processingConfig of the config, or the config itself. */
 function processingConfigOf(rec: NodeRecord): Record<string, unknown> {

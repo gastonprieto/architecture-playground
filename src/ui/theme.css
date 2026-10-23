@@ -260,6 +260,11 @@ body {
 }
 .action-param input::-webkit-inner-spin-button, .action-param input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .action-param input:focus { outline: none; border-color: rgba(56, 189, 248, 0.5); }
+/* The button shows what it will do: red Apagar while on, green Encender while off. */
+.inspector button.power { color: var(--red); border-color: rgba(248, 113, 113, 0.4); }
+.inspector button.power:hover:not(:disabled) { background: rgba(248, 113, 113, 0.14); border-color: var(--red); }
+.inspector button.power.down { color: #fff; background: rgba(74, 222, 128, 0.25); border-color: var(--green); }
+.inspector button.power.down:hover:not(:disabled) { background: rgba(74, 222, 128, 0.38); border-color: var(--green); }
 .inspector-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); }
 .inspector .inspector-tabs button {
   flex: 1;
@@ -525,7 +530,16 @@ body {
   color: var(--red);
   font-weight: 700;
 }
-.arch-node:has(.node-down) { border-style: dashed; }
+/* A down node: red dashed outline, hatched background and a dimmed head, so it reads from afar. */
+.arch-node.down {
+  border: 1.5px dashed var(--red);
+  border-left: 3px solid var(--red);
+  background:
+    repeating-linear-gradient(135deg, rgba(248, 113, 113, 0.12) 0 6px, transparent 6px 14px),
+    rgba(18, 28, 56, 0.72);
+}
+.arch-node.down .arch-node-head { opacity: 0.55; filter: grayscale(1); }
+.arch-node.down .node-down { text-transform: uppercase; letter-spacing: 0.06em; }
 .node-pull {
   padding: 1px 6px;
   border-radius: 4px;

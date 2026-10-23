@@ -1,10 +1,11 @@
-import { defineComponent, type Ctx } from '../engine/registry'
+import { defineComponent, processingFields, type Ctx } from '../engine/registry'
 import { matchesEvent } from '../engine/rules'
 import type { Message, NodeId } from '../engine/types'
 import { isFree, release } from './shared/push'
 
 export interface BrokerConfig {
   name: string
+  up: boolean
 }
 
 export interface BrokerState {
@@ -51,7 +52,9 @@ export const broker = defineComponent<BrokerConfig, BrokerState>({
   icon: '📣',
   color: 'hc',
   group: 'messaging',
-  config: {},
+  config: {
+    up: processingFields.up,
+  },
   initialState: () => ({ lanes: {}, inFlight: {}, pending: {}, delivered: {}, acks: {} }),
   onMessage(msg, ctx) {
     if (msg.kind === 'request') {

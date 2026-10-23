@@ -1,9 +1,10 @@
-import { defineComponent, type Ctx } from '../engine/registry'
+import { defineComponent, processingFields, type Ctx } from '../engine/registry'
 import type { Message, NodeId } from '../engine/types'
 import { isFree, release } from './shared/push'
 
 export interface QueueConfig {
   name: string
+  up: boolean
   queueMax: number
   maxRetries: number
 }
@@ -42,6 +43,7 @@ export const queue = defineComponent<QueueConfig, QueueState>({
   color: 'req',
   group: 'messaging',
   config: {
+    up: processingFields.up,
     queueMax: { type: 'number', label: 'Cola máx.', default: 50, min: 0, max: 500 },
     maxRetries: { type: 'number', label: 'Reintentos máx.', default: 3, min: 0, max: 10 },
   },

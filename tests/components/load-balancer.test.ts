@@ -413,3 +413,32 @@ describe('load balancer sticky sessions (sessions spec §7)', () => {
     expect(t.s.nodeState<{ sticky: Record<string, string> }>('LB').sticky).toEqual({})
   })
 })
+
+describe('any component can be switched off', () => {
+  it('a down LB rejects with 503 and a down client sends nothing (rate, actions or a burst in progress)', () => {
+    const g = lbGraph({ up: false }, [{}])
+    const s = sim(g)
+    const res = clientResponses(s, 'C')
+    s.runAction('C', 'send1')
+    s.advance(3000)
+    expect(res.map((r) => r.code)).toEqual([503])
+    expect(s.nodeStats('LB').errors).toBe(1)
+
+    const off = sim(lbGraph({}, [{}], { up: false, rate: 10 }))
+    const sent = sentFrom(off, 'C')
+    off.runAction('C', 'burst')
+    off.advance(3000)
+    expect(sent).toHaveLength(0)
+
+    const mid = sim(lbGraph({}, [{}], { burstSize: 10 }))
+    const midSent = sentFrom(mid, 'C')
+    mid.runAction('C', 'burst')
+    mid.advance(300)
+    const before = midSent.length
+    const gOff = lbGraph({}, [{}], { burstSize: 10, up: false })
+    mid.setGraph(gOff)
+    mid.advance(3000)
+    expect(midSent.length).toBe(before)
+    expect(before).toBeLessThan(10)
+  })
+})

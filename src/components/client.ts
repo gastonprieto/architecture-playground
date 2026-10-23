@@ -1,4 +1,4 @@
-import { defineComponent, type Ctx } from '../engine/registry'
+import { defineComponent, processingFields, type Ctx } from '../engine/registry'
 
 export type MixEntry = { value: string; weight: number }
 
@@ -16,6 +16,8 @@ export interface ClientConfig {
   users: number
   /** 'login': requests carry credentials and the user's cookie; 'none': never. */
   auth: ClientAuth
+  /** Off: sends nothing. */
+  up: boolean
 }
 
 export type ClientAuth = 'login' | 'none'
@@ -68,6 +70,8 @@ function pick(mix: MixEntry[], r: number): string {
 
 /** Sends one request (or event) to the first output, or drops it with 'no-output'. */
 function sendOne(ctx: Ctx<ClientConfig, ClientState>): void {
+  // A burst still scheduled when the client was switched off sends no more.
+  if (ctx.config.up === false) return
   syncUsers(ctx)
   const value = pick(ctx.config.mix, ctx.random())
   const isEvent = ctx.config.kind === 'event'
@@ -103,6 +107,7 @@ export const client = defineComponent<ClientConfig, ClientState>({
   recordsMetrics: true,
   inputs: false,
   config: {
+    up: processingFields.up,
     ip: { type: 'text', label: 'IP', default: '' },
     color: { type: 'color', label: 'Color', default: CLIENT_COLORS[0], options: CLIENT_COLORS },
     kind: {
@@ -156,6 +161,11 @@ export const client = defineComponent<ClientConfig, ClientState>({
     syncUsers(ctx)
   },
   onTick(ctx, dtMs) {
+    // Off: sends nothing (and owes nothing for the time it was off).
+    if (ctx.config.up === false) {
+      ctx.state.acc = 0
+      return
+    }
     syncUsers(ctx)
     ctx.state.acc += (ctx.config.rate * dtMs) / 1000
     while (ctx.state.acc >= 1) {

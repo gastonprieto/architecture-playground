@@ -1,4 +1,4 @@
-import { defineComponent, type Ctx } from '../engine/registry'
+import { defineComponent, processingFields, type Ctx } from '../engine/registry'
 import { matchesPath } from '../engine/rules'
 import type { Message } from '../engine/types'
 import { cacheLookup, cacheStore, cacheTrim, type CacheEntry } from './cache'
@@ -11,6 +11,7 @@ export type ProxyCache = 'off' | 'random' | 'keys'
 
 export interface ReverseProxyConfig {
   name: string
+  up: boolean
   auth: ProxyAuth
   rateLimit: number
   cache: ProxyCache
@@ -92,6 +93,7 @@ export const reverseProxy = defineComponent<ReverseProxyConfig, ReverseProxyStat
   color: 'req',
   group: 'edge',
   config: {
+    up: processingFields.up,
     auth: {
       type: 'select',
       label: 'Autenticación',

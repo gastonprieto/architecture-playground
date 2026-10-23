@@ -1,4 +1,4 @@
-import { defineComponent, type Ctx, type OutEdge } from '../engine/registry'
+import { defineComponent, processingFields, type Ctx, type OutEdge } from '../engine/registry'
 import type { Message, NodeId } from '../engine/types'
 import { effectiveWeights } from '../engine/weights'
 
@@ -6,6 +6,7 @@ export type LbAlgorithm = 'round-robin' | 'least-connections' | 'random' | 'ip-h
 
 export interface LoadBalancerConfig {
   name: string
+  up: boolean
   algorithm: LbAlgorithm
   healthChecks: boolean
   /** Sticky sessions: a request whose session cookie is known goes to the target that issued it. */
@@ -122,6 +123,7 @@ export const loadBalancer = defineComponent<LoadBalancerConfig, LoadBalancerStat
   color: 'hc',
   group: 'edge',
   config: {
+    up: processingFields.up,
     algorithm: {
       type: 'select',
       label: 'Algoritmo',
