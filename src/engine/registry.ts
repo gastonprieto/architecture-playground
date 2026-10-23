@@ -56,6 +56,13 @@ export interface OutEdge {
   weight?: number
 }
 
+/** An incoming connection, as a consumer sees its upstream (for pull: who to poll). */
+export interface InEdge {
+  edgeId: EdgeId
+  source: NodeId
+  sourceType: string
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface Ctx<C = any, S = any> {
   nodeId: NodeId
@@ -63,6 +70,12 @@ export interface Ctx<C = any, S = any> {
   config: C
   state: S
   outputs(): OutEdge[]
+  /** Incoming connections (mirror of outputs): a consumer's upstream queues/brokers, to pull from. */
+  inputs(): InEdge[]
+  /** Pull: ask `source` (an upstream queue/broker) for the next message. Sends a 'poll' hop to it. */
+  pull(source: NodeId): void
+  /** Free processing slots right now (capacity − inFlight), so a consumer only pulls what it can take. */
+  freeSlots(): number
   /** `processing`: the config its processing reads (see ComponentDef.processingConfig; usually `config`). */
   peer(id: NodeId): { type: string; config: Record<string, unknown>; processing: Record<string, unknown> } | undefined
   /** How many outgoing connections node `id` has (0 for a missing node), e.g. to tell a leaf Cache. */
@@ -98,6 +111,8 @@ export interface ComponentDef<C = any, S = any> {
   initialState(): S
   onMessage(msg: Message, ctx: Ctx<C, S>): void
   onResponse?(res: Message, ctx: Ctx<C, S>): void
+  /** A consumer pulled work (a 'poll' hop). A queue/broker hands over one message if it has any. */
+  onPoll?(msg: Message, ctx: Ctx<C, S>): void
   onTick?(ctx: Ctx<C, S>, dtMs: number): void
   /**
    * Called synchronously on every setGraph that keeps this node (same id and type), after its config

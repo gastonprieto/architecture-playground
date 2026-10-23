@@ -81,6 +81,9 @@ export function colorFor(msg: Pick<Message, 'kind' | 'status' | 'meta' | 'code'>
       return CLIENT_COLORS[0]
     case 'event':
       return CLIENT_COLORS[hash(msg.meta.eventType ?? '') % CLIENT_COLORS.length]
+    case 'poll':
+      // A pull request for work: muted, so it reads as a quiet "anything for me?" probe.
+      return C.muted
     case 'response':
       return familyColor(msg.code, msg.status)
   }
@@ -103,6 +106,10 @@ export interface PacketStyle {
 export function packetStyle(msg: Pick<Message, 'kind' | 'status' | 'meta' | 'code'>): PacketStyle {
   if (msg.kind === 'response') {
     return { fill: familyColor(msg.code, msg.status), opacity: msg.status === 'error' ? 0.6 : 0.35 }
+  }
+  if (msg.kind === 'poll') {
+    // A quiet pull probe: muted and translucent, so it never competes with real traffic.
+    return { fill: C.muted, opacity: 0.5 }
   }
   const own = msg.meta.clientColor
   if (typeof own !== 'string' || own === '') return { fill: colorFor(msg) }
@@ -140,7 +147,7 @@ function createPacketEl(msg: Message): SVGGElement {
       break
     default:
       shape = document.createElementNS(SVG_NS, 'circle')
-      shape.setAttribute('r', String(msg.kind === 'response' ? RESPONSE_R : REQUEST_R))
+      shape.setAttribute('r', String(msg.kind === 'response' || msg.kind === 'poll' ? RESPONSE_R : REQUEST_R))
   }
   shape.setAttribute('fill', fill)
   if (opacity !== undefined) shape.setAttribute('fill-opacity', String(opacity))

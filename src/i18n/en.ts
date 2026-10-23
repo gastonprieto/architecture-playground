@@ -442,19 +442,20 @@ export const en: Dict = {
     },
     worker: {
       label: 'Worker',
-      fields: { failRate: 'Failure rate' },
+      fields: { failRate: 'Failure rate', pollInterval: 'Polling interval' },
       info: {
         summary: 'Consumes messages from a queue and processes them.',
         behavior: [
-          'The queue only sends it messages while it is up and has a free slot.',
+          'It pulls messages from the queue when it has a free slot; if there are none, it retries the request every Polling interval.',
           'Tells the queue whether it went well (`200`) or not (`500`), so it can retry.',
           'Can have outputs (a database, say): it calls them in parallel, like a service.',
-          'When down, it stops receiving and the messages wait in the queue.',
+          'When down, it stops pulling and the messages wait in the queue.',
           'With a valid Behavior (DSL), it does what the DSL says instead of the above (and ignores the failure rate); with no `on message`, it acks every message without doing anything.',
           'The `session` step only acts on requests: on queue messages it is skipped.',
         ],
         fields: {
           failRate: 'Probability that a message fails (poison messages).',
+          pollInterval: 'How often it asks the queue for work again when it got none.',
         },
         tip: 'Raise the failure rate to see the retries and the messages landing in the DLQ.',
       },
@@ -488,10 +489,11 @@ export const en: Dict = {
     },
     subscriber: {
       label: 'Subscriber',
-      fields: { emits: 'Emits event' },
+      fields: { emits: 'Emits event', pollInterval: 'Polling interval' },
       info: {
         summary: 'Consumes the events the broker sends it, at its own pace.',
         behavior: [
+          'It pulls events from the broker when it has a free slot; if there are none, it retries the request every Polling interval.',
           'Processes up to Capacity events at once and acks each one to the broker.',
           'When down, the broker keeps its events until it is back.',
           'If Emits event has a type, it sends that event to all its outputs when done.',
@@ -500,6 +502,7 @@ export const en: Dict = {
         ],
         fields: {
           emits: 'Event type it publishes after processing; empty, it emits nothing.',
+          pollInterval: 'How often it asks the broker for events again when it got none.',
         },
         tip: 'Chain subscribers with Emits event to show an event choreography.',
       },

@@ -163,8 +163,13 @@ Los textos de la definición (`label`, labels de campos, opciones y acciones) so
 - `label(text, tone)`: muestra una etiqueta sobre el nodo (`text` es un código, ej. `'retry'`, o un literal como `'HIT'`).
 - `random()`: número aleatorio determinístico del motor.
 - `outputs()`: aristas de salida del nodo (`edgeId`, `target`, `targetType`, `rule`).
+- `inputs()`: aristas de entrada del nodo (`edgeId`, `source`, `sourceType`). Un consumidor las usa para saber a qué cola/broker pedirle trabajo.
+- `pull(source)`: pide (pull) el próximo mensaje a un upstream (cola/broker): manda un salto `poll` hacia `source`. El upstream responde en su `onPoll` entregando un mensaje si tiene.
+- `freeSlots()`: slots de proceso libres ahora (`capacity − inFlight`), para que el consumidor pida solo lo que puede tomar.
 - `peer(id)`: tipo y configuración de otro nodo.
 - `newMessage(kind, meta, parent?)`: crea un mensaje nuevo.
+
+Además de `onMessage`/`onResponse`, un componente puede definir `onPoll(msg, ctx)`: lo llama el motor cuando un consumidor hace `pull` hacia él (la cola y el broker entregan ahí un mensaje por pedido, en vez de empujar).
 
 También están disponibles `ctx.nodeId`, `ctx.now`, `ctx.config` y `ctx.state`.
 

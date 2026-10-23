@@ -1,6 +1,6 @@
 import { defineComponent, type Ctx } from '../engine/registry'
 import type { Message, NodeId } from '../engine/types'
-import { pushReady, release } from './shared/push'
+import { isFree, release } from './shared/push'
 
 export interface QueueConfig {
   name: string
@@ -9,34 +9,19 @@ export interface QueueConfig {
 }
 
 export interface QueueState {
-  /** Messages waiting for a free worker, oldest first (the UI draws them as cells). */
+  /** Messages waiting for a worker to pull them, oldest first (the UI draws them as cells). */
   items: Message[]
-  /** Messages sent to a worker and not acked yet: message id → worker and the message itself. */
+  /** Messages handed to a worker and not acked yet: message id → worker and the message itself. */
   pending: Record<string, { worker: NodeId; msg: Message }>
   /** Messages in flight per worker. */
   inFlight: Record<NodeId, number>
-  /** Round-robin cursor into the worker list. */
-  next: number
 }
 
 type QueueCtx = Ctx<QueueConfig, QueueState>
 
-/** Adds a message at the back (fresh trail: the queue is where its delivery starts), then pumps. */
+/** Adds a message at the back (fresh trail: the queue is where its delivery starts). No push: a worker pulls it. */
 function enqueue(ctx: QueueCtx, msg: Message): void {
   ctx.state.items.push({ ...msg, trail: [], attempt: msg.attempt ?? 0 })
-  pump(ctx)
-}
-
-/** Pushes waiting messages to free workers (every output that is not a DLQ), round-robin. */
-function pump(ctx: QueueCtx): void {
-  const st = ctx.state
-  if (st.items.length === 0) return
-  const workers = ctx.outputs().filter((o) => o.targetType !== 'dlq').map((o) => o.target)
-  if (workers.length === 0) return
-  const buffers = Object.fromEntries(workers.map((w) => [w, st.items]))
-  const pushed = pushReady(ctx, buffers, st.inFlight, workers, st.next % workers.length)
-  for (const p of pushed) st.pending[p.msg.id] = { worker: p.target, msg: p.msg }
-  if (pushed.length > 0) st.next = (workers.indexOf(pushed[pushed.length - 1].target) + 1) % workers.length
 }
 
 /** A message failed for good: to the first DLQ output, or dropped. */
@@ -59,7 +44,7 @@ export const queue = defineComponent<QueueConfig, QueueState>({
     queueMax: { type: 'number', label: 'Cola máx.', default: 50, min: 0, max: 500 },
     maxRetries: { type: 'number', label: 'Reintentos máx.', default: 3, min: 0, max: 10 },
   },
-  initialState: () => ({ items: [], pending: {}, inFlight: {}, next: 0 }),
+  initialState: () => ({ items: [], pending: {}, inFlight: {} }),
   onMessage(msg, ctx) {
     if (ctx.state.items.length >= ctx.config.queueMax) {
       // Requests get a 503 back; messages and events are just dropped.
@@ -67,13 +52,30 @@ export const queue = defineComponent<QueueConfig, QueueState>({
       return
     }
     if (msg.kind === 'request') {
-      // Pull model: the queue acknowledges the enqueue (so the producer's round trip and metrics
-      // still close) but shows no 202 badge; a worker only gets the message when it pulls.
+      // The queue acks the enqueue so the producer's round trip and metrics close; no 202 badge, and
+      // the worker only gets the message when it pulls (see onPoll).
       ctx.reply(msg, { status: 'ok', code: 202 })
       enqueue(ctx, { ...ctx.newMessage('message', msg.meta, msg), attempt: 0 })
     } else {
       enqueue(ctx, msg)
     }
+  },
+  /**
+   * A worker pulled: hand it the oldest waiting message, if any. The poller is the last node on the
+   * poll's trail (it appended itself on the way here). A poll to a DLQ output, or with nothing
+   * waiting, hands over nothing and the worker re-polls on its own interval.
+   */
+  onPoll(poll, ctx) {
+    const worker = poll.trail[poll.trail.length - 1]
+    if (worker === undefined) return
+    const isWorker = ctx.outputs().some((o) => o.target === worker && o.targetType !== 'dlq')
+    // Hand over one message only if there is work and the worker is up with a free slot (a burst of
+    // polls can arrive before earlier deliveries land; this keeps in-flight within its capacity).
+    if (!isWorker || ctx.state.items.length === 0 || !isFree(ctx, worker, ctx.state.inFlight)) return
+    const next = ctx.state.items.shift()!
+    ctx.state.inFlight[worker] = (ctx.state.inFlight[worker] ?? 0) + 1
+    ctx.state.pending[next.id] = { worker, msg: next }
+    ctx.send(worker, next)
   },
   onResponse(res, ctx) {
     const entry = res.replyTo === undefined ? undefined : ctx.state.pending[res.replyTo]
@@ -86,16 +88,12 @@ export const queue = defineComponent<QueueConfig, QueueState>({
     if (res.status !== 'ok') {
       const attempt = entry.msg.attempt ?? 0
       if (attempt < ctx.config.maxRetries) {
+        // Back into the queue for a worker to pull again (no push).
         ctx.label('retry', 'slow')
         ctx.state.items.push({ ...entry.msg, trail: [], attempt: attempt + 1 })
       } else {
         deadLetter(ctx, { ...entry.msg, trail: [] })
       }
     }
-    pump(ctx)
-  },
-  // Picks up workers that came back up or got more capacity through a config change.
-  onTick(ctx) {
-    pump(ctx)
   },
 })

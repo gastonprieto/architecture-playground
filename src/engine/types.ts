@@ -26,7 +26,7 @@ export interface Graph {
   edges: GraphEdge[]
 }
 
-export type MessageKind = 'request' | 'message' | 'event' | 'response'
+export type MessageKind = 'request' | 'message' | 'event' | 'response' | 'poll'
 
 export interface Message {
   id: string

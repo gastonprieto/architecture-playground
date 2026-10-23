@@ -1,38 +1,28 @@
 import { defineComponent, type Ctx } from '../engine/registry'
 import { matchesEvent } from '../engine/rules'
 import type { Message, NodeId } from '../engine/types'
-import { pushReady, release } from './shared/push'
+import { isFree, release } from './shared/push'
 
 export interface BrokerConfig {
   name: string
 }
 
 export interface BrokerState {
-  /** One buffered lane per subscriber: events waiting for a free slot, oldest first (UI cells). */
+  /** One buffered lane per subscriber: events waiting for that subscriber to pull, oldest first (UI cells). */
   lanes: Record<NodeId, Message[]>
-  /** Events sent to each subscriber and not acked yet. */
+  /** Events handed to each subscriber and not acked yet. */
   inFlight: Record<NodeId, number>
-  /** Lane copy id → the subscriber it was sent to, until its ack/nack arrives. */
+  /** Lane copy id → the subscriber it was handed to, until its ack/nack arrives. */
   pending: Record<string, NodeId>
 }
 
 type BrokerCtx = Ctx<BrokerConfig, BrokerState>
 
 /**
- * Pushes waiting events from each lane to its subscriber while it is up and has free slots. Only
- * lanes of current outputs are pumped: a lane whose edge was removed just keeps its events.
- */
-function pump(ctx: BrokerCtx): void {
-  const st = ctx.state
-  const targets = ctx.outputs().map((o) => o.target).filter((t) => (st.lanes[t]?.length ?? 0) > 0)
-  if (targets.length === 0) return
-  for (const p of pushReady(ctx, st.lanes, st.inFlight, targets)) st.pending[p.msg.id] = p.target
-}
-
-/**
  * Fans `ev` out to every output whose rule matches its eventType, one fresh copy per output (so ids
- * are distinct). Queues get theirs immediately (they never ack events); subscribers get theirs
- * through their lane. No match → 'no-subscribers'.
+ * are distinct). Queues get theirs immediately (fire-and-forget: they never ack events and are
+ * themselves pulled by their workers); subscribers get theirs buffered in their lane, to pull. No
+ * match → 'no-subscribers'.
  */
 function publish(ctx: BrokerCtx, ev: Message): void {
   const eventType = ev.meta.eventType ?? ''
@@ -47,7 +37,6 @@ function publish(ctx: BrokerCtx, ev: Message): void {
     if (out.targetType === 'queue') ctx.send(out.target, copy)
     else (ctx.state.lanes[out.target] ??= []).push(copy)
   }
-  pump(ctx)
 }
 
 export const broker = defineComponent<BrokerConfig, BrokerState>({
@@ -66,6 +55,23 @@ export const broker = defineComponent<BrokerConfig, BrokerState>({
       publish(ctx, msg)
     }
   },
+  /**
+   * A subscriber pulled: hand it the oldest event from its own lane, if any. The poller is the last
+   * node on the poll's trail. A poll from a node that is not a current output (or an empty lane)
+   * hands over nothing and the subscriber re-polls on its own interval.
+   */
+  onPoll(poll, ctx) {
+    const sub = poll.trail[poll.trail.length - 1]
+    if (sub === undefined) return
+    const isSubscriber = ctx.outputs().some((o) => o.target === sub && o.targetType !== 'queue')
+    const lane = ctx.state.lanes[sub]
+    // Hand over one event only if the lane has any and the subscriber is up with a free slot.
+    if (!isSubscriber || !lane || lane.length === 0 || !isFree(ctx, sub, ctx.state.inFlight)) return
+    const next = lane.shift()!
+    ctx.state.inFlight[sub] = (ctx.state.inFlight[sub] ?? 0) + 1
+    ctx.state.pending[next.id] = sub
+    ctx.send(sub, next)
+  },
   onResponse(res, ctx) {
     const target = res.replyTo === undefined ? undefined : ctx.state.pending[res.replyTo]
     if (target === undefined) {
@@ -75,10 +81,5 @@ export const broker = defineComponent<BrokerConfig, BrokerState>({
     // Ack or nack alike: the slot is freed. No redelivery in the MVP.
     delete ctx.state.pending[res.replyTo!]
     release(ctx.state.inFlight, target)
-    pump(ctx)
-  },
-  // Picks up subscribers that came back up or got more capacity through a config change.
-  onTick(ctx) {
-    pump(ctx)
   },
 })

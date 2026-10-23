@@ -12,11 +12,11 @@ const node = (id: string, type: string, config: Record<string, unknown> = {}): G
 const edge = (source: string, target: string): GraphEdge => ({ id: `${source}-${target}`, source, target })
 const sim = (g: Graph) => new Simulation(g, { seed: 7, registry: defaultRegistry })
 
-/** Non-response messages sent by `from`, with send time and target. */
+/** Business messages sent by `from` (not responses, not pull probes), with send time and target. */
 function sentFrom(s: Simulation, from: string): { msg: Message; to: string; at: number }[] {
   const out: { msg: Message; to: string; at: number }[] = []
   s.on('message:sent', (p: SimEvents['message:sent']) => {
-    if (p.from === from && p.msg.kind !== 'response') out.push({ msg: p.msg, to: p.to, at: p.at })
+    if (p.from === from && p.msg.kind !== 'response' && p.msg.kind !== 'poll') out.push({ msg: p.msg, to: p.to, at: p.at })
   })
   return out
 }
@@ -129,12 +129,17 @@ describe('queue', () => {
     expect(s.nodeState<QueueState>('Q').items).toEqual([])
   })
 
-  it('round-robins among free workers in output order', () => {
+  it('hands work to whichever workers pull: all of it is consumed, each within its capacity', () => {
     const s = sim(queueGraph({ workers: [{ capacity: 5 }, { capacity: 5 }, { capacity: 5 }], client: { burstSize: 6 } }))
     const fromQ = sentFrom(s, 'Q')
     s.runAction('C', 'burst')
     s.advance(10_000)
-    expect(fromQ.map((e) => e.to)).toEqual(['W1', 'W2', 'W3', 'W1', 'W2', 'W3'])
+    // Pull has no fixed round robin: delivery follows whoever polls with a free slot. What holds is
+    // that every message is handed to a worker (none over capacity 5) and the queue drains.
+    expect(fromQ).toHaveLength(6)
+    expect(fromQ.every((e) => ['W1', 'W2', 'W3'].includes(e.to))).toBe(true)
+    expect(s.nodeState<QueueState>('Q').items).toEqual([])
+    expect(['W1', 'W2', 'W3'].reduce((n, w) => n + s.nodeStats(w).ok, 0)).toBe(6)
   })
 
   it('workers that are down receive nothing', () => {
@@ -183,28 +188,28 @@ describe('queue', () => {
     expect(d.map((e) => [e.at, e.reason, e.msg.kind])).toEqual([['Q', 'no-dlq', 'message']])
   })
 
-  it('a Servicio consumer that goes down mid-hop nacks: the queue retries, then dead-letters', () => {
+  it('a worker that goes down mid-hop nacks: the queue retries, then dead-letters', () => {
     const g: Graph = {
-      nodes: [node('C', 'client', { rate: 0 }), node('Q', 'queue', { maxRetries: 1 }), node('S', 'service', { processingTime: 100 }), node('DLQ', 'dlq')],
-      edges: [edge('C', 'Q'), edge('Q', 'S'), edge('Q', 'DLQ')],
+      nodes: [node('C', 'client', { rate: 0 }), node('Q', 'queue', { maxRetries: 1 }), node('W', 'worker', { processingTime: 100 }), node('DLQ', 'dlq')],
+      edges: [edge('C', 'Q'), edge('Q', 'W'), edge('Q', 'DLQ')],
     }
-    const down = { ...g, nodes: g.nodes.map((n) => (n.id === 'S' ? { ...n, config: { ...n.config, up: false } } : n)) }
+    const down = { ...g, nodes: g.nodes.map((n) => (n.id === 'W' ? { ...n, config: { ...n.config, up: false } } : n)) }
     const s = sim(g)
     const fromQ = sentFrom(s, 'Q')
     s.runAction('C', 'send1')
-    s.advance(HOP_MS + 100) // the queue pushed attempt 0 to S
-    expect(fromQ.map((e) => [e.to, e.msg.attempt])).toEqual([['S', 0]])
+    s.advance(1000) // the worker polled; the queue handed it attempt 0, now in transit Q→W
+    expect(fromQ.map((e) => [e.to, e.msg.attempt])).toEqual([['W', 0]])
     s.setGraph(down)
-    s.advance(2 * HOP_MS) // S drops 'down' and nacks; the retry waits for S to be up
+    s.advance(3000) // W is down when the message arrives: it drops 'down' and nacks; the retry waits in the queue
     expect(s.nodeState<QueueState>('Q').items.map((m) => m.attempt)).toEqual([1])
     s.setGraph(g)
-    s.advance(200) // next tick pushes attempt 1
-    expect(fromQ.map((e) => [e.to, e.msg.attempt])).toEqual([['S', 0], ['S', 1]])
+    s.advance(1000) // worker up again: it pulls attempt 1
+    expect(fromQ.map((e) => [e.to, e.msg.attempt])).toEqual([['W', 0], ['W', 1]])
     s.setGraph(down)
     s.advance(5000)
     expect(fromQ.filter((e) => e.to === 'DLQ')).toHaveLength(1)
     expect(s.nodeState<QueueState>('DLQ').items).toHaveLength(1)
-    expect(s.nodeState<{ inFlight: Record<string, number> }>('Q').inFlight.S).toBe(0)
+    expect(s.nodeState<{ inFlight: Record<string, number> }>('Q').inFlight.W).toBe(0)
   })
 
   it('a full queue answers 503', () => {

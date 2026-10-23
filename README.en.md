@@ -104,8 +104,13 @@ The def's texts (`label`, field, option and action labels) are the fallback. To 
 - `label(text, tone)`: show a floating label over the node (`text` is a code, e.g. `'retry'`, or a literal such as `'HIT'`).
 - `random()`: the engine's deterministic random number.
 - `outputs()`: the node's outgoing edges (`edgeId`, `target`, `targetType`, `rule`).
+- `inputs()`: the node's incoming edges (`edgeId`, `source`, `sourceType`). A consumer uses them to know which queue/broker to ask for work.
+- `pull(source)`: pull the next message from an upstream (queue/broker): sends a `poll` hop to `source`. The upstream answers in its `onPoll`, handing over a message if it has one.
+- `freeSlots()`: processing slots free right now (`capacity − inFlight`), so a consumer only pulls what it can take.
 - `peer(id)`: another node's type and config.
 - `newMessage(kind, meta, parent?)`: create a new message.
+
+Besides `onMessage`/`onResponse`, a component can define `onPoll(msg, ctx)`: the engine calls it when a consumer `pull`s from it (the queue and broker hand over one message per request there, instead of pushing).
 
 `ctx.nodeId`, `ctx.now`, `ctx.config` and `ctx.state` are also available.
 

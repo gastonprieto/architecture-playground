@@ -24,11 +24,11 @@ interface BrokerState {
   pending: Record<string, string>
 }
 
-/** Non-response messages sent by `from`. */
+/** Business messages sent by `from` (not responses, not pull probes). */
 function sentFrom(s: Simulation, from: string): { msg: Message; to: string; at: number }[] {
   const out: { msg: Message; to: string; at: number }[] = []
   s.on('message:sent', (p: SimEvents['message:sent']) => {
-    if (p.from === from && p.msg.kind !== 'response') out.push({ msg: p.msg, to: p.to, at: p.at })
+    if (p.from === from && p.msg.kind !== 'response' && p.msg.kind !== 'poll') out.push({ msg: p.msg, to: p.to, at: p.at })
   })
   return out
 }
@@ -185,7 +185,7 @@ describe('broker', () => {
     const drops: SimEvents['message:dropped'][] = []
     s.on('message:dropped', (p) => drops.push(p))
     s.runAction('C', 'send1')
-    s.advance(HOP_MS + 100) // the broker already pushed the event to S1
+    s.advance(1000) // the subscriber polled; the event is in transit B→S (see timing: 700–1300ms)
     s.setGraph({ ...g, nodes: g.nodes.map((n) => (n.id === 'S1' ? { ...n, config: { up: false } } : n)) })
     s.advance(5000)
     expect(atB.map((r) => [r.status, r.code])).toEqual([['error', 503]])
@@ -195,21 +195,21 @@ describe('broker', () => {
     expect(st.pending).toEqual({})
   })
 
-  it('a Servicio subscriber that goes down mid-hop nacks via the engine drop and the lane drains', () => {
+  it('a subscriber that goes down mid-hop nacks via the engine drop and the lane drains', () => {
     const g: Graph = {
       nodes: [
         node('C', 'client', { rate: 0, kind: 'event', mix: [{ value: 'A', weight: 1 }], burstSize: 3 }),
         node('B', 'broker'),
-        node('S', 'service', { processingTime: 100, capacity: 1 }),
+        node('S', 'subscriber', { processingTime: 100, capacity: 1 }),
       ],
       edges: [edge('C', 'B'), edge('B', 'S')],
     }
     const s = sim(g)
     const atB = arrivedAt(s, 'B', 'response')
     s.runAction('C', 'burst')
-    s.advance(HOP_MS + 100) // the broker already pushed the first event to S
+    s.advance(1000) // the subscriber polled; the first event is in transit B→S
     s.setGraph({ ...g, nodes: g.nodes.map((n) => (n.id === 'S' ? { ...n, config: { ...n.config, up: false } } : n)) })
-    s.advance(2 * HOP_MS) // the event reaches S (down) and the nack travels back to B
+    s.advance(2000) // the in-flight event reaches S (down), its processing drops 'down' and nacks to B
     expect(atB.map((r) => [r.status, r.code])).toContainEqual(['error', 503])
     expect(s.nodeState<BrokerState>('B').inFlight.S).toBe(0)
     s.setGraph(g) // back up

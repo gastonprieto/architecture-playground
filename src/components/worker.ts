@@ -1,6 +1,10 @@
 import { behaviorField, defineComponent, processingFields } from '../engine/registry'
 import { activeProgram, forgetSessionsIfDown, handleBehaviorResponse, initialBehaviorState, runBehavior, sweepBehaviorPending, type BehaviorState } from './behavior/run'
 import { callDependencies, handleDependencyResponse, initialDependencyState, type DependencyState } from './shared/dependencies'
+import { initialPullState, pollTick, pullUpstreams, type PullState } from './shared/pull'
+
+/** Default idle polling interval when the worker leaves `pollInterval` at 0 / unset. */
+export const DEFAULT_POLL_INTERVAL = 1000
 
 export interface WorkerConfig {
   name: string
@@ -10,11 +14,15 @@ export interface WorkerConfig {
   queueMax: number
   /** Probability (0..1) that a message fails even when its dependencies succeed (poison messages). */
   failRate: number
+  /** How often (sim-ms) the worker re-polls its queue/broker for work when it got none. */
+  pollInterval: number
   /** Behavior DSL; '' (or invalid) keeps the default. With a valid DSL, failRate is not used. */
   behavior: string
 }
 
-export const worker = defineComponent<WorkerConfig, DependencyState & BehaviorState>({
+type WorkerState = DependencyState & BehaviorState & PullState
+
+export const worker = defineComponent<WorkerConfig, WorkerState>({
   type: 'worker',
   label: 'Worker',
   icon: '🛠️',
@@ -22,14 +30,20 @@ export const worker = defineComponent<WorkerConfig, DependencyState & BehaviorSt
   config: {
     ...processingFields,
     failRate: { type: 'number', label: 'Tasa de fallo', default: 0, min: 0, max: 1, step: 0.05 },
+    pollInterval: { type: 'number', label: 'Intervalo de polling', default: DEFAULT_POLL_INTERVAL, min: 100, max: 10_000, step: 100, unit: 'ms' },
     behavior: behaviorField,
   },
-  initialState: () => ({ ...initialDependencyState(), ...initialBehaviorState() }),
+  initialState: () => ({ ...initialDependencyState(), ...initialBehaviorState(), ...initialPullState() }),
   onMessage(msg, ctx) {
     sweepBehaviorPending(ctx)
     const program = activeProgram(ctx)
     if (program) {
-      ctx.occupy(msg, (release) => runBehavior(ctx, program, msg, release))
+      ctx.occupy(msg, (release) =>
+        runBehavior(ctx, program, msg, () => {
+          release()
+          pullUpstreams(ctx)
+        }),
+      )
       return
     }
     ctx.process(msg, () =>
@@ -37,6 +51,8 @@ export const worker = defineComponent<WorkerConfig, DependencyState & BehaviorSt
         const { failRate } = ctx.config
         const success = ok && (failRate <= 0 || ctx.random() >= failRate)
         ctx.reply(msg, success ? { status: 'ok', code: 200 } : { status: 'error', code: 500 })
+        // Slot freed: pull the next piece of work right away, without waiting the poll interval.
+        pullUpstreams(ctx)
       }),
     )
   },
@@ -44,10 +60,11 @@ export const worker = defineComponent<WorkerConfig, DependencyState & BehaviorSt
   onConfig(ctx) {
     forgetSessionsIfDown(ctx)
   },
-  /** Fails DSL children sent to a node that was deleted, so their run frees its slot. */
-  onTick(ctx) {
+  /** Fails DSL children sent to a deleted node, and polls for work on the idle interval. */
+  onTick(ctx, dtMs) {
     sweepBehaviorPending(ctx)
     forgetSessionsIfDown(ctx)
+    pollTick(ctx, dtMs, DEFAULT_POLL_INTERVAL)
   },
   onResponse(res, ctx) {
     if (!handleBehaviorResponse(res, ctx) && !handleDependencyResponse(res, ctx)) ctx.forwardResponse(res)

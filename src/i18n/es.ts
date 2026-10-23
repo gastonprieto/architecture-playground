@@ -445,19 +445,20 @@ export const es = {
     },
     worker: {
       label: 'Worker',
-      fields: { failRate: 'Tasa de fallo' },
+      fields: { failRate: 'Tasa de fallo', pollInterval: 'Intervalo de polling' },
       info: {
         summary: 'Consume mensajes de una cola y los procesa.',
         behavior: [
-          'La cola le manda mensajes solo cuando está activo y tiene capacidad libre.',
+          'Le pide (pull) mensajes a la cola cuando tiene capacidad libre; si no hay, reintenta el pedido cada Intervalo de polling.',
           'Le avisa a la cola si salió bien (`200`) o mal (`500`), para que reintente.',
           'Puede tener salidas (por ejemplo una base): las llama en paralelo, como un servicio.',
-          'Caído, deja de recibir y los mensajes esperan en la cola.',
+          'Caído, deja de pedir y los mensajes esperan en la cola.',
           'Con un Comportamiento (DSL) válido, hace lo que dice el DSL en lugar de lo anterior (y no usa la tasa de fallo); sin un `on message`, confirma cada mensaje sin hacer nada.',
           'El paso `session` solo actúa sobre requests: en mensajes de una cola se ignora y sigue.',
         ],
         fields: {
           failRate: 'Probabilidad de que un mensaje falle (mensajes venenosos).',
+          pollInterval: 'Cada cuánto vuelve a pedirle trabajo a la cola cuando no recibió nada.',
         },
         tip: 'Subí la tasa de fallo para ver los reintentos y los mensajes llegando a la DLQ.',
       },
@@ -491,10 +492,11 @@ export const es = {
     },
     subscriber: {
       label: 'Suscriptor',
-      fields: { emits: 'Emite evento' },
+      fields: { emits: 'Emite evento', pollInterval: 'Intervalo de polling' },
       info: {
         summary: 'Consume los eventos que le manda el broker, a su ritmo.',
         behavior: [
+          'Le pide (pull) eventos al broker cuando tiene capacidad libre; si no hay, reintenta el pedido cada Intervalo de polling.',
           'Procesa hasta Capacidad eventos a la vez y confirma cada uno al broker.',
           'Caído, el broker le guarda los eventos hasta que vuelva.',
           'Si Emite evento tiene un tipo, al terminar manda ese evento a todas sus salidas.',
@@ -503,6 +505,7 @@ export const es = {
         ],
         fields: {
           emits: 'Tipo de evento que publica después de procesar; vacío, no emite nada.',
+          pollInterval: 'Cada cuánto vuelve a pedirle eventos al broker cuando no recibió nada.',
         },
         tip: 'Encadená suscriptores con Emite evento para mostrar una coreografía de eventos.',
       },

@@ -2,7 +2,8 @@ import { Emitter } from './emitter'
 import { createRandom } from './random'
 import { RollingMetrics } from './metrics'
 import { Processor } from './processing'
-import { defaultConfig, type ComponentDef, type Ctx, type OutEdge, type Registry, type ReplyInfo, type Tone } from './registry'
+import { readProcessing } from './processing'
+import { defaultConfig, type ComponentDef, type Ctx, type InEdge, type OutEdge, type Registry, type ReplyInfo, type Tone } from './registry'
 import { Scheduler } from './scheduler'
 import type { EdgeId, Graph, GraphEdge, Message, MessageKind, MetricsSnapshot, NodeId, NodeStats } from './types'
 
@@ -174,6 +175,10 @@ export class Simulation {
       else this.forwardResponse(rec.id, msg)
     } else if (!def) {
       this.drop(rec.id, msg, 'unknown-type')
+    } else if (msg.kind === 'poll') {
+      // A pull request: the upstream hands over work if it has any. No onPoll (or no work) = nothing
+      // happens; the consumer re-polls on its own interval. Polls never get a response.
+      def.onPoll?.(msg, this.ctx(rec))
     } else {
       def.onMessage(msg, this.ctx(rec))
     }
@@ -187,7 +192,7 @@ export class Simulation {
   private send(from: NodeId, to: NodeId, msg: Message): void {
     if ((msg.depth ?? 0) + msg.trail.length >= MAX_TRAIL) {
       this.drop(from, msg, 'loop')
-      if (msg.trail.length === 0) this.nackSelf(from, msg)
+      if (msg.trail.length === 0 && msg.kind !== 'poll') this.nackSelf(from, msg)
       return
     }
     this.transmit(from, to, { ...msg, trail: [...msg.trail, from] })
@@ -236,9 +241,14 @@ export class Simulation {
   /**
    * Emit message:dropped, count an error, and answer with an error response: a request gets its
    * error reply and a message/event a generic nack, so whoever pushed it (a queue or broker waiting
-   * for the ack) frees its slot. Responses are never answered.
+   * for the ack) frees its slot. Responses are never answered. A poll is silent: it has no round
+   * trip (the consumer just re-polls), so it costs no error and gets no nack.
    */
   private drop(at: NodeId, msg: Message, reason: string, code?: number): void {
+    if (msg.kind === 'poll') {
+      this.events.emit('message:dropped', { msg, at, reason })
+      return
+    }
     const effective = msg.kind === 'response' ? code : (code ?? 503)
     this.events.emit('message:dropped', { msg, at, reason, code: effective })
     const rec = this.nodes.get(at)
@@ -309,6 +319,16 @@ export class Simulation {
         sim.edgeList
           .filter((e) => e.source === rec.id)
           .map((e) => ({ edgeId: e.id, target: e.target, targetType: sim.nodes.get(e.target)!.type, rule: e.rule, ...(e.weight !== undefined && { weight: e.weight }) })),
+      inputs: (): InEdge[] =>
+        sim.edgeList
+          .filter((e) => e.target === rec.id)
+          .map((e) => ({ edgeId: e.id, source: e.source, sourceType: sim.nodes.get(e.source)!.type })),
+      pull: (source) => sim.send(rec.id, source, { id: sim.nextId(), kind: 'poll', meta: {}, trail: [], createdAt: sim.now }),
+      freeSlots: () => {
+        const { capacity } = readProcessing(processingConfigOf(rec))
+        const free = capacity - rec.stats.inFlight
+        return free > 0 ? free : 0
+      },
       peerOutputCount: (id) => sim.edgeList.reduce((n, e) => n + (e.source === id ? 1 : 0), 0),
       peer: (id) => {
         const p = sim.nodes.get(id)

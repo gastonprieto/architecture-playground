@@ -41,7 +41,7 @@ function run(g: Graph) {
       for (let i = 0; i < n; i++) s.runAction('C', 'send1')
     },
     /** Requests/messages/events that reached `at`. */
-    arrivals: (at: string) => arrived.filter((e) => e.at === at && e.msg.kind !== 'response'),
+    arrivals: (at: string) => arrived.filter((e) => e.at === at && e.msg.kind !== 'response' && e.msg.kind !== 'poll'),
     /** Responses that reached `at`. */
     responses: (at: string) => arrived.filter((e) => e.at === at && e.msg.kind === 'response'),
     /** Responses `from` sent. */
