@@ -97,6 +97,8 @@ export const es = {
     queued: 'En cola',
     ok: 'OK',
     errors: 'Errores',
+    pending: 'Pendientes',
+    pendingHint: 'Pendientes: requests que mandó y todavía no tienen respuesta',
     loggedIn: 'Usuarios logueados',
     sessions: 'Sesiones guardadas',
     cacheKeys: 'Claves guardadas',

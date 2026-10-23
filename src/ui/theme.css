@@ -498,6 +498,7 @@ body {
   white-space: nowrap;
 }
 .node-ok { color: var(--green); }
+.node-pending { color: var(--cyan); }
 .node-err { color: var(--red); }
 .node-zero { color: var(--dim); }
 .node-down {

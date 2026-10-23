@@ -148,7 +148,21 @@ describe('🍪 counters', () => {
 })
 
 describe('🔑 / hit % counters (cache-spec §2.3)', () => {
-  it('a Cache and a keys-mode proxy show their keys and real hit %', () => {
+  it('client, LB and proxy nodes show ⇄ pending requests; a service does not', () => {
+    const st = { inFlight: 0, queued: 0, ok: 0, errors: 0, pending: 3 }
+    act(() => useRuntime.setState({ stats: { c1: st, l1: st, s9: st } }))
+    render(
+      <>
+        <NodeStatsSlot nodeId="c1" kind="client" config={{}} />
+        <NodeStatsSlot nodeId="l1" kind="load-balancer" config={{}} />
+        <NodeStatsSlot nodeId="s9" kind="service" config={{}} />
+      </>,
+    )
+    expect(screen.getAllByText('⇄ 3')).toHaveLength(2)
+    act(() => useRuntime.setState({ stats: {} }))
+  })
+
+  it('a Cache shows its keys and real hit %; a proxy keeps them for the inspector', () => {
     act(() =>
       useRuntime.setState({
         states: { k1: { cacheKeys: 4, cacheHits: 1, cacheMisses: 3 }, p1: { cacheKeys: 2, cacheHits: 2, cacheMisses: 2 }, p2: { cacheKeys: 0, cacheHits: 5, cacheMisses: 0 } },
@@ -163,8 +177,8 @@ describe('🔑 / hit % counters (cache-spec §2.3)', () => {
     )
     expect(screen.getByText('🔑 4').getAttribute('title')).toBe('Claves guardadas')
     expect(screen.getByText('hit 25%').getAttribute('title')).toBe('Hit % real: HITs / (HITs + MISSes)')
-    expect(screen.getByText('🔑 2')).toBeTruthy()
-    expect(screen.getByText('hit 50%')).toBeTruthy()
+    expect(screen.queryByText('🔑 2')).toBeNull()
+    expect(screen.queryByText('hit 50%')).toBeNull()
     expect(screen.queryByText('hit 100%')).toBeNull()
   })
 })

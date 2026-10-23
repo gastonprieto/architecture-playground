@@ -19,6 +19,9 @@ export type ArchFlowNode = Node<ArchNodeData, 'arch'>
 
 const LANE_LABEL_MAX = 8
 
+/** Types whose node shows ⇄ pending requests: the ones that send and wait (Cliente, LB, Reverse Proxy). */
+const SHOWS_PENDING = new Set(['client', 'load-balancer', 'reverse-proxy'])
+
 /** 1234 → '1234', 12345 → '12.3k' (keeps the counters row narrow). */
 function compact(n: number): string {
   if (n < 10_000) return String(n)
@@ -98,6 +101,11 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
         {cacheView.hit && (
           <span className="node-hit" title={t('node.hitRate')}>
             {cacheView.hit}
+          </span>
+        )}
+        {SHOWS_PENDING.has(kind) && stats.pending > 0 && (
+          <span title={t('node.pendingHint')} className="node-pending">
+            ⇄ {compact(stats.pending)}
           </span>
         )}
         {stats.inFlight > 0 && <span title={t('node.inFlight')}>⏳ {compact(stats.inFlight)}</span>}

@@ -39,6 +39,36 @@ function lbGraph(lbConfig: Record<string, unknown>, dbConfigs: Record<string, un
   }
 }
 
+describe('pending requests (sent, not answered yet)', () => {
+  it('client and LB count a request as pending until its answer comes back through them', () => {
+    const s = sim(lbGraph({}, [{ processingTime: 1000 }]))
+    s.runAction('C', 'send1')
+    s.advance(1000) // reached the database, still processing
+    expect([s.nodeStats('C').pending, s.nodeStats('LB').pending, s.nodeStats('D1').pending]).toEqual([1, 1, 0])
+    s.advance(5000)
+    expect([s.nodeStats('C').pending, s.nodeStats('LB').pending]).toEqual([0, 0])
+    // the LB counts the answer it relayed
+    expect(s.nodeStats('LB').ok).toBe(1)
+  })
+
+  it('an error answer (LB with no targets) also ends the wait', () => {
+    const s = sim({ nodes: [node('C', 'client', { rate: 0 }), node('LB', 'load-balancer')], edges: [edge('C', 'LB')] })
+    s.runAction('C', 'send1')
+    s.advance(5000)
+    expect(s.nodeStats('C')).toMatchObject({ pending: 0, errors: 1 })
+  })
+
+  it('a response lost on its last hop (edge removed) does not leave the request pending forever', () => {
+    const g = lbGraph({}, [{ processingTime: 1000 }])
+    const s = sim(g)
+    s.runAction('C', 'send1')
+    s.advance(1000)
+    s.setGraph({ ...g, edges: g.edges.filter((e) => e.id !== 'C-LB') })
+    s.advance(5000)
+    expect(s.nodeStats('C').pending).toBe(0)
+  })
+})
+
 describe('load balancer', () => {
   it('has catalog metadata and config', () => {
     const d = defaultRegistry.get('load-balancer')!

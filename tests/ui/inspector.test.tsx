@@ -312,7 +312,7 @@ describe('Inspector: Estado / Configuración tabs', () => {
     render(<Inspector />)
     select({ kind: 'node', id: 's1' })
     expect(within(panel('Estado')).getByText('Dale ▶ para ver tráfico.')).toBeTruthy()
-    act(() => useRuntime.setState({ stats: { s1: { inFlight: 2, queued: 1, ok: 40, errors: 3 } } }))
+    act(() => useRuntime.setState({ stats: { s1: { inFlight: 2, queued: 1, ok: 40, errors: 3, pending: 0 } } }))
     const status = panel('Estado')
     expect(within(status).queryByText('Dale ▶ para ver tráfico.')).toBeNull()
     expect(within(status).getByText('En proceso').previousSibling?.textContent).toBe('⏳ 2')
@@ -359,7 +359,7 @@ describe('statusRows', () => {
 })
 
 describe('statusTiles', () => {
-  const stats = { inFlight: 2, queued: 1, ok: 10, errors: 3 }
+  const stats = { inFlight: 2, queued: 1, ok: 10, errors: 3, pending: 4 }
   const g = (ids: string[]) => ({ nodes: ids.map((id) => ({ id, type: 'subscriber', position: { x: 0, y: 0 }, config: {} })), edges: [] })
   const tiles = (...a: Parameters<typeof statusTiles>) => statusTiles(...a).map((x) => `${x.key}=${x.value}`)
 
@@ -367,9 +367,8 @@ describe('statusTiles', () => {
     expect(tiles('service', stats, undefined, g([]))).toEqual(['inFlight=2', 'queued=1', 'ok=10', 'errors=3'])
   })
 
-  it('a load balancer takes "En proceso" from its in-flight per server and has no "En cola"', () => {
-    const lb = { next: 0, inflight: { w1: 2, w2: 3 }, current: {}, stickyCount: 0, routed: {} }
-    expect(tiles('load-balancer', stats, { lb }, g([]))).toEqual(['inFlight=5', 'ok=10', 'errors=3'])
+  it('client, load balancer and reverse proxy show their pending requests, ok and errors', () => {
+    for (const kind of ['client', 'load-balancer', 'reverse-proxy']) expect(tiles(kind, stats, undefined, g([]))).toEqual(['pending=4', 'ok=10', 'errors=3'])
   })
 
   it('queue and DLQ take "En cola" from their buffer; a broker from its existing lanes', () => {
@@ -377,11 +376,6 @@ describe('statusTiles', () => {
     expect(tiles('dlq', stats, undefined, g([]))).toEqual(['queued=0', 'ok=10', 'errors=3'])
     const lanes = { a: { head: [], total: 3 }, gone: { head: [], total: 9 } }
     expect(tiles('broker', stats, { lanes }, g(['a']))).toEqual(['queued=3', 'ok=10', 'errors=3'])
-  })
-
-  it('a client and a reverse proxy only show ok and errors', () => {
-    expect(tiles('client', stats, undefined, g([]))).toEqual(['ok=10', 'errors=3'])
-    expect(tiles('reverse-proxy', stats, undefined, g([]))).toEqual(['ok=10', 'errors=3'])
   })
 
 })

@@ -96,6 +96,8 @@ export const en: Dict = {
     queued: 'Queued',
     ok: 'OK',
     errors: 'Errors',
+    pending: 'Pending',
+    pendingHint: 'Pending: requests it sent that have no answer yet',
     loggedIn: 'Logged-in users',
     sessions: 'Stored sessions',
     cacheKeys: 'Stored keys',

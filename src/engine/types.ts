@@ -80,6 +80,8 @@ export interface NodeStats {
   queued: number
   ok: number
   errors: number
+  /** Requests this node sent that have not been answered yet (travelling, or waiting downstream). */
+  pending: number
 }
 
 export interface MetricsSnapshot {

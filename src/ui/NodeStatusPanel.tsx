@@ -45,19 +45,19 @@ export interface StatusTile {
   value: number
 }
 
-const sum = (r: Record<string, number> | undefined) => Object.values(r ?? {}).reduce((a, b) => a + b, 0)
-
 /**
- * The counter tiles a node type shows (pure, testable): only the ones that mean something for it,
- * with "En proceso"/"En cola" taken from the component's own state where the engine has none —
- * the LB's in-flight per server, a queue's buffer, a broker's lanes.
+ * The counter tiles a node type shows (pure, testable): only the ones that mean something for it.
+ * Client, LB and Reverse Proxy show their pending requests (sent, not answered yet); a queue's and a
+ * broker's "En cola" comes from their own buffer/lanes, which the engine's processing does not see.
  */
 export function statusTiles(kind: string, stats: NodeStats, ui: UiState | undefined, graph: Graph): StatusTile[] {
   const ok: StatusTile = { key: 'ok', value: stats.ok }
   const errors: StatusTile = { key: 'errors', value: stats.errors }
   switch (kind) {
+    case 'client':
     case 'load-balancer':
-      return [{ key: 'inFlight', value: sum(ui?.lb?.inflight) }, ok, errors]
+    case 'reverse-proxy':
+      return [{ key: 'pending', value: stats.pending }, ok, errors]
     case 'queue':
     case 'dlq':
       return [{ key: 'queued', value: ui?.items?.total ?? 0 }, ok, errors]
@@ -66,15 +66,12 @@ export function statusTiles(kind: string, stats: NodeStats, ui: UiState | undefi
       const lanes = Object.entries(ui?.lanes ?? {}).filter(([id]) => graph.nodes.some((n) => n.id === id))
       return [{ key: 'queued', value: lanes.reduce((n, [, cells]) => n + cells.total, 0) }, ok, errors]
     }
-    case 'client':
-    case 'reverse-proxy':
-      return [ok, errors]
     default:
       return [{ key: 'inFlight', value: stats.inFlight }, { key: 'queued', value: stats.queued }, ok, errors]
   }
 }
 
-const TILE_ICON: Record<keyof NodeStats, string> = { inFlight: '⏳', queued: '☰', ok: '✔', errors: '✖' }
+const TILE_ICON: Record<keyof NodeStats, string> = { inFlight: '⏳', queued: '☰', ok: '✔', errors: '✖', pending: '⇄' }
 
 function Tile({ icon, label, value, tone }: { icon: string; label: string; value: number; tone?: 'ok' | 'err' }) {
   return (

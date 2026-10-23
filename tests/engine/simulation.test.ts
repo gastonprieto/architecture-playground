@@ -66,9 +66,9 @@ describe('Simulation', () => {
     // the request accumulated the trail along the way
     expect(sent[1].p.msg.trail).toEqual(['A', 'B'])
     expect(sent[2].p.msg.trail).toEqual(['A'])
-    expect(sim.nodeStats('C')).toEqual({ inFlight: 0, queued: 0, ok: 1, errors: 0 })
+    expect(sim.nodeStats('C')).toEqual({ inFlight: 0, queued: 0, ok: 1, errors: 0, pending: 0 })
     // B only relayed C's answer, and still counts it as resolved through it
-    expect(sim.nodeStats('B')).toEqual({ inFlight: 0, queued: 0, ok: 1, errors: 0 })
+    expect(sim.nodeStats('B')).toEqual({ inFlight: 0, queued: 0, ok: 1, errors: 0, pending: 0 })
   })
 
   it('send without edge uses edgeId null', () => {
@@ -128,7 +128,7 @@ describe('Simulation', () => {
     expect(sim.nodeState<{ responses: { code?: number }[] }>('A').responses).toEqual([
       { at: HOP_MS, createdAt: 0, code: 429 },
     ])
-    expect(sim.nodeStats('R')).toEqual({ inFlight: 0, queued: 0, ok: 0, errors: 1 })
+    expect(sim.nodeStats('R')).toEqual({ inFlight: 0, queued: 0, ok: 0, errors: 1, pending: 0 })
   })
 
   it('process waits processingTime before done', () => {
@@ -149,9 +149,14 @@ describe('Simulation', () => {
     const log = record(sim)
     sim.inject('A', req())
     sim.advance(10 * HOP_MS)
-    expect(of(log, 'node:stats').map((e) => e.p)).toEqual([
-      { nodeId: 'C', stats: { inFlight: 0, queued: 0, ok: 1, errors: 0 } },
-      { nodeId: 'B', stats: { inFlight: 0, queued: 0, ok: 1, errors: 0 } },
+    // A and B wait for the answer (pending 1) until it comes back through them.
+    expect(of(log, 'node:stats').map((e) => `${e.p.nodeId} pending:${e.p.stats.pending} ok:${e.p.stats.ok}`)).toEqual([
+      'A pending:1 ok:0',
+      'B pending:1 ok:0',
+      'C pending:0 ok:1',
+      'B pending:0 ok:0',
+      'B pending:0 ok:1',
+      'A pending:0 ok:0',
     ])
   })
 

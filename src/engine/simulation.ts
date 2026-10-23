@@ -33,6 +33,8 @@ interface NodeRecord {
   config: Record<string, unknown>
   state: unknown
   stats: NodeStats
+  /** Ids of the requests this node sent and is still waiting an answer for (stats.pending is its size). */
+  awaiting: Set<string>
   /** Capacity slots, internal queue and up/down for ctx.process. */
   processor: Processor
 }
@@ -165,6 +167,7 @@ export class Simulation {
     this.events.emit('message:arrived', { msg, at: rec.id })
     const { def } = rec
     if (msg.kind === 'response') {
+      this.settle(rec, msg)
       // An empty trail means this node originated the request: the round trip is complete.
       if (msg.trail.length === 0 && def?.recordsMetrics) {
         this.rolling.record(this.now, this.now - msg.createdAt, msg.status === 'ok')
@@ -192,9 +195,14 @@ export class Simulation {
   private send(from: NodeId, to: NodeId, msg: Message): void {
     if ((msg.depth ?? 0) + msg.trail.length >= MAX_TRAIL) {
       this.drop(from, msg, 'loop')
-      if (msg.trail.length === 0 && msg.kind !== 'poll') this.nackSelf(from, msg)
+      if (msg.trail.length === 0 && msg.kind !== 'poll') {
+        // Its own error answer comes back to `from`: it waits for it like for any request it sent.
+        this.await(from, msg)
+        this.nackSelf(from, msg)
+      }
       return
     }
+    this.await(from, msg)
     this.transmit(from, to, { ...msg, trail: [...msg.trail, from] })
   }
 
@@ -255,7 +263,11 @@ export class Simulation {
     const effective = msg.kind === 'response' ? code : (code ?? 503)
     this.events.emit('message:dropped', { msg, at, reason, code: effective })
     const rec = this.nodes.get(at)
-    if (rec) this.bump(rec, 'errors')
+    if (rec) {
+      // A response lost on its last hop (edge removed) still ends the wait of the node it was for.
+      if (msg.kind === 'response') this.settle(rec, msg)
+      this.bump(rec, 'errors')
+    }
     if (msg.kind !== 'response') this.respond(at, msg, { status: 'error', code: effective! })
   }
 
@@ -270,7 +282,7 @@ export class Simulation {
   // ---------------------------------------------------------------- helpers
 
   private newRecord(id: NodeId, type: string, def: ComponentDef | undefined, config: Record<string, unknown>): NodeRecord {
-    const rec = { id, type, def, config, state: def ? def.initialState() : {}, stats: zeroStats() } as NodeRecord
+    const rec = { id, type, def, config, state: def ? def.initialState() : {}, stats: zeroStats(), awaiting: new Set<string>() } as NodeRecord
     rec.processor = new Processor({
       config: () => processingConfigOf(rec),
       stats: rec.stats,
@@ -288,6 +300,22 @@ export class Simulation {
     const forward = this.edgeList.find((e) => e.source === a && e.target === b)
     const reverse = forward ?? this.edgeList.find((e) => e.source === b && e.target === a)
     return reverse?.id ?? null
+  }
+
+  /** A request `from` sends now counts as pending until its response comes back to it. */
+  private await(from: NodeId, msg: Message): void {
+    const rec = this.nodes.get(from)
+    if (!rec || msg.kind !== 'request' || rec.awaiting.has(msg.id)) return
+    rec.awaiting.add(msg.id)
+    rec.stats.pending = rec.awaiting.size
+    this.emitStats(rec)
+  }
+
+  /** The answer to a pending request reached its sender (or was lost on the way back to it). */
+  private settle(rec: NodeRecord, res: Message): void {
+    if (res.replyTo === undefined || !rec.awaiting.delete(res.replyTo)) return
+    rec.stats.pending = rec.awaiting.size
+    this.emitStats(rec)
   }
 
   private bump(rec: NodeRecord, field: keyof NodeStats): void {
@@ -368,5 +396,5 @@ function processingConfigOf(rec: NodeRecord): Record<string, unknown> {
 }
 
 function zeroStats(): NodeStats {
-  return { inFlight: 0, queued: 0, ok: 0, errors: 0 }
+  return { inFlight: 0, queued: 0, ok: 0, errors: 0, pending: 0 }
 }

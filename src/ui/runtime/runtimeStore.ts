@@ -4,7 +4,7 @@ import type { MetricsSnapshot, NodeId, NodeStats } from '../../engine/types'
 export const SPEEDS = [0.25, 0.5, 1, 2, 4] as const
 export const DEFAULT_SPEED = 1
 
-export const ZERO_STATS: NodeStats = { inFlight: 0, queued: 0, ok: 0, errors: 0 }
+export const ZERO_STATS: NodeStats = { inFlight: 0, queued: 0, ok: 0, errors: 0, pending: 0 }
 export const ZERO_METRICS: MetricsSnapshot = { throughput: 0, p50: 0, p95: 0, errorRate: 0 }
 
 export interface RuntimeState {

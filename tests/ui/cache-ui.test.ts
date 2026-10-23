@@ -46,8 +46,8 @@ describe('cacheCounters', () => {
     expect(cacheCounters('cache', { mode: 'random' }, ui)).toEqual({ keys: null, hit: 'hit 75%' })
   })
 
-  it('a reverse proxy shows them only with its cache in real keys', () => {
-    expect(cacheCounters('reverse-proxy', { cache: 'keys' }, ui)).toEqual({ keys: '🔑 3', hit: 'hit 75%' })
+  it('a reverse proxy never shows them on its node (they live in the inspector)', () => {
+    expect(cacheCounters('reverse-proxy', { cache: 'keys' }, ui)).toEqual({ keys: null, hit: null })
     expect(cacheCounters('reverse-proxy', { cache: 'random' }, ui)).toEqual({ keys: null, hit: null })
     expect(cacheCounters('reverse-proxy', {}, ui)).toEqual({ keys: null, hit: null })
   })
