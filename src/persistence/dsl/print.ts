@@ -103,7 +103,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return ka.length === kb.length && ka.every((k) => Object.hasOwn(b, k) && deepEqual((a as never)[k], (b as never)[k]))
 }
 
-const ATTR_UNSAFE = /[\s,\]"]/
+const ATTR_UNSAFE = /[\s,[\]"]/
 
 /** ` [rule weight]` in short form where the parser would read it back the same, long form otherwise. */
 function attributes(edge: GraphEdge): string {

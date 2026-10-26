@@ -131,6 +131,32 @@ Pagos --> DB Pagos
     expectSameGraph(graphOf(text), g)
   })
 
+  it('quotes attribute values containing brackets in a fan-out line', () => {
+    const g = graphOf('client A\nservice B, C, D, E')
+    const rules = [
+      { kind: 'eventType' as const, value: 'a[b' },
+      { kind: 'pathPrefix' as const, value: '/a[b' },
+      { kind: 'eventType' as const, value: 'a]b' },
+    ]
+    g.edges = [
+      ...rules.map((rule, i) => ({ id: `e${i}`, source: 'a', target: g.nodes[i + 1].id, rule })),
+      { id: 'e3', source: 'a', target: 'e' },
+    ]
+    expectSameGraph(roundTrip(g), g)
+  })
+
+  it('quotes config values that would read as comments', () => {
+    const g = graphOf('subscriber S\nreverse-proxy P\nclient C')
+    g.nodes[0].config.emits = '#'
+    const g2 = graphOf('subscriber S\nreverse-proxy P\nclient C')
+    g2.nodes[0].config.emits = '# foo'
+    for (const graph of [g, g2]) {
+      graph.nodes[1].config.cacheablePaths = ['/a', '#']
+      graph.nodes[2].config.mix = [{ value: '/x', weight: 1 }, { value: '#', weight: 1 }]
+      expectSameGraph(roundTrip(graph), graph)
+    }
+  })
+
   it('quotes names that look like syntax', () => {
     const names = ['Data at rest', 'Pagos, Cobros', 'A --> B', 'Say "hi"', 'Pagos as x', 'Lista [1]', 'C # D', ' borde ']
     const g: Graph = {

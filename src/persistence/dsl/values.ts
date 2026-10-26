@@ -95,8 +95,9 @@ export function parseFieldValue(field: Field, raw: string): ValueResult {
   }
 }
 
-const ITEM_UNSAFE = /[,\s"]/
-const TEXT_UNSAFE = /^\s|\s$|^"|\s#/
+// A leading `#` is quoted so the graph parser never reads the value (or a lone `#` item) as a comment.
+const ITEM_UNSAFE = /[,\s"]|^#/
+const TEXT_UNSAFE = /^\s|\s$|^"|\s#|^#(\s|$)/
 
 export function formatFieldValue(field: Field, value: unknown): string {
   switch (field.type) {

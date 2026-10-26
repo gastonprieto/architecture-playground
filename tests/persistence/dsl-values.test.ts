@@ -83,6 +83,14 @@ describe('formatFieldValue', () => {
     expect(formatFieldValue(text, 'PagoAprobado')).toBe('PagoAprobado')
   })
 
+  it('quotes values the graph parser would read as a comment', () => {
+    expect(formatFieldValue(text, '#')).toBe('"#"')
+    expect(formatFieldValue(text, '# foo')).toBe('"# foo"')
+    expect(formatFieldValue(text, '#foo')).toBe('#foo')
+    expect(formatFieldValue(list, ['/a', '#'])).toBe('/a, "#"')
+    expect(formatFieldValue(mix, [{ value: '#', weight: 2 }])).toBe('"#" x2')
+  })
+
   it('round-trips through parseFieldValue', () => {
     const cases: [Field, unknown][] = [
       [processingTime, 400],
