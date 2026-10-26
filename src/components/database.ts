@@ -31,9 +31,16 @@ export function dbKind(config: Partial<Pick<DatabaseConfig, 'kind'>>): DbKind {
   return k !== undefined && Object.hasOwn(DB_KIND_DEFAULTS, k) ? k : 'relational'
 }
 
-/** Same field as processingFields.processingTime, with a faster default (queries are quick). */
+/**
+ * Same field as processingFields.processingTime, with a faster default (queries are quick) and a
+ * minimum low enough for every kind's suggested time (key-value: 20 ms).
+ */
 const baseTime = processingFields.processingTime
-const processingTime: Field = baseTime.type === 'number' ? { ...baseTime, default: DB_KIND_DEFAULTS.relational.processingTime } : baseTime
+const fastest = Math.min(...Object.values(DB_KIND_DEFAULTS).map((d) => d.processingTime))
+const processingTime: Field =
+  baseTime.type === 'number'
+    ? { ...baseTime, default: DB_KIND_DEFAULTS.relational.processingTime, min: Math.min(baseTime.min, fastest) }
+    : baseTime
 
 /**
  * Track `up` and, on an off→on transition of a key-value database, forget every session (it lives in

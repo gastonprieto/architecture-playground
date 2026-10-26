@@ -41,6 +41,13 @@ describe('database kind', () => {
     })
   })
 
+  it('admits the suggested processing time of every kind', () => {
+    const f = database.config.processingTime
+    for (const { processingTime } of Object.values(DB_KIND_DEFAULTS)) {
+      expect(f.type === 'number' && f.min <= processingTime && processingTime <= f.max).toBe(true)
+    }
+  })
+
   it('iconFor returns the icon of the kind (relational when missing or unknown)', () => {
     expect(database.iconFor).toBeDefined()
     expect(database.iconFor!({ ...defaultConfig(database), kind: 'key-value' } as never)).toBe('🗝️')
