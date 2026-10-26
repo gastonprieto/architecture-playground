@@ -39,6 +39,8 @@ export const es = {
   palette: {
     title: 'Componentes',
     dragHint: 'Arrastrá {label} al canvas',
+    collapse: 'Colapsar componentes',
+    expand: 'Expandir componentes',
     groups: {
       edge: 'Tráfico',
       compute: 'Cómputo',

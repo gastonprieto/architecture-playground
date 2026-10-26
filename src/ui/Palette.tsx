@@ -1,4 +1,4 @@
-import type { DragEvent } from 'react'
+import { useState, type DragEvent } from 'react'
 import { defaultRegistry } from '../components/index'
 import type { ComponentDef } from '../engine/registry'
 import { useLang, useT } from '../i18n'
@@ -13,9 +13,30 @@ export const ARCH_TYPE_MIME = 'application/x-arch-type'
 type Group = NonNullable<ComponentDef['group']> | 'other'
 const GROUP_ORDER: Group[] = ['edge', 'compute', 'data', 'messaging', 'other']
 
+/** localStorage key remembering whether the palette is collapsed to its icons. */
+export const PALETTE_COLLAPSED_KEY = 'arch-playground:palette-collapsed'
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(PALETTE_COLLAPSED_KEY) === '1'
+  } catch {
+    return false /* storage unavailable */
+  }
+}
+
 export function Palette() {
   const lang = useLang((s) => s.lang)
   const t = useT()
+  const [collapsed, setCollapsed] = useState(readCollapsed)
+  const toggle = () => {
+    const next = !collapsed
+    setCollapsed(next)
+    try {
+      localStorage.setItem(PALETTE_COLLAPSED_KEY, next ? '1' : '0')
+    } catch {
+      /* storage unavailable: the choice lasts until reload */
+    }
+  }
   const onDragStart = (e: DragEvent, type: string) => {
     e.dataTransfer.setData(ARCH_TYPE_MIME, type)
     e.dataTransfer.effectAllowed = 'move'
@@ -27,11 +48,23 @@ export function Palette() {
     ;(byGroup.get(g) ?? byGroup.set(g, []).get(g)!).push(def)
   }
   return (
-    <nav className="palette" aria-label={t('palette.title')}>
-      <h2 className="panel-title">{t('palette.title')}</h2>
+    <nav className={`palette${collapsed ? ' collapsed' : ''}`} aria-label={t('palette.title')}>
+      <div className="palette-header">
+        {!collapsed && <h2 className="panel-title">{t('palette.title')}</h2>}
+        <button
+          type="button"
+          className="palette-toggle"
+          onClick={toggle}
+          aria-expanded={!collapsed}
+          aria-label={t(collapsed ? 'palette.expand' : 'palette.collapse')}
+          title={t(collapsed ? 'palette.expand' : 'palette.collapse')}
+        >
+          {collapsed ? '»' : '«'}
+        </button>
+      </div>
       {GROUP_ORDER.filter((g) => byGroup.has(g)).map((g) => (
         <section key={g} className="palette-group">
-          {g !== 'other' && <h3 className="palette-group-title">{t(`palette.groups.${g}`)}</h3>}
+          {!collapsed && g !== 'other' && <h3 className="palette-group-title">{t(`palette.groups.${g}`)}</h3>}
           <ul className="palette-list">
             {byGroup.get(g)!.map((def) => {
               const label = componentLabel(lang, def.type, def)
@@ -42,9 +75,9 @@ export function Palette() {
                     <span className="palette-icon" aria-hidden>
                       {def.icon}
                     </span>
-                    <span>{label}</span>
+                    <span className={collapsed ? 'sr-only' : undefined}>{label}</span>
                   </div>
-                  <InfoButton type={def.type} label={label} />
+                  {!collapsed && <InfoButton type={def.type} label={label} />}
                 </li>
               )
             })}

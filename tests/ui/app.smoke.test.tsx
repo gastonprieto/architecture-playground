@@ -73,6 +73,27 @@ describe('App', () => {
     }
   })
 
+  it('the palette collapses to draggable icons and remembers it across reloads', () => {
+    localStorage.clear()
+    try {
+      const { container } = render(<App />)
+      fireEvent.click(screen.getByRole('button', { name: 'Colapsar componentes' }))
+      const nav = container.querySelector('.palette')!
+      expect(nav.classList.contains('collapsed')).toBe(true)
+      expect(screen.queryByText('Tráfico')).toBeNull()
+      expect(nav.querySelector('.info-btn')).toBeNull()
+      expect(nav.querySelectorAll('.palette-drag[draggable="true"] .palette-icon').length).toBeGreaterThan(0)
+      cleanup()
+
+      render(<App />)
+      fireEvent.click(screen.getByRole('button', { name: 'Expandir componentes' }))
+      expect(screen.getByText('Tráfico')).toBeTruthy()
+    } finally {
+      cleanup()
+      localStorage.clear()
+    }
+  })
+
   it('hides the palette in mobile mode', () => {
     window.history.replaceState(null, '', '/?mobile=1')
     try {

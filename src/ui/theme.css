@@ -68,6 +68,7 @@ body {
     'palette canvas inspector'
     'metrics metrics metrics';
 }
+.app:has(> .palette.collapsed) { grid-template-columns: 60px minmax(0, 1fr) 280px; }
 .app.mobile {
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: 'toolbar' 'canvas' 'metrics';
@@ -163,6 +164,28 @@ body {
 .palette-drag:active { cursor: grabbing; }
 .palette-tile .info-btn { margin: 0 5px 0 2px; }
 .palette-icon { font-size: 18px; line-height: 1; }
+
+.palette-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.palette-header .panel-title { margin: 0; }
+.palette-toggle {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font: 600 13px/1 var(--mono);
+  cursor: pointer;
+}
+.palette-toggle:hover { color: var(--text); border-color: rgba(56, 189, 248, 0.3); }
+
+/* Collapsed: one icon per tile, still draggable; the label lives in the tooltip and for screen readers. */
+.palette.collapsed { padding: 12px 6px; overflow-x: hidden; }
+.palette.collapsed .palette-header { justify-content: center; }
+.palette.collapsed .palette-drag { justify-content: center; padding: 9px 0; }
+.palette.collapsed .palette-tile:hover { transform: none; }
 
 /* ---------- canvas (React Flow restyle) ---------- */
 
