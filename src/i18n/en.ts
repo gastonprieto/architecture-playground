@@ -35,6 +35,7 @@ export const en: Dict = {
     'invalid-json': 'Invalid JSON',
     'unknown-format': 'Unrecognized file format',
     'dangling-edge': 'Edge {edgeId} points to a node that does not exist',
+    'empty-file': 'The file is empty',
   },
   graphDsl: {
     line: 'line {line}: {message}',

@@ -146,6 +146,10 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     e.target.value = ''
     if (!file) return
     const text = await file.text()
+    if (text.trim() === '') {
+      show(t('errors.empty-file'))
+      return
+    }
     const r = parseAnyGraph(text)
     if (!r.ok) {
       if (r.format === 'json') {

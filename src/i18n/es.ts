@@ -36,6 +36,7 @@ export const es = {
     'invalid-json': 'JSON inválido',
     'unknown-format': 'Formato no reconocido',
     'dangling-edge': 'La arista {edgeId} apunta a un nodo inexistente',
+    'empty-file': 'El archivo está vacío',
   },
   /** Graph DSL (text format of a whole graph): import error messages. */
   graphDsl: {

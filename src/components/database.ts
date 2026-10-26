@@ -33,13 +33,13 @@ export function dbKind(config: Partial<Pick<DatabaseConfig, 'kind'>>): DbKind {
 
 /**
  * Same field as processingFields.processingTime, with a faster default (queries are quick) and a
- * minimum low enough for every kind's suggested time (key-value: 20 ms).
+ * minimum low enough for every kind's suggested time (key-value: 20 ms) with a step that reaches them all.
  */
 const baseTime = processingFields.processingTime
 const fastest = Math.min(...Object.values(DB_KIND_DEFAULTS).map((d) => d.processingTime))
 const processingTime: Field =
   baseTime.type === 'number'
-    ? { ...baseTime, default: DB_KIND_DEFAULTS.relational.processingTime, min: Math.min(baseTime.min, fastest) }
+    ? { ...baseTime, default: DB_KIND_DEFAULTS.relational.processingTime, min: Math.min(baseTime.min, fastest), step: 10 }
     : baseTime
 
 /**

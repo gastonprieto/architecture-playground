@@ -45,9 +45,9 @@ export function parseDocument(text: string): { graph: Graph; placed: Set<NodeId>
   const error = (line: number, code: GraphDslErrorCode, params?: GraphDslError['params']) => {
     errors.push(params ? { line, code, params } : { line, code })
   }
-  const { decls, edgeLines } = readStatements(scan(text, error), error)
+  const { decls, edgeLines, failed } = readStatements(scan(text, error), error)
   const { nodes, placed, aliases, names } = buildNodes(decls, error)
-  const edges = buildEdges(edgeLines, aliases, names, error)
+  const edges = buildEdges(edgeLines, aliases, names, failed, error)
   errors.sort((a, b) => a.line - b.line)
   return { graph: { nodes, edges }, placed, errors }
 }
@@ -94,8 +94,11 @@ function scan(text: string, error: ErrorFn): Line[] {
     for (; j < raw.length; j++) {
       const spaces = /^ */.exec(raw[j])![0].length
       if (raw[j].trim() !== '' && spaces <= entry.indent) break
-      body.push(raw[j].slice(Math.min(spaces, entry.indent + 2)))
+      body.push(raw[j])
     }
+    // Dedent by the common indentation (the smallest among non-blank lines); nothing else is touched.
+    const common = Math.min(...body.filter((b) => b.trim() !== '').map((b) => /^ */.exec(b)![0].length))
+    for (let k = 0; k < body.length; k++) body[k] = body[k].slice(Math.min(/^ */.exec(body[k])![0].length, common))
     while (body.length > 0 && body[body.length - 1].trim() === '') body.pop()
     if (body.length > 0) entry.block = body.join('\n') + '\n'
     i = j - 1
@@ -172,10 +175,34 @@ interface Target {
   id?: NodeId | null
 }
 
-const DECL = /^(.*?)(?:\s+as\s+([\p{L}\p{N}_-]+))?(?:\s+at\s+(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?))?$/u
+const AS = /^(.*?)\s+as\s+([\p{L}\p{N}_-]+)$/u
+const AT = /^(.*?)\s+at\s+(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/u
+/** From the first `[` outside quotes: a name ends there (spec §3), so what follows is an attribute. */
+const NAME_BRACKET = /^(?:"(?:[^"\\]|\\.)*"|[^"[])*(\[.*)$/
 
-function readStatements(lines: Line[], error: ErrorFn): { decls: Decl[]; edgeLines: Target[][][] } {
+/** The part after the type keyword: names, then `as` and `at` in either order. */
+function declarationHead(rest: string) {
+  let text = rest
+  let alias: string | undefined
+  let at: RegExpExecArray | null = null
+  for (let n = 0; n < 2; n++) {
+    const asMatch: RegExpExecArray | null = alias === undefined ? AS.exec(text) : null
+    const atMatch: RegExpExecArray | null = at === null && asMatch === null ? AT.exec(text) : null
+    if (asMatch) {
+      alias = asMatch[2]
+      text = asMatch[1]
+    } else if (atMatch) {
+      at = atMatch
+      text = atMatch[1]
+    }
+  }
+  return { raw: splitOutside(text, ',').map((n) => n.trim()), alias, at }
+}
+
+function readStatements(lines: Line[], error: ErrorFn): { decls: Decl[]; edgeLines: Target[][][]; failed: Set<string> } {
   const decls: Decl[] = []
+  /** Names and aliases written in declarations that failed: refs to them are not reported again. */
+  const failed = new Set<string>()
   const edgeLines: Target[][][] = []
   // The declaration indented lines belong to; 'skip' swallows the config of a broken declaration.
   let current: { decl: Decl; keys: Set<string> } | 'skip' | null = null
@@ -193,37 +220,37 @@ function readStatements(lines: Line[], error: ErrorFn): { decls: Decl[]; edgeLin
     } else if (splitOutside(l.text, '-->').length > 1) {
       edgeLines.push(edgeLine(l, error))
     } else {
-      const decl = declaration(l, error)
+      const decl = declaration(l, error, failed)
       if (decl) decls.push(decl)
       current = decl ? { decl, keys: new Set() } : 'skip'
     }
   })
-  return { decls, edgeLines }
+  return { decls, edgeLines, failed }
 }
 
-function declaration(l: Line, error: ErrorFn): Decl | null {
+function declaration(l: Line, error: ErrorFn, failed: Set<string>): Decl | null {
   const word = /^\S+/.exec(l.text)![0]
+  const head = declarationHead(l.text.slice(word.length).trim())
+  const fail = (code: GraphDslErrorCode, params?: GraphDslError['params']) => {
+    for (const n of head.raw) failed.add(unquote(n)).add(unquote(n.replace(/\s*\[.*$/, '')))
+    if (head.alias !== undefined) failed.add(head.alias)
+    error(l.line, code, params)
+    return null
+  }
   const type = Object.hasOwn(TYPE_KEYWORDS, word) ? TYPE_KEYWORDS[word] : undefined
-  if (!type) {
-    error(l.line, 'unknown-type', withSuggestion({ word }, word, Object.keys(TYPE_KEYWORDS)))
-    return null
-  }
-  const m = DECL.exec(l.text.slice(word.length).trim())!
-  const names = splitOutside(m[1], ',').map((n) => unquote(n.trim()))
-  if (names.some((n) => n === '')) {
-    error(l.line, 'missing-name')
-    return null
-  }
-  if (names.length > 1 && (m[2] !== undefined || m[3] !== undefined)) {
-    error(l.line, 'multi-alias')
-    return null
-  }
+  if (!type) return fail('unknown-type', withSuggestion({ word }, word, Object.keys(TYPE_KEYWORDS)))
+  // A bare empty name is missing; a quoted one (`""`) is a real, empty name.
+  if (head.raw.some((n) => n === '')) return fail('missing-name')
+  const bracket = head.raw.map((n) => NAME_BRACKET.exec(n)).find((m) => m)
+  if (bracket) return fail('bad-attribute', { word: bracket[1] })
+  if (head.raw.length > 1 && (head.alias !== undefined || head.at !== null)) return fail('multi-alias')
+  const at = head.at
   return {
     line: l.line,
     def: defaultRegistry.get(type)!,
-    names,
-    alias: m[2],
-    position: m[3] === undefined ? undefined : { x: Number(m[3]) * COL, y: Number(m[4]) * ROW },
+    names: head.raw.map(unquote),
+    alias: head.alias,
+    position: at === null ? undefined : { x: Number(at[2]) * COL, y: Number(at[3]) * ROW },
     config: {},
   }
 }
@@ -276,7 +303,7 @@ function edgeLine(l: Line, error: ErrorFn): Target[][] {
         return { line: l.line, ref: '', bad: true }
       }
       const target: Target = { line: l.line, ref: unquote(m[1].trim()) }
-      if (target.ref === '') {
+      if (m[1].trim() === '') {
         error(l.line, 'missing-name')
         return { ...target, bad: true }
       }
@@ -359,7 +386,10 @@ function buildNodes(decls: Decl[], error: ErrorFn) {
   for (const decl of decls) {
     for (const name of decl.names) {
       const id = ids.get(decl) ?? slugId(name)
-      const config = { ...defaultConfig(decl.def), name, ...structuredClone(decl.config) }
+      const base = defaultConfig(decl.def)
+      // A client's color and ip are left to backfillClients unless the text sets them.
+      if (decl.def.type === 'client') for (const key of ['color', 'ip']) if (!Object.hasOwn(decl.config, key)) delete base[key]
+      const config = { ...base, name, ...structuredClone(decl.config) }
       nodes.push({ id, type: decl.def.type, position: decl.position ?? { x: 0, y: 0 }, config })
       if (decl.position) placed.add(id)
       names.set(name, [...(names.get(name) ?? []), id])
@@ -368,14 +398,14 @@ function buildNodes(decls: Decl[], error: ErrorFn) {
   return { nodes, placed, aliases, names }
 }
 
-function buildEdges(edgeLines: Target[][][], aliases: Map<string, NodeId>, names: Map<string, NodeId[]>, error: ErrorFn): GraphEdge[] {
+function buildEdges(edgeLines: Target[][][], aliases: Map<string, NodeId>, names: Map<string, NodeId[]>, failed: Set<string>, error: ErrorFn): GraphEdge[] {
   const resolve = (t: Target): NodeId | null => {
     if (t.bad) return null
     if (t.id !== undefined) return t.id
     const byName = names.get(t.ref) ?? []
     t.id = aliases.get(t.ref) ?? (byName.length === 1 ? byName[0] : null)
     if (t.id === null && byName.length > 1) error(t.line, 'ambiguous-ref', { name: t.ref })
-    else if (t.id === null) error(t.line, 'unknown-ref', withSuggestion({ name: t.ref }, t.ref, [...names.keys(), ...aliases.keys()]))
+    else if (t.id === null && !failed.has(t.ref)) error(t.line, 'unknown-ref', withSuggestion({ name: t.ref }, t.ref, [...names.keys(), ...aliases.keys()]))
     return t.id
   }
 

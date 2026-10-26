@@ -74,7 +74,7 @@ function nodeRefs(nodes: GraphNode[]): Map<NodeId, { name: string; alias?: strin
   return refs
 }
 
-const NAME_UNSAFE = /[,"[\]#]|-->|^\s|\s$|\s(as|at)\s|\s(as|at)$/
+const NAME_UNSAFE = /[,"[\]#]|-->|^$|^\s|\s$|\s(as|at)\s|\s(as|at)$/
 
 const quoteName = (name: string) => quoteIfNeeded(name, NAME_UNSAFE)
 
@@ -83,7 +83,10 @@ function configLines(def: ComponentDef, config: Record<string, unknown>): string
   const defaults = defaultConfig(def)
   const lines: string[] = []
   for (const [key, field] of Object.entries(def.config)) {
-    if (key === 'name' || !Object.hasOwn(config, key) || deepEqual(config[key], defaults[key])) continue
+    if (key === 'name' || !Object.hasOwn(config, key)) continue
+    // A client's color is always written: the parser leaves it out when absent so it can be backfilled.
+    const pinned = def.type === 'client' && key === 'color'
+    if (!pinned && deepEqual(config[key], defaults[key])) continue
     if (field.type === 'behavior') {
       const text = String(config[key]).replace(/\n$/, '')
       lines.push('  behavior:', ...text.split('\n').map((l) => (l === '' ? '' : `    ${l}`)))
@@ -103,7 +106,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return ka.length === kb.length && ka.every((k) => Object.hasOwn(b, k) && deepEqual((a as never)[k], (b as never)[k]))
 }
 
-const ATTR_UNSAFE = /[\s,[\]"]/
+const ATTR_UNSAFE = /[\s,[\]"]|^$/
 
 /** ` [rule weight]` in short form where the parser would read it back the same, long form otherwise. */
 function attributes(edge: GraphEdge): string {
@@ -116,6 +119,6 @@ function attributes(edge: GraphEdge): string {
 function ruleText(rule: EdgeRule): string {
   const value = quoteIfNeeded(rule.value, ATTR_UNSAFE)
   if (rule.kind === 'pathPrefix') return rule.value.startsWith('/') && value === rule.value ? value : `path ${value}`
-  const short = !rule.value.startsWith('/') && !/^x[\d.]/.test(rule.value) && !['path', 'event', 'weight'].includes(rule.value)
+  const short = rule.value !== '' && !rule.value.startsWith('/') && !/^x[\d.]/.test(rule.value) && !['path', 'event', 'weight'].includes(rule.value)
   return short ? value : `event ${value}`
 }

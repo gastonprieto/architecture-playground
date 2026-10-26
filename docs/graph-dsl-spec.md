@@ -64,7 +64,7 @@ API A --> Eventos --> Mails [UsuarioCreado]
 ```
 archivo     := ['@architecture' versión] sentencia*
 sentencia   := declaración | conexión
-declaración := tipo nombres ['as' alias] ['at' col ',' fila]
+declaración := tipo nombres (['as' alias] ['at' col ',' fila], en cualquier orden)
                (bloque de 'clave: valor', indentado 2 espacios)
 nombres     := nombre (',' nombre)*
 conexión    := grupo ('-->' grupo)+
@@ -93,7 +93,7 @@ ref         := alias | nombre
 | `subscriber` | — | Suscriptor |
 
 - Son los `type` del registro (`src/components`). El export escribe siempre la palabra completa.
-- **Varios nombres en una declaración** (`service Stock, Pagos`) crean un nodo por nombre. El bloque de configuración se aplica a todos. Con varios nombres no se permiten `as` ni `at` (error `multi-alias`).
+- **Varios nombres en una declaración** (`service Stock, Pagos`) crean un nodo por nombre. El bloque de configuración se aplica a todos. Con varios nombres no se permiten `as` ni `at` (error `multi-alias`). `as` y `at` pueden ir en cualquier orden (el export escribe `as` y después `at`). El nombre termina en el primer `[` sin comillas: `service A [x]` es un `bad-attribute`. Un nombre vacío se escribe entre comillas (`service ""`); sin comillas es `missing-name`.
 
 ## 5. Nombres y alias
 

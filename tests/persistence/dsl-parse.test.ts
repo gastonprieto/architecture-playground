@@ -16,6 +16,12 @@ function errorsOf(text: string) {
   return result.errors
 }
 
+/** A client's defaults minus color and ip, which prepareGraph backfills when the text omits them. */
+function clientDefaults() {
+  const { color: _color, ip: _ip, ...rest } = defaultConfig(defaultRegistry.get('client')!)
+  return rest
+}
+
 const edgePairs = (g: Graph) => g.edges.map((e) => e.id)
 const nodeById = (g: Graph, id: string) => g.nodes.find((n) => n.id === id)!
 const ruleOf = (text: string) => graphOf(`client A\nservice B\n${text}`).edges[0]
@@ -24,7 +30,7 @@ describe('parseGraphDsl', () => {
   it('parses a minimal graph with default configs', () => {
     const g = graphOf('client Web\nservice API\nWeb --> API')
     expect(g.nodes).toEqual([
-      { id: 'web', type: 'client', position: { x: 0, y: 0 }, config: { ...defaultConfig(defaultRegistry.get('client')!), name: 'Web' } },
+      { id: 'web', type: 'client', position: { x: 0, y: 0 }, config: { ...clientDefaults(), name: 'Web' } },
       { id: 'api', type: 'service', position: { x: 250, y: 0 }, config: { ...defaultConfig(defaultRegistry.get('service')!), name: 'API' } },
     ])
     expect(g.edges).toEqual([{ id: 'web-api', source: 'web', target: 'api' }])

@@ -88,4 +88,14 @@ describe('toolbar export / import', () => {
     expect((screen.getByRole('textbox', { name: 'Arquitectura como texto' }) as HTMLTextAreaElement).value).toBe('servise W')
     expect(useEditor.getState().graph.nodes).toEqual([])
   })
+
+  it('shows a toast and keeps the graph when the file is empty', async () => {
+    renderEmpty()
+    act(() => {
+      useEditor.getState().addNode('cache', { x: 0, y: 0 })
+    })
+    fireEvent.change(input(), { target: { files: [new File(['  \n '], 'a.arch')] } })
+    await screen.findByText('El archivo está vacío')
+    expect(useEditor.getState().graph.nodes.map((n) => n.type)).toEqual(['cache'])
+  })
 })

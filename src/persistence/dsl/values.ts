@@ -96,7 +96,8 @@ export function parseFieldValue(field: Field, raw: string): ValueResult {
 }
 
 // A leading `#` is quoted so the graph parser never reads the value (or a lone `#` item) as a comment.
-const ITEM_UNSAFE = /[,\s"]|^#/
+// An empty item is quoted too, or it would read as a missing value.
+const ITEM_UNSAFE = /[,\s"]|^#|^$/
 const TEXT_UNSAFE = /^\s|\s$|^"|\s#|^#(\s|$)/
 
 export function formatFieldValue(field: Field, value: unknown): string {
