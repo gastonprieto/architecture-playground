@@ -25,7 +25,7 @@ describe('parseGraphDsl', () => {
     const g = graphOf('client Web\nservice API\nWeb --> API')
     expect(g.nodes).toEqual([
       { id: 'web', type: 'client', position: { x: 0, y: 0 }, config: { ...defaultConfig(defaultRegistry.get('client')!), name: 'Web' } },
-      { id: 'api', type: 'service', position: { x: 0, y: 0 }, config: { ...defaultConfig(defaultRegistry.get('service')!), name: 'API' } },
+      { id: 'api', type: 'service', position: { x: 250, y: 0 }, config: { ...defaultConfig(defaultRegistry.get('service')!), name: 'API' } },
     ])
     expect(g.edges).toEqual([{ id: 'web-api', source: 'web', target: 'api' }])
   })

@@ -3,6 +3,7 @@ import { defaultConfig, type ComponentDef } from '../../engine/registry'
 import type { EdgeRule, Graph, GraphEdge, GraphNode, NodeId } from '../../engine/types'
 import { COL, ROW } from '../grid'
 import { suggest, type GraphDslError, type GraphDslErrorCode } from './errors'
+import { layoutGraph } from './layout'
 import { parseFieldValue, unquote } from './values'
 
 /**
@@ -34,8 +35,8 @@ export function slugify(name: string): string {
 }
 
 export function parseGraphDsl(text: string): GraphDslResult {
-  const { graph, errors } = parseDocument(text)
-  return errors.length > 0 ? { ok: false, errors } : { ok: true, graph }
+  const { graph, placed, errors } = parseDocument(text)
+  return errors.length > 0 ? { ok: false, errors } : { ok: true, graph: layoutGraph(graph, placed) }
 }
 
 /** Nodes without `at` sit at (0, 0); `placed` holds the ids that had one. */
