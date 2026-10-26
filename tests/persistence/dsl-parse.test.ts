@@ -175,6 +175,18 @@ describe('parseGraphDsl errors', () => {
     ])
   })
 
+  it('gives distinct ids to distinct pairs whose edge ids collide', () => {
+    const g = graphOf('service A\nservice "B C"\nservice "A B"\nservice C\nA --> B C\nA B --> C')
+    expect(g.edges.map((e) => e.id)).toEqual(['a-b-c', 'a-b-c-2'])
+    expect(g.edges.map((e) => [e.source, e.target])).toEqual([['a', 'b-c'], ['a-b', 'c']])
+  })
+
+  it('reports bad-attribute with the token as written', () => {
+    expect(errorsOf('client A\nservice B\nA --> B [x3a]')).toEqual([{ line: 3, code: 'bad-attribute', params: { word: 'x3a' } }])
+    expect(errorsOf('client A\nservice B\nA --> B [x2 x3]')).toEqual([{ line: 3, code: 'bad-attribute', params: { word: 'x3' } }])
+    expect(errorsOf('client A\nservice B\nA --> B [weight 3a]')).toEqual([{ line: 3, code: 'bad-attribute', params: { word: '3a' } }])
+  })
+
   it('multi-alias', () => {
     expect(errorsOf('service A, B as x')).toEqual([{ line: 1, code: 'multi-alias' }])
   })

@@ -300,16 +300,20 @@ function attributes(target: Target, text: string, error: ErrorFn): Target {
     const token = tokens[i]
     let rule: EdgeRule | undefined
     let weight: string | undefined
+    let written = token
     if (token === 'path' || token === 'event' || token === 'weight') {
       const next = tokens[++i]
       if (next === undefined) return bad(token)
-      if (token === 'weight') weight = next
+      if (token === 'weight') {
+        weight = next
+        written = next
+      }
       else rule = { kind: token === 'path' ? 'pathPrefix' : 'eventType', value: unquote(next) }
     } else if (token.startsWith('/')) rule = { kind: 'pathPrefix', value: token }
     else if (/^x[\d.]/.test(token)) weight = token.slice(1)
     else rule = { kind: 'eventType', value: unquote(token) }
     if (weight !== undefined) {
-      if (!WEIGHT.test(weight) || target.weight !== undefined) return bad(weight)
+      if (!WEIGHT.test(weight) || target.weight !== undefined) return bad(written)
       target.weight = Number(weight)
     }
     if (rule) {
@@ -375,7 +379,8 @@ function buildEdges(edgeLines: Target[][][], aliases: Map<string, NodeId>, names
   }
 
   const edges: GraphEdge[] = []
-  const seen = new Set<string>()
+  const pairs = new Set<string>()
+  const ids = new Set<string>()
   for (const groups of edgeLines) {
     groups.flat().forEach(resolve)
     for (let g = 0; g + 1 < groups.length; g++) {
@@ -384,12 +389,17 @@ function buildEdges(edgeLines: Target[][][], aliases: Map<string, NodeId>, names
           const source = resolve(s)
           const target = resolve(t)
           if (source === null || target === null) continue
-          const id = `${source}-${target}`
-          if (seen.has(id)) {
+          // Duplicates are pairs of nodes; distinct pairs can still slug to the same id.
+          const pair = JSON.stringify([source, target])
+          if (pairs.has(pair)) {
             error(t.line, 'duplicate-edge', { source: s.ref, target: t.ref })
             continue
           }
-          seen.add(id)
+          pairs.add(pair)
+          const base = `${source}-${target}`
+          let id = base
+          for (let n = 2; ids.has(id); n++) id = `${base}-${n}`
+          ids.add(id)
           edges.push({ id, source, target, ...(t.rule && { rule: t.rule }), ...(t.weight !== undefined && { weight: t.weight }) })
         }
       }
