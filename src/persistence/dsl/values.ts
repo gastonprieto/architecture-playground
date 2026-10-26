@@ -52,11 +52,13 @@ function parseNumber(field: Extract<Field, { type: 'number' }>, raw: string): Va
 }
 
 function parseMixItem(item: string): { value: string; weight: number } | undefined {
-  const m = /^(.+?)\s+x(\S*)$/.exec(item)
-  const valueText = m ? m[1] : item
-  const weight = m ? Number(m[2]) : 1
-  if (!valueText || !(m ? NUMBER.test(m[2]) : true) || !(weight > 0)) return undefined
-  return { value: unquote(valueText), weight }
+  // A quoted value is taken whole first, so an ` x<n>` inside the quotes is never read as a weight.
+  const m = /^("(?:[^"\\]|\\.)*"|\S+)(?:\s+x(\S*))?$/.exec(item)
+  if (!m) return undefined
+  if (m[2] !== undefined && !NUMBER.test(m[2])) return undefined
+  const weight = m[2] === undefined ? 1 : Number(m[2])
+  if (weight < 0) return undefined
+  return { value: unquote(m[1]), weight }
 }
 
 export function parseFieldValue(field: Field, raw: string): ValueResult {

@@ -64,6 +64,7 @@ describe('parseFieldValue', () => {
     })
     expect(parseFieldValue(mix, '"Orden Creada" x2')).toEqual({ ok: true, value: [{ value: 'Orden Creada', weight: 2 }] })
     expect(parseFieldValue(mix, '/a x-1')).toMatchObject({ ok: false, code: 'bad-value' })
+    expect(parseFieldValue(mix, '/a x0')).toEqual({ ok: true, value: [{ value: '/a', weight: 0 }] })
   })
 
   it('leaves behavior fields to the block parser', () => {
@@ -99,6 +100,9 @@ describe('formatFieldValue', () => {
       [list, ['a, b', 'c']],
       [mix, [{ value: '/ordenes', weight: 3 }, { value: '/productos', weight: 1 }]],
       [mix, [{ value: 'Orden Creada', weight: 2 }]],
+      [mix, [{ value: '/a', weight: 0 }]],
+      [mix, [{ value: 'a x3', weight: 1 }]],
+      [mix, [{ value: 'a x3', weight: 2 }]],
     ]
     for (const [f, v] of cases) {
       expect(parseFieldValue(f, formatFieldValue(f, v))).toEqual({ ok: true, value: v })
