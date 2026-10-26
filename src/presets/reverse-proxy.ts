@@ -1,6 +1,6 @@
 import { CLIENT_COLORS } from '../components/client'
 import type { Lang } from '../i18n'
-import { edge, node, presetText, ROW, type PresetShape } from './helpers'
+import { edge, node, presetText, ROW, type PresetShape, START_RATE } from './helpers'
 
 export function reverseProxyPreset(lang: Lang): PresetShape {
   const { text, name, description } = presetText(lang, 'reverse-proxy')
@@ -10,14 +10,14 @@ export function reverseProxyPreset(lang: Lang): PresetShape {
     id: 'reverse-proxy',
     name,
     description,
-    // Clients start idle (0 req/s); these are the rates the demo is tuned for.
+    // Clients start at START_RATE; these are the rates the demo is tuned for.
     demoRates: { 'web-client': 3, mobile: 3, anon: 1 },
     graph: {
       nodes: [
-        node('web-client', 'client', 0, 0.5 * ROW, text('nodes.web'), { rate: 0, mix, ip: '10.0.0.1', color: CLIENT_COLORS[0] }),
-        node('mobile', 'client', 0, 1.5 * ROW, text('nodes.mobile'), { rate: 0, mix, ip: '10.0.0.2', color: CLIENT_COLORS[1] }),
+        node('web-client', 'client', 0, 0.5 * ROW, text('nodes.web'), { rate: START_RATE, mix, ip: '10.0.0.1', color: CLIENT_COLORS[0] }),
+        node('mobile', 'client', 0, 1.5 * ROW, text('nodes.mobile'), { rate: START_RATE, mix, ip: '10.0.0.2', color: CLIENT_COLORS[1] }),
         // No credentials: the gateway answers 401 and its requests never reach a service.
-        node('anon', 'client', 0, 2.5 * ROW, text('nodes.anon'), { rate: 0, mix, ip: '10.0.0.3', color: CLIENT_COLORS[2], auth: 'none' }),
+        node('anon', 'client', 0, 2.5 * ROW, text('nodes.anon'), { rate: START_RATE, mix, ip: '10.0.0.3', color: CLIENT_COLORS[2], auth: 'none' }),
         // Edge cache on real keys for static content only: Web gets cached, Pagos never does.
         node('proxy', 'reverse-proxy', 1, 1.5 * ROW, text('nodes.proxy'), { auth: 'credentials', cache: 'keys', cacheablePaths: [path('static')] }),
         node('usuarios', 'service', 2, 0, text('nodes.users')),

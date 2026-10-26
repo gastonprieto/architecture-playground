@@ -1,6 +1,6 @@
 import { CLIENT_COLORS } from '../components/client'
 import type { Lang } from '../i18n'
-import { edge, node, presetText, ROW, type PresetShape } from './helpers'
+import { edge, node, presetText, ROW, type PresetShape, START_RATE } from './helpers'
 
 export function pubsubPreset(lang: Lang): PresetShape {
   const { text, name, description } = presetText(lang, 'pubsub')
@@ -8,7 +8,7 @@ export function pubsubPreset(lang: Lang): PresetShape {
     id: 'pubsub',
     name,
     description,
-    // Clients start idle (0 req/s); these are the rates the demo is tuned for.
+    // Clients start at START_RATE; these are the rates the demo is tuned for.
     demoRates: { ordenes: 1 },
     graph: {
       nodes: [
@@ -16,7 +16,7 @@ export function pubsubPreset(lang: Lang): PresetShape {
           ip: '10.0.0.1',
           color: CLIENT_COLORS[2],
           kind: 'event',
-          rate: 0,
+          rate: START_RATE,
           mix: [{ value: text('eventType'), weight: 1 }],
         }),
         node('broker', 'broker', 1, 1.5 * ROW, text('nodes.broker')),

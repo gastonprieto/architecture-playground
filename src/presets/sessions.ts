@@ -1,7 +1,7 @@
 import { CLIENT_COLORS } from '../components/client'
 import { DB_KIND_DEFAULTS } from '../components/database'
 import type { Lang } from '../i18n'
-import { edge, node, presetText, ROW, type PresetShape } from './helpers'
+import { edge, node, presetText, ROW, type PresetShape, START_RATE } from './helpers'
 
 const LANES = ['mem', 'store', 'jwt'] as const
 type Lane = (typeof LANES)[number]
@@ -30,7 +30,7 @@ export function sessionsPreset(lang: Lang): PresetShape {
     const y = i * LANE_GAP
     return [
       node(`client-${lane}`, 'client', 0, y + ROW, text(`nodes.client.${lane}`), {
-        rate: 0,
+        rate: START_RATE,
         users: 5,
         auth: 'login',
         ip: `10.0.0.${i + 1}`,
@@ -51,7 +51,7 @@ export function sessionsPreset(lang: Lang): PresetShape {
     id: 'sessions',
     name,
     description,
-    // Clients start idle (0 req/s). At 1 req/s each of the 5 users sends every 5 s, after the cookie of its
+    // Clients start at START_RATE. At 1 req/s each of the 5 users sends every 5 s, after the cookie of its
     // login came back even in the store lane (~4 s round trip with the database), so the store ends up with
     // exactly one session per user.
     demoRates: { 'client-mem': 1, 'client-store': 1, 'client-jwt': 1 },

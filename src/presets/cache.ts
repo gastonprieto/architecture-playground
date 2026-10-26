@@ -1,6 +1,6 @@
 import { CLIENT_COLORS } from '../components/client'
 import type { Lang } from '../i18n'
-import { edge, node, presetText, ROW, type PresetShape } from './helpers'
+import { edge, node, presetText, ROW, type PresetShape, START_RATE } from './helpers'
 
 /** How many product paths the client mixes: twice the Cache's capacity, so LRU evictions show. */
 const PRODUCTS = 10
@@ -20,7 +20,7 @@ export function cachePreset(lang: Lang): PresetShape {
     demoRates: { client: 5 },
     graph: {
       nodes: [
-        node('client', 'client', 0, 0.5 * ROW, text('nodes.client'), { rate: 0, mix, ip: '10.0.0.1', color: CLIENT_COLORS[0] }),
+        node('client', 'client', 0, 0.5 * ROW, text('nodes.client'), { rate: START_RATE, mix, ip: '10.0.0.1', color: CLIENT_COLORS[0] }),
         // Headroom: the Servicio never saturates, so the database is what the cache relieves.
         node('service', 'service', 1, 0.5 * ROW, text('nodes.service'), { processingTime: 100, capacity: 20, queueMax: 50 }),
         node('cache', 'cache', 2, 0, text('nodes.cache'), { mode: 'keys', capacity: 5 }),

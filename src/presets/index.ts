@@ -12,7 +12,7 @@ export interface Preset {
   id: string
   name: string
   description: string
-  /** Rate (req/s) each client is tuned for; preset clients start at 0 so the user starts the traffic. */
+  /** Rate (req/s) each client is tuned for; preset clients start at `START_RATE` and the user turns them up. */
   demoRates: Record<string, number>
   graph: Graph
 }

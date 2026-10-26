@@ -5,6 +5,7 @@ import { Simulation } from '../../src/engine/simulation'
 import type { Message } from '../../src/engine/types'
 import { parseGraph, serializeGraph } from '../../src/persistence/serialize'
 import { getPresets, withDemoTraffic } from '../../src/presets'
+import { START_RATE } from '../../src/presets/helpers'
 import { CLIENT_COLORS } from '../../src/ui/colors'
 import type { Graph } from '../../src/engine/types'
 import type { CacheState } from '../../src/components/cache'
@@ -86,11 +87,11 @@ describe('presets', () => {
     expect(paths['web'].every((x) => x === '/static')).toBe(true)
   })
 
-  it('every preset client starts idle (0 req/s) and has a demo rate to start the traffic with', () => {
+  it('every preset client starts at START_RATE (1 req/s) and has a demo rate to start the traffic with', () => {
     for (const p of presets) {
       const clients = p.graph.nodes.filter((x) => x.type === 'client')
       for (const n of clients) {
-        expect(n.config.rate, `${p.id}/${n.id}`).toBe(0)
+        expect(n.config.rate, `${p.id}/${n.id}`).toBe(START_RATE)
         expect(p.demoRates[n.id], `${p.id}/${n.id}`).toBeGreaterThan(0)
       }
       expect(Object.keys(p.demoRates).sort()).toEqual(clients.map((n) => n.id).sort())
@@ -251,7 +252,7 @@ describe('sessions preset', () => {
     const p = preset('sessions')
     const cfg = (id: string) => p.graph.nodes.find((n) => n.id === id)!.config
     for (const lane of ['mem', 'store', 'jwt']) {
-      expect(cfg(`client-${lane}`)).toMatchObject({ users: 5, auth: 'login', rate: 0 })
+      expect(cfg(`client-${lane}`)).toMatchObject({ users: 5, auth: 'login', rate: START_RATE })
       expect(cfg(`lb-${lane}`)).toMatchObject({ algorithm: 'round-robin', sticky: false, healthChecks: true })
       for (const i of [1, 2, 3]) expect(p.graph.edges.some((e) => e.source === `lb-${lane}` && e.target === `${lane}-${i}`)).toBe(true)
     }
@@ -315,10 +316,10 @@ describe('sessions preset', () => {
 })
 
 describe('reverse-proxy gateway auth', () => {
-  it('the proxy requires credentials and an anonymous client starts idle', () => {
+  it('the proxy requires credentials and an anonymous client starts at the start rate', () => {
     const p = preset('reverse-proxy')
     expect(p.graph.nodes.find((n) => n.id === 'proxy')!.config.auth).toBe('credentials')
-    expect(p.graph.nodes.find((n) => n.id === 'anon')!.config).toMatchObject({ auth: 'none', rate: 0, name: 'Sin credenciales' })
+    expect(p.graph.nodes.find((n) => n.id === 'anon')!.config).toMatchObject({ auth: 'none', rate: START_RATE, name: 'Sin credenciales' })
     expect(getPresets('en').find((x) => x.id === 'reverse-proxy')!.graph.nodes.find((n) => n.id === 'anon')!.config.name).toBe('Anonymous')
   })
 
@@ -345,11 +346,11 @@ describe('reverse-proxy gateway auth', () => {
 describe('cache preset (cache-spec §7)', () => {
   const cacheOf = (lang: 'es' | 'en' = 'es') => getPresets(lang).find((p) => p.id === 'cache')!
 
-  it('a client mixing 10 product paths at rate 0, a plain Servicio, a keys Cache of 5 and a relational database', () => {
+  it('a client mixing 10 product paths at the start rate, a plain Servicio, a keys Cache of 5 and a relational database', () => {
     const p = cacheOf()
     expect(p.name).toBe('Cache')
     const byId = Object.fromEntries(p.graph.nodes.map((n) => [n.id, n]))
-    expect(byId.client.config.rate).toBe(0)
+    expect(byId.client.config.rate).toBe(START_RATE)
     expect(p.demoRates.client).toBeGreaterThan(0)
     expect((byId.client.config.mix as { value: string }[]).map((r) => r.value)).toEqual(Array.from({ length: 10 }, (_, i) => `/productos/${i + 1}`))
     expect(byId.service.type).toBe('service')

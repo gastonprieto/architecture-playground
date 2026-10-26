@@ -1,6 +1,6 @@
 import { CLIENT_COLORS } from '../components/client'
 import type { Lang } from '../i18n'
-import { edge, node, presetText, ROW, type PresetShape } from './helpers'
+import { edge, node, presetText, ROW, type PresetShape, START_RATE } from './helpers'
 
 /** A DSL target: names with spaces are quoted. */
 const ref = (name: string) => (/\s/.test(name) ? `"${name}"` : name)
@@ -29,7 +29,7 @@ export function purchaseOrderPreset(lang: Lang): PresetShape {
     id: 'purchase-order',
     name,
     description,
-    // Clients start idle (0 req/s); these are the rates the demo is tuned for.
+    // Clients start at START_RATE; these are the rates the demo is tuned for.
     demoRates: { 'client-orq': 1.5, 'client-cor': 1.5 },
     graph: {
       nodes: [
@@ -37,7 +37,7 @@ export function purchaseOrderPreset(lang: Lang): PresetShape {
         node('client-orq', 'client', 0, ROW, n('clientOrchestration'), {
           ip: '10.0.0.1',
           color: CLIENT_COLORS[0],
-          rate: 0,
+          rate: START_RATE,
           mix: [{ value: path('orders'), weight: 1 }],
         }),
         node('ordenes-orq', 'service', 1, ROW, n('orders'), {
@@ -66,7 +66,7 @@ export function purchaseOrderPreset(lang: Lang): PresetShape {
         node('client-cor', 'client', 0, LOW + ROW, n('clientChoreography'), {
           ip: '10.0.0.2',
           color: CLIENT_COLORS[1],
-          rate: 0,
+          rate: START_RATE,
           mix: [{ value: path('orders'), weight: 1 }],
         }),
         node('ordenes-cor', 'service', 1, LOW + ROW, n('orders'), {

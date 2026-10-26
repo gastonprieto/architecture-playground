@@ -7,6 +7,9 @@ import { COL } from '../persistence/grid'
 
 export { COL, ROW } from '../persistence/grid'
 
+/** Rate (req/s) every preset client starts at: a trickle that shows the flow without loading the system. */
+export const START_RATE = 1
+
 /** A node whose config starts from the component defaults, so presets stay valid when defaults change. */
 export function node(
   id: string,
@@ -29,7 +32,7 @@ export interface PresetShape {
   id: string
   name: string
   description: string
-  /** Rate (req/s) each client is tuned for; preset clients start at 0 so the user starts the traffic. */
+  /** Rate (req/s) each client is tuned for; preset clients start at `START_RATE` and the user turns them up. */
   demoRates: Record<string, number>
   graph: { nodes: GraphNode[]; edges: GraphEdge[] }
 }
