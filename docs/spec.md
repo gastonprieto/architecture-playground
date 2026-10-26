@@ -151,7 +151,7 @@ Fuera del MVP: latencia por arista, jitter, timeouts, retries con backoff en el 
 - `rateLimit` del Reverse Proxy y `failRate` del Worker quedan en 0; el paso `fail N%` del DSL no falla (`ctx.flowOnly`).
 - Lo único que hace fallar un flujo por estado de un nodo es que esté **apagado** (`up: false`). Los fallos de la lógica del flujo siguen: sin salida, `404` por ruta, `401` de sesiones y auth, `reply <code>` del DSL.
 - `processingTime` se respeta. Un consumidor pull sigue pidiendo trabajo según su `capacity` configurada (`ctx.freeSlots()` no cambia), así que lo que no alcanza a procesar espera en la cola en vez de rechazarse.
-- Activarlo o desactivarlo reinicia los contadores `ok`/`errors` y las métricas, para que muestren solo cómo terminó el tráfico en el modo actual. Al activarlo, lo que esperaba en la cola interna de un nodo arranca de inmediato.
+- Activarlo o desactivarlo reinicia los contadores `ok`/`errors` y las métricas (y emite `metrics:tick` en el momento, así se ve también en pausa), para que muestren solo cómo terminó el tráfico creado en el modo actual: lo que ya venía viajando no se cuenta. Al activarlo, lo que esperaba en la cola interna de un nodo arranca de inmediato.
 
 La config guardada no cambia: el modo se aplica en el motor y es estado de la sesión (no va en el link ni en el export). En la UI es el switch `Carga real | Solo flujo` al inicio de la barra de métricas, al lado de los números que reinicia y lejos de los controles de ejecución de la toolbar.
 

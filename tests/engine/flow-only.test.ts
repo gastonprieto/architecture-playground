@@ -72,6 +72,29 @@ describe('flow-only mode', () => {
     expect(s.nodeStats('C')).toMatchObject({ ok: 0, errors: 0 })
   })
 
+  it('what was already travelling when the mode changed is not counted, in the counters nor the metrics', () => {
+    const g = chain(node('S', 'service', { capacity: 1, queueMax: 0, processingTime: 500 }))
+    g.nodes[0].config.rate = 5
+    const s = new Simulation(g, { seed: 1, registry: defaultRegistry })
+    s.advance(5000)
+    expect(s.metrics().errorRate).toBeGreaterThan(0)
+    s.setFlowOnly(true)
+    s.advance(3000)
+    expect(s.nodeStats('C').errors).toBe(0)
+    expect(s.nodeStats('C').ok).toBeGreaterThan(0)
+    expect(s.metrics().errorRate).toBe(0)
+  })
+
+  it('changing the mode publishes the reset metrics right away (the bar updates while paused)', () => {
+    const s = new Simulation(chain(saturated()), { seed: 1, registry: defaultRegistry })
+    s.runAction('C', 'send1')
+    s.advance(5000)
+    const ticks: number[] = []
+    s.on('metrics:tick', (m) => ticks.push(m.errorRate))
+    s.setFlowOnly(true)
+    expect(ticks).toEqual([0])
+  })
+
   it('turning it off brings the limits back', () => {
     const s = new Simulation(chain(saturated()), { seed: 1, registry: defaultRegistry })
     s.setFlowOnly(true)

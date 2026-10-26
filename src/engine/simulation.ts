@@ -57,6 +57,8 @@ export class Simulation {
   private rolling = new RollingMetrics()
   /** Flow-only mode: capacity limits, rate limits and random failures are ignored; only a node that is off fails. */
   private flowOnly = false
+  /** Sim time of the last counter reset: traffic created earlier no longer counts. */
+  private countFrom = 0
   private flowConfigs = new WeakMap<Record<string, unknown>, Record<string, unknown>>()
 
   constructor(graph: Graph, opts: SimulationOptions) {
@@ -111,12 +113,13 @@ export class Simulation {
 
   /**
    * Flow-only mode on/off. The ok/errors counters and the metrics start over, so they only show how
-   * traffic ended in the current mode. Entering it starts whatever was waiting in a node's queue;
-   * leaving it keeps what is in flight.
+   * traffic created in the current mode ended (what was already travelling is not counted). Entering
+   * it starts whatever was waiting in a node's queue; leaving it keeps what is in flight.
    */
   setFlowOnly(on: boolean): void {
     if (this.flowOnly === on) return
     this.flowOnly = on
+    this.countFrom = this.now
     this.rolling = new RollingMetrics()
     for (const rec of this.nodes.values()) {
       rec.stats.ok = 0
@@ -124,6 +127,8 @@ export class Simulation {
       this.emitStats(rec)
       rec.processor.reconfigure()
     }
+    // Right away, so the metrics bar shows the reset even while paused.
+    this.events.emit('metrics:tick', this.metrics())
   }
 
   /** The config a component sees: in flow-only mode, without the limits that make traffic fail. */
@@ -208,9 +213,9 @@ export class Simulation {
       this.settle(rec, msg)
       // An empty trail means this node originated the request: the round trip is complete.
       if (msg.trail.length === 0 && def?.recordsMetrics) {
-        this.rolling.record(this.now, this.now - msg.createdAt, msg.status === 'ok')
-        // The originator's own counters show how its requests ended.
-        this.bump(rec, msg.status === 'ok' ? 'ok' : 'errors')
+        // The rolling metrics and the originator's own counters show how its requests ended.
+        if (this.counts(msg)) this.rolling.record(this.now, this.now - msg.createdAt, msg.status === 'ok')
+        this.tally(rec, msg, msg.status === 'ok')
       }
       if (def?.onResponse) def.onResponse(msg, this.ctx(rec))
       else this.forwardResponse(rec.id, msg)
@@ -287,7 +292,7 @@ export class Simulation {
     if (res.trail.length === 0) return // reached the originator: the response ends here
     // A relay (LB, proxy…) counts the requests it resolved through others, like the ones it answers.
     const rec = this.nodes.get(from)
-    if (rec) this.bump(rec, res.status === 'ok' ? 'ok' : 'errors')
+    if (rec) this.tally(rec, res, res.status === 'ok')
     this.transmit(from, res.trail[res.trail.length - 1], { ...res, trail: res.trail.slice(0, -1) })
   }
 
@@ -308,7 +313,7 @@ export class Simulation {
     if (rec) {
       // A response lost on its last hop (edge removed) still ends the wait of the node it was for.
       if (msg.kind === 'response') this.settle(rec, msg)
-      this.bump(rec, 'errors')
+      this.tally(rec, msg, false)
     }
     if (msg.kind !== 'response') this.respond(at, msg, { status: 'error', code: effective! })
   }
@@ -360,9 +365,16 @@ export class Simulation {
     this.emitStats(rec)
   }
 
-  private bump(rec: NodeRecord, field: keyof NodeStats): void {
-    rec.stats[field]++
+  /** Count how `msg` ended at `rec` (ok or errors), unless it started before the counters were reset. */
+  private tally(rec: NodeRecord, msg: Message, ok: boolean): void {
+    if (!this.counts(msg)) return
+    rec.stats[ok ? 'ok' : 'errors']++
     this.emitStats(rec)
+  }
+
+  /** Traffic that started before the last counter reset (a mode change) is not counted. */
+  private counts(msg: Message): boolean {
+    return msg.createdAt >= this.countFrom
   }
 
   private emitStats(rec: NodeRecord): void {
@@ -422,7 +434,7 @@ export class Simulation {
       }),
       send: (target, msg) => sim.send(rec.id, target, msg),
       reply: (msg, r) => {
-        sim.bump(rec, r.status === 'ok' ? 'ok' : 'errors')
+        sim.tally(rec, msg, r.status === 'ok')
         sim.respond(rec.id, msg, r)
       },
       forwardResponse: (res) => sim.forwardResponse(rec.id, res),
