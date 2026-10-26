@@ -1,4 +1,4 @@
-import { translate, type Lang } from '../i18n'
+import { lookup, translate, type Lang } from '../i18n'
 import type { GraphDslError } from '../persistence/dsl'
 
 /** `línea N: mensaje`, plus the bad-value options and the "did you mean" when the parser found them. */
@@ -9,3 +9,17 @@ export function graphDslErrorLine(lang: Lang, err: GraphDslError): string {
   if (params.suggestion !== undefined) message += `, ${translate(lang, 'graphDsl.didYouMean', params)}`
   return translate(lang, 'graphDsl.line', { line: err.line, message })
 }
+
+const REFERENCE_KEYS = ['node', 'many', 'alias', 'at', 'config', 'behavior', 'chain', 'fan', 'attrs'] as const
+
+/** Rows of the graph DSL reference shown next to the "Texto" editor. */
+export const graphReferenceRows = (lang: Lang): { key: string; syntax: string; text: string; example?: string }[] =>
+  REFERENCE_KEYS.map((key) => {
+    const example = lookup(lang, `graphText.ref.rows.${key}.example`)
+    return {
+      key,
+      syntax: translate(lang, `graphText.ref.rows.${key}.syntax`),
+      text: translate(lang, `graphText.ref.rows.${key}.text`),
+      ...(example ? { example } : {}),
+    }
+  })

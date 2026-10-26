@@ -44,6 +44,14 @@ const type = (v: string) => fireEvent.change(area(), { target: { value: v } })
 const apply = () => screen.getByRole('button', { name: 'Aplicar' }) as HTMLButtonElement
 
 describe('Texto dialog', () => {
+  it('shows the DSL reference next to the editor', () => {
+    setup()
+    openDialog()
+    const ref = screen.getByRole('complementary', { name: 'Referencia' })
+    expect(ref.textContent).toContain('A --> B --> C')
+    expect(ref.textContent).toContain('[/api] [Evento] [x3]')
+  })
+
   it('opens with the printed DSL of the graph', () => {
     setup()
     openDialog()

@@ -863,6 +863,8 @@ body {
   overflow: auto;
   tab-size: 2;
   caret-color: var(--cyan);
+  /* JetBrains Mono draws `-->` and `->` as one arrow glyph; code must show what was typed. */
+  font-variant-ligatures: none;
 }
 .dsl-status { flex: none; max-height: 132px; overflow-y: auto; font-size: 13px; }
 .dsl-status-head { margin: 0; color: var(--dim); }
@@ -888,6 +890,7 @@ body {
 .dsl-ref-table td { padding: 4px 0; color: var(--muted); vertical-align: top; }
 .dsl-ref-table tr + tr > * { border-top: 1px solid rgba(36, 48, 79, 0.6); }
 .dsl-ref-table code { color: #7dd3fc; }
+.dsl-ref-body code, .dsl-ref-body pre { font-variant-ligatures: none; }
 .dsl-ref-row-example { margin: 4px 0 0; padding: 4px 8px; border-radius: 4px; background: rgba(15, 23, 42, 0.6); font: 11.5px var(--mono); color: #7dd3fc; white-space: pre; }
 .dsl-ref-notes { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); }
 .dsl-ref-example {

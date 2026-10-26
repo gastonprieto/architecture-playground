@@ -4,6 +4,7 @@ import { parseAnyGraph } from '../persistence/importText'
 import { applyToTextarea } from './applyToTextarea'
 import { dslKeyEdit } from './dslKeys'
 import { graphDslErrorLine } from './graphDslText'
+import { GraphReference } from './GraphReference'
 import { Modal } from './Modal'
 import type { SimApi } from './runtime/useSimulation'
 import { useGraphText } from './store/graphText'
@@ -129,6 +130,10 @@ function TextPanel({ api, initial }: { api: SimApi; initial: string }) {
             )}
           </div>
         </div>
+        <aside className="dsl-ref" aria-labelledby={`${titleId}-ref`}>
+          <h3 id={`${titleId}-ref`}>{t('graphText.ref.title')}</h3>
+          <GraphReference />
+        </aside>
       </div>
       <footer className="dsl-actions">
         <span className="dsl-actions-gap" />
