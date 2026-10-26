@@ -504,6 +504,30 @@ body {
 .metrics-bar b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 .metrics-bar .sep { color: var(--dim); }
 .metrics-bar .metrics-err b { color: var(--red); }
+/* Carga real | Solo flujo, first item of the metrics bar (same look as the ES | EN switch) */
+.mode-toggle {
+  display: flex;
+  margin-right: 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+}
+.mode-toggle button {
+  padding: 5px 10px;
+  font: 600 12px/1.2 var(--mono);
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mode-toggle button:hover { background: rgba(255, 255, 255, 0.06); }
+.mode-toggle button.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(167, 139, 250, 0.25));
+}
+.mode-toggle button:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
 
 /* ---------- node counters ---------- */
 
@@ -919,6 +943,3 @@ body {
 .dsl-textarea:focus-visible,
 .inspector .swatch:focus-visible { outline: none; }
 .inspector .swatch:focus-visible { box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(56, 189, 248, 0.6); }
-
-/* Solo flujo: pressed while traffic ignores capacity limits. */
-.toolbar .flow-toggle.on { color: var(--cyan); border-color: var(--cyan); }

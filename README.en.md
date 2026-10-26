@@ -71,7 +71,7 @@ The spec (in Spanish) is in [docs/cache-spec.md](docs/cache-spec.md).
 
 ## Flow only
 
-The toolbar's **Flow only** button shows where traffic goes without fighting capacity: nothing saturates or fails by chance (capacity, waiting clients, max queue, rate limit, fail rate and the DSL's `fail N%` have no effect). Only a component that is **off** cuts a flow, or the flow's own logic (routes, sessions, auth). Turning it on or off starts the counters over. It does not change the saved configuration.
+The **Real load | Flow only** switch in the metrics bar shows where traffic goes without fighting capacity: nothing saturates or fails by chance (capacity, waiting clients, max queue, rate limit, fail rate and the DSL's `fail N%` have no effect). Only a component that is **off** cuts a flow, or the flow's own logic (routes, sessions, auth). Turning it on or off starts the counters over. It does not change the saved configuration.
 
 ## Running it
 

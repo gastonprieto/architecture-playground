@@ -153,7 +153,7 @@ Fuera del MVP: latencia por arista, jitter, timeouts, retries con backoff en el 
 - `processingTime` se respeta. Un consumidor pull sigue pidiendo trabajo según su `capacity` configurada (`ctx.freeSlots()` no cambia), así que lo que no alcanza a procesar espera en la cola en vez de rechazarse.
 - Activarlo o desactivarlo reinicia los contadores `ok`/`errors` y las métricas, para que muestren solo cómo terminó el tráfico en el modo actual. Al activarlo, lo que esperaba en la cola interna de un nodo arranca de inmediato.
 
-La config guardada no cambia: el modo se aplica en el motor y es estado de la sesión (no va en el link ni en el export).
+La config guardada no cambia: el modo se aplica en el motor y es estado de la sesión (no va en el link ni en el export). En la UI es el switch `Carga real | Solo flujo` al inicio de la barra de métricas, al lado de los números que reinicia y lejos de los controles de ejecución de la toolbar.
 
 ## 5. Catálogo de componentes (MVP)
 
@@ -180,7 +180,7 @@ Fuera del MVP (se agregan después como config): TLS, compresión, rolling deplo
 - **Inspector**: panel generado desde `config` del tipo; para aristas, editor de regla.
 - **Info por componente**: un botón ⓘ en cada tile de la paleta y en el encabezado del inspector abre un modal "Cómo funciona" con qué es, cómo se comporta (códigos que puede responder), qué hace cada campo de config y un tip para la clase. El texto vive en `components.<type>.info` (es/en); un tipo sin info muestra "Sin información".
 - **Undo/redo** de cambios estructurales y de config.
-- **Toolbar**: play/pause, step, velocidad, reset, **Solo flujo** (§4.7), presets, export/import, copiar link, selector de idioma `ES | EN`. Un import inválido muestra el error traducido (`parseGraph` devuelve códigos: `invalid-json`, `unknown-format`, `dangling-edge` + `edgeId`).
+- **Toolbar**: play/pause, step, velocidad, reset, presets, export/import, copiar link, selector de idioma `ES | EN`. Un import inválido muestra el error traducido (`parseGraph` devuelve códigos: `invalid-json`, `unknown-format`, `dangling-edge` + `edgeId`).
 - **Idiomas**: los textos viven en `src/i18n/` (`es.ts`, `en.ts` con las mismas claves). Los presets se cargan en el idioma actual; los nombres de los nodos que ya armó el usuario no se traducen.
 - **Overlay de animación**: paquetes viajando por las aristas (círculos para requests, cuadrados para messages, rombos para events), coloreados por estado, o con el color del cliente que los originó (las respuestas con borde ok/error); labels flotantes (`503`, `401`, `✔`, `202`).
 - **Por nodo**: contadores en vivo (en proceso, en cola, ok, errores), badge up/down, para sesiones 🍪 (Cliente: logueados/N; Servicio con `session memory` y Base de datos: sesiones guardadas) y, para caches, 🔑 claves guardadas y hit % real (Cache; Reverse Proxy con cache en Claves reales).

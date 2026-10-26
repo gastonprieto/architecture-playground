@@ -77,7 +77,6 @@ function useToast() {
 export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const playing = useRuntime((s) => s.playing)
   const speed = useRuntime((s) => s.speed)
-  const flowOnly = useRuntime((s) => s.flowOnly)
   const canUndo = useEditor((s) => s.past.length > 0)
   const canRedo = useEditor((s) => s.future.length > 0)
   const isEmpty = useEditor((s) => s.graph.nodes.length === 0)
@@ -188,14 +187,6 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
           </Btn>
         )}
         <Btn onClick={reset}>{t('toolbar.reset')}</Btn>
-        <Btn
-          className={flowOnly ? 'flow-toggle on' : 'flow-toggle'}
-          aria-pressed={flowOnly}
-          title={t('toolbar.flowOnlyTitle')}
-          onClick={() => useRuntime.setState({ flowOnly: !flowOnly })}
-        >
-          {t('toolbar.flowOnly')}
-        </Btn>
         {!mobile && (
           <select
             className="toolbar-select speed"

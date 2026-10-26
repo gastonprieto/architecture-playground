@@ -106,21 +106,24 @@ describe('App', () => {
     expect(useRuntime.getState().speed).toBe(2)
   })
 
-  it('"Solo flujo" toggles flow-only mode on the running simulation, also after Reset', () => {
+  it('the Carga real | Solo flujo switch sets the mode of the running simulation, also after Reset', () => {
     const setFlowOnly = vi.spyOn(Simulation.prototype, 'setFlowOnly')
     try {
       render(<App />)
-      const btn = screen.getByRole('button', { name: 'Solo flujo' })
-      expect(btn.getAttribute('aria-pressed')).toBe('false')
-      fireEvent.click(btn)
+      const flow = screen.getByRole('button', { name: 'Solo flujo' })
+      const full = screen.getByRole('button', { name: 'Carga real' })
+      expect(full.getAttribute('aria-pressed')).toBe('true')
+      expect(flow.getAttribute('aria-pressed')).toBe('false')
+      fireEvent.click(flow)
       expect(useRuntime.getState().flowOnly).toBe(true)
-      expect(btn.getAttribute('aria-pressed')).toBe('true')
+      expect(flow.getAttribute('aria-pressed')).toBe('true')
+      expect(full.getAttribute('aria-pressed')).toBe('false')
       expect(setFlowOnly).toHaveBeenLastCalledWith(true)
       // A reset builds a new simulation, which starts in the current mode.
       setFlowOnly.mockClear()
       fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
       expect(setFlowOnly).toHaveBeenLastCalledWith(true)
-      fireEvent.click(btn)
+      fireEvent.click(full)
       expect(setFlowOnly).toHaveBeenLastCalledWith(false)
     } finally {
       setFlowOnly.mockRestore()

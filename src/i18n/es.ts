@@ -19,8 +19,6 @@ export const es = {
     stepTitle: 'Avanzar 100 ms',
     reset: 'Reset',
     speedTitle: 'Velocidad (teclas - y +)',
-    flowOnly: 'Solo flujo',
-    flowOnlyTitle: 'Muestra solo el flujo: sin límites de capacidad, colas, rate limit ni fallos al azar. Solo falla lo que está apagado. Los contadores arrancan de cero',
     presets: 'Presets',
     presetsPlaceholder: 'Presets…',
     undo: 'Deshacer',
@@ -117,6 +115,11 @@ export const es = {
     label: 'Métricas',
     throughput: 'Throughput',
     errors: 'Errores',
+    mode: 'Modo de simulación',
+    full: 'Carga real',
+    fullTitle: 'Simula la carga: capacidad, colas, rate limit y fallos al azar. Los contadores arrancan de cero',
+    flowOnly: 'Solo flujo',
+    flowOnlyTitle: 'Muestra solo el flujo: sin límites de capacidad, colas, rate limit ni fallos al azar. Solo falla lo que está apagado. Los contadores arrancan de cero',
   },
   /** React Flow's built-in aria labels and screen-reader descriptions. */
   reactflow: {

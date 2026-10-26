@@ -71,7 +71,7 @@ La spec está en [docs/cache-spec.md](docs/cache-spec.md).
 
 ## Solo flujo
 
-El botón **Solo flujo** de la toolbar sirve para ver por dónde va el tráfico sin pelearte con la capacidad: nada se satura ni falla por azar (capacidad, clientes en espera, cola máx., rate limit, tasa de fallo y `fail N%` del DSL quedan sin efecto). Lo único que corta un flujo es un componente **apagado**, o la lógica del propio flujo (rutas, sesiones, auth). Al activarlo o desactivarlo los contadores arrancan de cero. No cambia la configuración guardada.
+El switch **Carga real | Solo flujo** de la barra de métricas sirve para ver por dónde va el tráfico sin pelearte con la capacidad: nada se satura ni falla por azar (capacidad, clientes en espera, cola máx., rate limit, tasa de fallo y `fail N%` del DSL quedan sin efecto). Lo único que corta un flujo es un componente **apagado**, o la lógica del propio flujo (rutas, sesiones, auth). Al activarlo o desactivarlo los contadores arrancan de cero. No cambia la configuración guardada.
 
 ## Cómo correrlo
 
