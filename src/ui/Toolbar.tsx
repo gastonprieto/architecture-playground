@@ -5,8 +5,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttri
 import type { Graph } from '../engine/types'
 import { encodeHash } from '../persistence/hash'
 import { LANGS, useLang, useT } from '../i18n'
-import { parseGraph, serializeGraph } from '../persistence/serialize'
+import { printGraphDsl } from '../persistence/dsl'
+import { parseAnyGraph } from '../persistence/importText'
 import { getPresets } from '../presets'
+import { graphDslErrorLine } from './graphDslText'
 import { SPEEDS, stepSpeed, useRuntime } from './runtime/runtimeStore'
 import type { SimApi } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
@@ -141,7 +143,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   }
 
   const onExport = () => {
-    const blob = new Blob([serializeGraph(useEditor.getState().graph)], { type: 'application/json' })
+    const blob = new Blob([printGraphDsl(useEditor.getState().graph)], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -156,9 +158,13 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    const r = parseGraph(await file.text())
+    const r = parseAnyGraph(await file.text())
     if (!r.ok) {
-      show(t(`errors.${r.error}`, r.error === 'dangling-edge' ? { edgeId: r.edgeId } : undefined))
+      if (r.format === 'json') {
+        show(t(`errors.${r.error.error}`, r.error.error === 'dangling-edge' ? { edgeId: r.error.edgeId } : undefined))
+      } else {
+        show(graphDslErrorLine(lang, r.errors[0]))
+      }
       return
     }
     load(r.graph)
@@ -237,7 +243,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
           <>
             <IconBtn icon="⤓" label={t('toolbar.export')} onClick={onExport} />
             <IconBtn icon="⤒" label={t('toolbar.import')} onClick={() => fileRef.current?.click()} />
-            <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={onImport} />
+            <input ref={fileRef} type="file" accept=".arch,.txt,.json,text/plain,application/json" hidden onChange={onImport} />
             <IconBtn icon="🔗" label={t('toolbar.copyLink')} onClick={onCopyLink} />
           </>
         )}
