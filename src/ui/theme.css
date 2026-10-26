@@ -461,6 +461,9 @@ body {
   color: #fff;
   background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(167, 139, 250, 0.25));
 }
+/* Discreet link to the source repo, after the language switch. */
+.repo-link { display: flex; padding: 4px; color: var(--dim); border-radius: 8px; transition: color 0.15s; }
+.repo-link:hover, .repo-link:focus-visible { color: var(--muted); }
 .toolbar button, .toolbar-select {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);

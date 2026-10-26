@@ -26,6 +26,7 @@ export const en: Dict = {
     import: 'Import',
     text: 'Text',
     copyLink: 'Copy link',
+    repo: 'Source on GitHub',
     clearAll: 'Clear all',
     cleared: 'Canvas cleared · Undo brings it back',
     linkCopied: 'Link copied',

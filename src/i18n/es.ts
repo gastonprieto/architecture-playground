@@ -27,6 +27,7 @@ export const es = {
     import: 'Importar',
     text: 'Texto',
     copyLink: 'Copiar link',
+    repo: 'Código en GitHub',
     clearAll: 'Limpiar todo',
     cleared: 'Canvas vacío · Deshacer lo recupera',
     linkCopied: 'Link copiado',
