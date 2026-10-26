@@ -19,6 +19,8 @@ export const es = {
     stepTitle: 'Avanzar 100 ms',
     reset: 'Reset',
     speedTitle: 'Velocidad (teclas - y +)',
+    flowOnly: 'Solo flujo',
+    flowOnlyTitle: 'Muestra solo el flujo: sin límites de capacidad, colas, rate limit ni fallos al azar. Solo falla lo que está apagado. Los contadores arrancan de cero',
     presets: 'Presets',
     presetsPlaceholder: 'Presets…',
     undo: 'Deshacer',

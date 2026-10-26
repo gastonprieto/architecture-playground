@@ -32,7 +32,11 @@ export const SimContext = createContext<SimApi | null>(null)
 /** The simulation provided by <App/>, or null outside of it (tests rendering parts alone). */
 export const useSim = (): SimApi | null => useContext(SimContext)
 
-const makeSim = (graph: Graph) => new Simulation(graph, { seed: 1, registry: defaultRegistry })
+const makeSim = (graph: Graph) => {
+  const sim = new Simulation(graph, { seed: 1, registry: defaultRegistry })
+  sim.setFlowOnly(useRuntime.getState().flowOnly)
+  return sim
+}
 
 /** Cells a node draws per queue or lane; the rest is shown as "+N". */
 export const UI_CELLS = 12
@@ -193,6 +197,15 @@ export function useSimulation(): SimApi {
   const pendingStats = useRef<Record<NodeId, NodeStats>>({})
   const pendingMetrics = useRef<MetricsSnapshot | null>(null)
   const stateSigs = useRef<Record<NodeId, string>>({})
+
+  // Flow-only toggle → simulation.
+  useEffect(
+    () =>
+      useRuntime.subscribe((s, prev) => {
+        if (s.flowOnly !== prev.flowOnly) simRef.current.setFlowOnly(s.flowOnly)
+      }),
+    [],
+  )
 
   // Editor graph → simulation, on every graph change (not on every render).
   useEffect(() => {

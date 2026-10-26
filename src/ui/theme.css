@@ -919,3 +919,6 @@ body {
 .dsl-textarea:focus-visible,
 .inspector .swatch:focus-visible { outline: none; }
 .inspector .swatch:focus-visible { box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(56, 189, 248, 0.6); }
+
+/* Solo flujo: pressed while traffic ignores capacity limits. */
+.toolbar .flow-toggle.on { color: var(--cyan); border-color: var(--cyan); }

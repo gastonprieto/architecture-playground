@@ -10,6 +10,8 @@ export const ZERO_METRICS: MetricsSnapshot = { throughput: 0, p50: 0, p95: 0, er
 export interface RuntimeState {
   playing: boolean
   speed: number
+  /** Flow-only mode: traffic ignores capacity limits; only a node that is off fails. */
+  flowOnly: boolean
   /** Latest counters per node; a node keeps its object identity while its counters don't change. */
   stats: Record<NodeId, NodeStats>
   /** UI copies of the component states the canvas draws (queue/DLQ items, broker lanes). */
@@ -20,6 +22,7 @@ export interface RuntimeState {
 export const useRuntime = create<RuntimeState>(() => ({
   playing: true,
   speed: DEFAULT_SPEED,
+  flowOnly: false,
   stats: {},
   states: {},
   metrics: ZERO_METRICS,

@@ -76,6 +76,8 @@ export interface Ctx<C = any, S = any> {
   pull(source: NodeId): void
   /** Free processing slots right now (capacity − inFlight), so a consumer only pulls what it can take. */
   freeSlots(): number
+  /** Flow-only mode: random failures (the DSL's `fail N%`) do not happen. */
+  readonly flowOnly?: boolean
   /** `processing`: the config its processing reads (see ComponentDef.processingConfig; usually `config`). */
   peer(id: NodeId): { type: string; config: Record<string, unknown>; processing: Record<string, unknown> } | undefined
   /** How many outgoing connections node `id` has (0 for a missing node), e.g. to tell a leaf Cache. */

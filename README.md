@@ -69,6 +69,10 @@ El preset **Sesiones** pone los tres casos lado a lado. La spec está en [docs/s
 
 La spec está en [docs/cache-spec.md](docs/cache-spec.md).
 
+## Solo flujo
+
+El botón **Solo flujo** de la toolbar sirve para ver por dónde va el tráfico sin pelearte con la capacidad: nada se satura ni falla por azar (capacidad, clientes en espera, cola máx., rate limit, tasa de fallo y `fail N%` del DSL quedan sin efecto). Lo único que corta un flujo es un componente **apagado**, o la lógica del propio flujo (rutas, sesiones, auth). Al activarlo o desactivarlo los contadores arrancan de cero. No cambia la configuración guardada.
+
 ## Cómo correrlo
 
 ```bash
@@ -166,6 +170,7 @@ Los textos de la definición (`label`, labels de campos, opciones y acciones) so
 - `inputs()`: aristas de entrada del nodo (`edgeId`, `source`, `sourceType`). Un consumidor las usa para saber a qué cola/broker pedirle trabajo.
 - `pull(source)`: pide (pull) el próximo mensaje a un upstream (cola/broker): manda un salto `poll` hacia `source`. El upstream responde en su `onPoll` entregando un mensaje si tiene.
 - `freeSlots()`: slots de proceso libres ahora (`capacity − inFlight`), para que el consumidor pida solo lo que puede tomar.
+- `flowOnly`: `true` en modo solo flujo; un componente con fallos aleatorios propios no debería fallar.
 - `peer(id)`: tipo y configuración de otro nodo.
 - `newMessage(kind, meta, parent?)`: crea un mensaje nuevo.
 

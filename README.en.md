@@ -69,6 +69,10 @@ The **Sessions** preset puts the three cases side by side. The spec (in Spanish)
 
 The spec (in Spanish) is in [docs/cache-spec.md](docs/cache-spec.md).
 
+## Flow only
+
+The toolbar's **Flow only** button shows where traffic goes without fighting capacity: nothing saturates or fails by chance (capacity, waiting clients, max queue, rate limit, fail rate and the DSL's `fail N%` have no effect). Only a component that is **off** cuts a flow, or the flow's own logic (routes, sessions, auth). Turning it on or off starts the counters over. It does not change the saved configuration.
+
 ## Running it
 
 ```bash
@@ -107,6 +111,7 @@ The def's texts (`label`, field, option and action labels) are the fallback. To 
 - `inputs()`: the node's incoming edges (`edgeId`, `source`, `sourceType`). A consumer uses them to know which queue/broker to ask for work.
 - `pull(source)`: pull the next message from an upstream (queue/broker): sends a `poll` hop to `source`. The upstream answers in its `onPoll`, handing over a message if it has one.
 - `freeSlots()`: processing slots free right now (`capacity − inFlight`), so a consumer only pulls what it can take.
+- `flowOnly`: `true` in flow-only mode; a component with its own random failures should not fail.
 - `peer(id)`: another node's type and config.
 - `newMessage(kind, meta, parent?)`: create a new message.
 

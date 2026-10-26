@@ -215,7 +215,7 @@ function runStep(run: Run, step: Step, then: (o: Outcome) => void): void {
       ctx.schedule(step.ms, () => then('next'))
       return
     case 'fail':
-      if (ctx.random() * 100 < step.percent) end(run, step.code)
+      if (!ctx.flowOnly && ctx.random() * 100 < step.percent) end(run, step.code)
       else then('next')
       return
     case 'reply':

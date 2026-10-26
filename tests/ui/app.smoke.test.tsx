@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { Simulation } from '../../src/engine/simulation'
 import { useLang } from '../../src/i18n'
 import { STORAGE_KEY } from '../../src/persistence/storage'
 import App from '../../src/ui/App'
@@ -103,6 +104,28 @@ describe('App', () => {
     expect(select.value).toBe(String(useRuntime.getState().speed))
     fireEvent.change(select, { target: { value: '2' } })
     expect(useRuntime.getState().speed).toBe(2)
+  })
+
+  it('"Solo flujo" toggles flow-only mode on the running simulation, also after Reset', () => {
+    const setFlowOnly = vi.spyOn(Simulation.prototype, 'setFlowOnly')
+    try {
+      render(<App />)
+      const btn = screen.getByRole('button', { name: 'Solo flujo' })
+      expect(btn.getAttribute('aria-pressed')).toBe('false')
+      fireEvent.click(btn)
+      expect(useRuntime.getState().flowOnly).toBe(true)
+      expect(btn.getAttribute('aria-pressed')).toBe('true')
+      expect(setFlowOnly).toHaveBeenLastCalledWith(true)
+      // A reset builds a new simulation, which starts in the current mode.
+      setFlowOnly.mockClear()
+      fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+      expect(setFlowOnly).toHaveBeenLastCalledWith(true)
+      fireEvent.click(btn)
+      expect(setFlowOnly).toHaveBeenLastCalledWith(false)
+    } finally {
+      setFlowOnly.mockRestore()
+      useRuntime.setState({ flowOnly: false })
+    }
   })
 
   it('flushes a pending save on pagehide', () => {

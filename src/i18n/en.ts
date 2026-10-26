@@ -18,6 +18,8 @@ export const en: Dict = {
     stepTitle: 'Advance 100 ms',
     reset: 'Reset',
     speedTitle: 'Speed (keys - and +)',
+    flowOnly: 'Flow only',
+    flowOnlyTitle: 'Shows only the flow: no capacity, queue or rate limits and no random failures. Only what is off fails. Counters start over',
     presets: 'Presets',
     presetsPlaceholder: 'Presets…',
     undo: 'Undo',

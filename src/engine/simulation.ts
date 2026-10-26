@@ -55,6 +55,9 @@ export class Simulation {
   private edgeList: GraphEdge[] = []
   private msgSeq = 0
   private rolling = new RollingMetrics()
+  /** Flow-only mode: capacity limits, rate limits and random failures are ignored; only a node that is off fails. */
+  private flowOnly = false
+  private flowConfigs = new WeakMap<Record<string, unknown>, Record<string, unknown>>()
 
   constructor(graph: Graph, opts: SimulationOptions) {
     this.registry = opts.registry
@@ -104,6 +107,40 @@ export class Simulation {
       rec.def?.onConfig?.(this.ctx(rec), prevConfig)
       rec.processor.reconfigure()
     }
+  }
+
+  /**
+   * Flow-only mode on/off. The ok/errors counters and the metrics start over, so they only show how
+   * traffic ended in the current mode. Entering it starts whatever was waiting in a node's queue;
+   * leaving it keeps what is in flight.
+   */
+  setFlowOnly(on: boolean): void {
+    if (this.flowOnly === on) return
+    this.flowOnly = on
+    this.rolling = new RollingMetrics()
+    for (const rec of this.nodes.values()) {
+      rec.stats.ok = 0
+      rec.stats.errors = 0
+      this.emitStats(rec)
+      rec.processor.reconfigure()
+    }
+  }
+
+  /** The config a component sees: in flow-only mode, without the limits that make traffic fail. */
+  private configOf(rec: NodeRecord): Record<string, unknown> {
+    if (!this.flowOnly) return rec.config
+    let c = this.flowConfigs.get(rec.config)
+    if (!c) {
+      c = { ...rec.config, ...FLOW_OVERRIDES }
+      this.flowConfigs.set(rec.config, c)
+    }
+    return c
+  }
+
+  /** The config a node's processing reads; in flow-only mode with unlimited slots and queue. */
+  private processingOf(rec: NodeRecord): Record<string, unknown> {
+    const base = processingConfigOf(rec)
+    return this.flowOnly ? { ...base, capacity: Infinity, queueMax: Infinity } : base
   }
 
   runAction(nodeId: NodeId, action: string): void {
@@ -289,7 +326,7 @@ export class Simulation {
   private newRecord(id: NodeId, type: string, def: ComponentDef | undefined, config: Record<string, unknown>): NodeRecord {
     const rec = { id, type, def, config, state: def ? def.initialState() : {}, stats: zeroStats(), awaiting: new Set<string>() } as NodeRecord
     rec.processor = new Processor({
-      config: () => processingConfigOf(rec),
+      config: () => this.processingOf(rec),
       stats: rec.stats,
       // A job released after its node was removed must not emit stats for a node that no longer exists.
       statsChanged: () => {
@@ -346,10 +383,13 @@ export class Simulation {
         return sim.now
       },
       get config() {
-        return rec.config
+        return sim.configOf(rec)
       },
       get state() {
         return rec.state
+      },
+      get flowOnly() {
+        return sim.flowOnly
       },
       outputs: (): OutEdge[] =>
         sim.edgeList
@@ -360,6 +400,7 @@ export class Simulation {
           .filter((e) => e.target === rec.id)
           .map((e) => ({ edgeId: e.id, source: e.source, sourceType: sim.nodes.get(e.source)!.type })),
       pull: (source) => sim.send(rec.id, source, { id: sim.nextId(), kind: 'poll', meta: {}, trail: [], createdAt: sim.now }),
+      // Always the configured slots, also in flow-only mode: they pace a consumer's polling (one poll per slot).
       freeSlots: () => {
         const { capacity } = readProcessing(processingConfigOf(rec))
         const free = capacity - rec.stats.inFlight
@@ -368,7 +409,7 @@ export class Simulation {
       peerOutputCount: (id) => sim.edgeList.reduce((n, e) => n + (e.source === id ? 1 : 0), 0),
       peer: (id) => {
         const p = sim.nodes.get(id)
-        return p ? { type: p.type, config: p.config, processing: processingConfigOf(p) } : undefined
+        return p ? { type: p.type, config: sim.configOf(p), processing: sim.processingOf(p) } : undefined
       },
       newMessage: (kind: MessageKind, meta: Message['meta'], parent?: Message): Message => ({
         id: sim.nextId(),
@@ -394,6 +435,9 @@ export class Simulation {
     }
   }
 }
+
+/** Config fields that only make traffic fail by load or chance; flow-only mode neutralizes them. */
+const FLOW_OVERRIDES: Record<string, unknown> = { capacity: Infinity, queueMax: Infinity, rateLimit: 0, failRate: 0 }
 
 /** Any component can be switched off (`up: false`), whether or not it processes. */
 const isDown = (rec: NodeRecord) => rec.config.up === false
