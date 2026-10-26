@@ -3,9 +3,9 @@ import { defaultConfig } from '../engine/registry'
 import type { EdgeRule, GraphEdge, GraphNode } from '../engine/types'
 import { translate, type Lang, type Params } from '../i18n'
 
-/** Horizontal distance between columns, and vertical distance between rows, in canvas px. */
-export const COL = 250
-export const ROW = 120
+import { COL } from '../persistence/grid'
+
+export { COL, ROW } from '../persistence/grid'
 
 /** A node whose config starts from the component defaults, so presets stay valid when defaults change. */
 export function node(
