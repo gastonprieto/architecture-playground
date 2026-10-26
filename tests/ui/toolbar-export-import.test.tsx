@@ -81,10 +81,11 @@ describe('toolbar export / import', () => {
     await waitFor(() => expect(useEditor.getState().graph.nodes.map((n) => n.type)).toEqual(['cache']))
   })
 
-  it('shows the first DSL error as a toast and keeps the graph', async () => {
+  it('opens the Texto dialog with the DSL errors and keeps the graph', async () => {
     renderEmpty()
     fireEvent.change(input(), { target: { files: [new File(['servise W'], 'a.arch')] } })
     await screen.findByText(/^línea 1: "servise" no es un tipo/)
+    expect((screen.getByRole('textbox', { name: 'Arquitectura como texto' }) as HTMLTextAreaElement).value).toBe('servise W')
     expect(useEditor.getState().graph.nodes).toEqual([])
   })
 })

@@ -20,6 +20,24 @@ La interfaz está en español e inglés: el selector `ES | EN` de la toolbar cam
 
 Online (una vez publicado el repo): https://gastonprieto.github.io/architecture-playground/
 
+## Arquitectura como texto
+
+El botón **Texto** de la toolbar abre un popup con el grafo entero escrito en un formato tipo PlantUML; editalo y apretá **Aplicar** (Ctrl+Enter) para reemplazar el grafo en un solo paso de deshacer. Exportar e Importar usan el mismo formato (`.arch`); si un archivo tiene errores, se abre el popup con el texto y la lista de errores, sin tocar el grafo actual.
+
+```
+client Web
+  rate: 2
+
+service Api
+  capacity: 8
+
+database DB
+
+Web --> Api --> DB
+```
+
+El formato completo está en [docs/graph-dsl-spec.md](docs/graph-dsl-spec.md).
+
 ## Comportamiento (DSL)
 
 Servicio, Worker y Suscriptor tienen un campo **Comportamiento**: un texto corto que decide qué hace el nodo con cada request, evento o mensaje (a quién llama, en qué orden, qué publica y con qué código responde). Vacío o con errores, el nodo usa su comportamiento por defecto. Se edita desde el inspector ("Editar comportamiento") y los nodos que lo usan muestran un badge `DSL`. Los destinos se nombran por el nombre del nodo conectado. El ejemplo es ilustrativo: valida solo en un nodo conectado a nodos con esos nombres (Base de datos, Stock, Pagos, Mails, Facturas) y a un Broker.

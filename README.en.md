@@ -20,6 +20,24 @@ The UI is in Spanish and English: the `ES | EN` switch in the toolbar changes th
 
 Online (once the repo is published): https://gastonprieto.github.io/architecture-playground/
 
+## Architecture as text
+
+The **Text** toolbar button opens a popup with the whole graph written in a PlantUML-like format; edit it and press **Apply** (Ctrl+Enter) to replace the graph in a single undo step. Export and Import use the same format (`.arch`); if a file has errors, the popup opens with its text and the list of errors, leaving the current graph untouched.
+
+```
+client Web
+  rate: 2
+
+service Api
+  capacity: 8
+
+database DB
+
+Web --> Api --> DB
+```
+
+The full format is in [docs/graph-dsl-spec.md](docs/graph-dsl-spec.md) (in Spanish).
+
 ## Behavior (DSL)
 
 Service, Worker and Subscriber have a **Behavior** field: a short text that decides what the node does with each request, event or message (whom it calls, in what order, what it publishes and which code it responds with). Empty or with errors, the node keeps its default behavior. Edit it from the inspector ("Edit behavior"); nodes that use it show a `DSL` badge. Keywords are English in both languages. Targets are referenced by the name of a connected node; the example below is illustrative and uses generic Spanish node names (Base de datos, Stock, Pagos, Mails, Facturas), so it only validates on a node wired to nodes with those names and to a Broker:

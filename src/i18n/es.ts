@@ -25,6 +25,7 @@ export const es = {
     redo: 'Rehacer',
     export: 'Exportar',
     import: 'Importar',
+    text: 'Texto',
     copyLink: 'Copiar link',
     clearAll: 'Limpiar todo',
     cleared: 'Canvas vacío · Deshacer lo recupera',
@@ -60,6 +61,12 @@ export const es = {
       'bad-attribute': 'atributo inválido: "{word}"',
       'unknown-version': 'versión desconocida: "{version}"',
     },
+  },
+  graphText: {
+    title: 'Arquitectura como texto',
+    apply: 'Aplicar',
+    cancel: 'Cancelar',
+    hint: 'Tab indenta · Ctrl+Enter aplica',
   },
   palette: {
     title: 'Componentes',

@@ -6,6 +6,7 @@ import { clearLocationHash, initialGraph } from '../persistence/initial'
 import { saveLocal } from '../persistence/storage'
 import { Canvas } from './canvas/Canvas'
 import { BehaviorEditorDialog } from './BehaviorEditor'
+import { GraphTextDialog } from './GraphTextDialog'
 import { prepareGraph } from './graphEntry'
 import { InfoDialog } from './InfoDialog'
 import { Inspector } from './Inspector'
@@ -16,6 +17,7 @@ import { useEditor } from './store/editor'
 import './theme.css'
 import { Toolbar } from './Toolbar'
 import { useBehaviorEditor } from './store/behaviorEditor'
+import { useGraphText } from './store/graphText'
 import { useInfoPanel } from './store/infoPanel'
 import { useIsMobile } from './useIsMobile'
 
@@ -59,11 +61,12 @@ export default function App() {
   const t = useT()
   const infoOpen = useInfoPanel((s) => s.type !== null)
   const behaviorOpen = useBehaviorEditor((s) => s.nodeId !== null)
+  const textOpen = useGraphText((s) => s.text !== null)
   return (
     <ReactFlowProvider>
       <SimContext.Provider value={api}>
         {/* Inert behind a dialog: no clicks, focus or keys reach the editor while it is open. */}
-        <div className={`app${mobile ? ' mobile' : ''}`} inert={infoOpen || behaviorOpen}>
+        <div className={`app${mobile ? ' mobile' : ''}`} inert={infoOpen || behaviorOpen || textOpen}>
           <header className="toolbar">
             <Toolbar api={api} mobile={mobile} />
           </header>
@@ -82,6 +85,7 @@ export default function App() {
         </div>
         <InfoDialog />
         <BehaviorEditorDialog />
+        <GraphTextDialog api={api} />
       </SimContext.Provider>
     </ReactFlowProvider>
   )

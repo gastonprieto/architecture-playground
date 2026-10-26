@@ -7,28 +7,12 @@ import { componentLabel } from '../i18n/componentText'
 import { behaviorExample, behaviorSummary, dslErrorLine } from './behaviorText'
 import { BehaviorReference } from './BehaviorReference'
 import { toneColor } from './colors'
-import { applyEdit, dslKeyEdit, type TextEdit } from './dslKeys'
+import { applyToTextarea } from './applyToTextarea'
+import { dslKeyEdit, type TextEdit } from './dslKeys'
 import { Modal } from './Modal'
 import { useBehaviorEditor } from './store/behaviorEditor'
 import { useEditor } from './store/editor'
 import { useBehaviorStatus } from './useBehaviorStatus'
-
-/**
- * Put `edit` into the textarea through the browser's editing commands when available, so the
- * textarea's own undo (Ctrl/Cmd+Z) keeps working; otherwise set the text directly.
- */
-function applyToTextarea(ta: HTMLTextAreaElement, edit: TextEdit, setText: (text: string) => void): void {
-  const expected = applyEdit(ta.value, edit)
-  ta.focus()
-  ta.setSelectionRange(edit.from, edit.to)
-  let done = false
-  try {
-    done = typeof document.execCommand === 'function' && document.execCommand('insertText', false, edit.insert)
-  } catch {
-    done = false
-  }
-  if (!done || ta.value !== expected) setText(expected)
-}
 
 function EditorPanel({ nodeId }: { nodeId: NodeId }) {
   const node = useEditor((s) => s.graph.nodes.find((n) => n.id === nodeId))

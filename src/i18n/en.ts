@@ -24,6 +24,7 @@ export const en: Dict = {
     redo: 'Redo',
     export: 'Export',
     import: 'Import',
+    text: 'Text',
     copyLink: 'Copy link',
     clearAll: 'Clear all',
     cleared: 'Canvas cleared · Undo brings it back',
@@ -58,6 +59,12 @@ export const en: Dict = {
       'bad-attribute': 'invalid attribute: "{word}"',
       'unknown-version': 'unknown version: "{version}"',
     },
+  },
+  graphText: {
+    title: 'Architecture as text',
+    apply: 'Apply',
+    cancel: 'Cancel',
+    hint: 'Tab indents · Ctrl+Enter applies',
   },
   palette: {
     title: 'Components',

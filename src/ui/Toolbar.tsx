@@ -1,20 +1,17 @@
-import { prepareGraph } from './graphEntry'
-import { useReactFlow } from '@xyflow/react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type ChangeEvent } from 'react'
-import type { Graph } from '../engine/types'
 import { encodeHash } from '../persistence/hash'
 import { LANGS, useLang, useT } from '../i18n'
 import { printGraphDsl } from '../persistence/dsl'
 import { parseAnyGraph } from '../persistence/importText'
 import { getPresets } from '../presets'
-import { graphDslErrorLine } from './graphDslText'
 import { SPEEDS, stepSpeed, useRuntime } from './runtime/runtimeStore'
 import type { SimApi } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
+import { useGraphText } from './store/graphText'
+import { useLoadGraph } from './useLoadGraph'
 
 const TOAST_MS = 2500
-const FIT_VIEW_OPTIONS = { padding: 0.15 }
 /** Some browsers start the download asynchronously; keep the blob URL alive a while. */
 const REVOKE_URL_MS = 1000
 
@@ -82,7 +79,6 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const canUndo = useEditor((s) => s.past.length > 0)
   const canRedo = useEditor((s) => s.future.length > 0)
   const isEmpty = useEditor((s) => s.graph.nodes.length === 0)
-  const { fitView } = useReactFlow()
   const fileRef = useRef<HTMLInputElement>(null)
   const { toast, show } = useToast()
   const { toggle, step, reset, setSpeed } = api
@@ -91,16 +87,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const presets = useMemo(() => getPresets(lang), [lang])
   const reduced = useReducedMotion()
 
-  /** Replace the graph (undoable), restart the simulation and frame the new graph. */
-  const load = useCallback(
-    (g: Graph) => {
-      useEditor.getState().replaceGraph(prepareGraph(g))
-      reset()
-      // React Flow queues the fit until the new nodes are measured.
-      void fitView(FIT_VIEW_OPTIONS)
-    },
-    [reset, fitView],
-  )
+  const load = useLoadGraph(api)
 
   /** Remove every component (undoable) and restart the simulation. */
   const clearAll = useCallback(() => {
@@ -158,12 +145,14 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    const r = parseAnyGraph(await file.text())
+    const text = await file.text()
+    const r = parseAnyGraph(text)
     if (!r.ok) {
       if (r.format === 'json') {
         show(t(`errors.${r.error.error}`, r.error.error === 'dangling-edge' ? { edgeId: r.error.edgeId } : undefined))
       } else {
-        show(graphDslErrorLine(lang, r.errors[0]))
+        // Show the file in the dialog with every error; the current graph is untouched.
+        useGraphText.getState().show(text, fileRef.current)
       }
       return
     }
@@ -243,6 +232,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
           <>
             <IconBtn icon="⤓" label={t('toolbar.export')} onClick={onExport} />
             <IconBtn icon="⤒" label={t('toolbar.import')} onClick={() => fileRef.current?.click()} />
+            <IconBtn icon="✎" label={t('toolbar.text')} onClick={(e) => useGraphText.getState().show(printGraphDsl(useEditor.getState().graph), e.currentTarget)} />
             <input ref={fileRef} type="file" accept=".arch,.txt,.json,text/plain,application/json" hidden onChange={onImport} />
             <IconBtn icon="🔗" label={t('toolbar.copyLink')} onClick={onCopyLink} />
           </>
