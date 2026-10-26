@@ -189,7 +189,7 @@ Fuera del MVP (se agregan después como config): TLS, compresión, rolling deplo
 
 ## 7. Presets
 
-Cargables con un click; cada uno reproduce un deck y sirve como test de integración del motor. Los clientes de los presets arrancan en **1 req/s** (un goteo que muestra el flujo sin cargar el sistema; el usuario sube la tasa); cada preset guarda en `demoRates` la tasa para la que está calibrado, que usan los tests:
+Cargables con un click; cada uno reproduce un deck y sirve como test de integración del motor. Los clientes de los presets arrancan en **1 req/s** (un goteo que muestra el flujo sin cargar el sistema; el usuario sube la tasa), y la simulación arranca en pausa (al abrir la app y al elegir un preset): el usuario le da ▶ cuando quiere; cada preset guarda en `demoRates` la tasa para la que está calibrado, que usan los tests:
 
 1. **Load balancer** — 2 clientes → LB → 3 servicios → DB.
 2. **Sesiones** — tres carriles, cada uno con un Cliente de 5 usuarios con login → LB round robin sin sticky, con health checks → 3 servicios (1 req/s de demo): `session memory` (401 `session-lost` y re-login constantes), `session Sesiones` contra una Base clave-valor compartida, y `session jwt`. Ver [sesiones](sessions-spec.md#10-presets).

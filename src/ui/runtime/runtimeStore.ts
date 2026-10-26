@@ -19,8 +19,9 @@ export interface RuntimeState {
   metrics: MetricsSnapshot
 }
 
+// The app starts paused: the user presses Play when they are ready to watch the traffic.
 export const useRuntime = create<RuntimeState>(() => ({
-  playing: true,
+  playing: false,
   speed: DEFAULT_SPEED,
   flowOnly: false,
   stats: {},

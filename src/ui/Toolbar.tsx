@@ -83,7 +83,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const isEmpty = useEditor((s) => s.graph.nodes.length === 0)
   const fileRef = useRef<HTMLInputElement>(null)
   const { toast, show } = useToast()
-  const { toggle, step, reset, setSpeed } = api
+  const { toggle, pause, step, reset, setSpeed } = api
   const lang = useLang((s) => s.lang)
   const t = useT()
   const presets = useMemo(() => getPresets(lang), [lang])
@@ -128,7 +128,10 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     // Reusing the memoized graphs is safe: the editor and the engine never mutate a graph in place.
     const preset = presets.find((p) => p.id === e.target.value)
     e.target.blur()
-    if (preset) load(preset.graph)
+    if (!preset) return
+    // A preset starts paused, like the app.
+    pause()
+    load(preset.graph)
   }
 
   const onExport = () => {

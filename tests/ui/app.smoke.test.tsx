@@ -118,6 +118,14 @@ describe('App', () => {
     localStorage.clear()
   })
 
+  it('starts paused, and choosing a preset pauses the simulation', () => {
+    expect(useRuntime.getInitialState().playing).toBe(false)
+    render(<App />)
+    useRuntime.setState({ playing: true })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Presets' }), { target: { value: 'pubsub' } })
+    expect(useRuntime.getState().playing).toBe(false)
+  })
+
   it('speed is a dropdown with every speed, and choosing one sets it', () => {
     render(<App />)
     const select = screen.getByRole('combobox', { name: 'Velocidad (teclas - y +)' }) as HTMLSelectElement

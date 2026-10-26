@@ -312,6 +312,7 @@ describe('Inspector: Estado / Configuración tabs', () => {
   })
 
   it('Estado shows the counters at zero with a hint before any traffic, then the live values', () => {
+    act(() => useRuntime.setState({ playing: true }))
     render(<Inspector />)
     select({ kind: 'node', id: 's1' })
     expect(within(panel('Estado')).getByText('Todavía no pasó tráfico por este componente.')).toBeTruthy()
