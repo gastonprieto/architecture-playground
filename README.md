@@ -1,28 +1,28 @@
 # Architecture Playground
 
-[English version](README.en.md)
+[Versión en español](README.es.md)
 
-Un playground para armar arquitecturas en un canvas (clientes, servicios, bases de datos, load balancers, proxies reversos, caches, colas, workers, DLQs, brokers y suscriptores) y ver cómo fluyen los requests, mensajes y eventos entre los componentes. Se puede cambiar la configuración de cada componente (capacidad, tiempo de proceso, caídas, etc.) para ver cómo se comporta el sistema bajo carga.
+A playground to build architectures on a canvas (clients, services, databases, load balancers, reverse proxies, caches, queues, workers, DLQs, brokers and subscribers) and watch requests, messages and events flow between them. Tweak each component (capacity, processing time, outages, etc.) to see how the system behaves under load.
 
-Incluye 7 presets para empezar:
+It comes with 7 presets:
 
-- **Load Balancer**: dos clientes reparten su tráfico entre tres servidores con round robin.
-- **Sesiones**: la sesión en memoria del servidor (401 constantes detrás de un round robin), en un store clave-valor compartido y en un JWT, lado a lado.
-- **Sync vs cola**: el mismo tráfico contra un servicio síncrono (se satura con 503) y contra una cola con workers (responde 202).
-- **Pub/sub**: un evento se publica en el broker y llega a cuatro suscriptores; uno es lento y se atrasa.
-- **Reverse Proxy**: el proxy enruta por prefijo de path a cada servicio, corta con 401 al cliente sin credenciales y cachea `/static` en el borde.
-- **Cache**: cache-aside; el servicio le pregunta a la Cache por cada producto y en un MISS va a la base. Con 10 productos y lugar para 5, se ven las expulsiones (LRU) y la carga de la base.
-- **Orden de compra**: la misma compra orquestada (Órdenes llama a cada servicio y espera) y coreografiada (Órdenes publica un evento y cada servicio reacciona por su cuenta), armada con el DSL de comportamiento.
+- **Load Balancer**: two clients spread their traffic across three servers with round robin.
+- **Sessions**: the session in the server's memory (constant 401s behind a round robin), in a shared key-value store and in a JWT, side by side.
+- **Sync vs queue**: the same traffic against a synchronous service (it saturates with 503s) and against a queue with workers (it answers 202).
+- **Pub/sub**: an event is published to the broker and reaches four subscribers; one is slow and falls behind.
+- **Reverse Proxy**: the proxy routes each path prefix to its service, stops the client with no credentials with a 401 and caches `/static` at the edge.
+- **Cache**: cache-aside; the service asks the Cache for each product and goes to the database on a MISS. With 10 products and room for 5, you see the evictions (LRU) and the database load.
+- **Purchase order**: the same purchase orchestrated (Orders calls each service and waits) and choreographed (Orders publishes an event and each service reacts on its own), built with the behavior DSL.
 
-Un Cliente envía a su primera salida (la primera arista que se conectó desde él).
+A Client sends to its first output (the first edge connected from it).
 
-La interfaz está en español e inglés: el selector `ES | EN` de la toolbar cambia el idioma al instante (también `?lang=es` / `?lang=en` en la URL). Sin elección guardada se usa el idioma del navegador. Los presets se cargan en el idioma actual; los nombres de los nodos que ya armaste no se traducen.
+The UI is in Spanish and English: the `ES | EN` switch in the toolbar changes the language instantly (so does `?lang=es` / `?lang=en` in the URL). With no saved choice, the browser language is used. Presets load in the current language; node names in graphs you already built are not translated.
 
-Online (una vez publicado el repo): https://gastonprieto.github.io/architecture-playground/
+Online (once the repo is published): https://gastonprieto.github.io/architecture-playground/
 
-## Arquitectura como texto
+## Architecture as text
 
-El botón **Texto** de la toolbar abre un popup con el grafo entero escrito en un formato tipo PlantUML; editalo y apretá **Aplicar** (Ctrl+Enter) para reemplazar el grafo en un solo paso de deshacer. Exportar e Importar usan el mismo formato (`.arch`); si un archivo tiene errores, se abre el popup con el texto y la lista de errores, sin tocar el grafo actual.
+The **Text** toolbar button opens a popup with the whole graph written in a PlantUML-like format; edit it and press **Apply** (Ctrl+Enter) to replace the graph in a single undo step. Export and Import use the same format (`.arch`); if a file has errors, the popup opens with its text and the list of errors, leaving the current graph untouched.
 
 ```
 client Web
@@ -36,11 +36,11 @@ database DB
 Web --> Api --> DB
 ```
 
-El formato completo está en [docs/graph-dsl-spec.md](docs/graph-dsl-spec.md).
+The full format is in [docs/graph-dsl-spec.md](docs/graph-dsl-spec.md) (in Spanish).
 
-## Comportamiento (DSL)
+## Behavior (DSL)
 
-Servicio, Worker y Suscriptor tienen un campo **Comportamiento**: un texto corto que decide qué hace el nodo con cada request, evento o mensaje (a quién llama, en qué orden, qué publica y con qué código responde). Vacío o con errores, el nodo usa su comportamiento por defecto. Se edita desde el inspector ("Editar comportamiento") y los nodos que lo usan muestran un badge `DSL`. Los destinos se nombran por el nombre del nodo conectado. El ejemplo es ilustrativo: valida solo en un nodo conectado a nodos con esos nombres (Base de datos, Stock, Pagos, Mails, Facturas) y a un Broker.
+Service, Worker and Subscriber have a **Behavior** field: a short text that decides what the node does with each request, event or message (whom it calls, in what order, what it publishes and which code it responds with). Empty or with errors, the node keeps its default behavior. Edit it from the inspector ("Edit behavior"); nodes that use it show a `DSL` badge. Keywords are English in both languages. Targets are referenced by the name of a connected node; the example below is illustrative and uses generic Spanish node names (Base de datos, Stock, Pagos, Mails, Facturas), so it only validates on a node wired to nodes with those names and to a Broker:
 
 ```
 on request /ordenes:
@@ -64,45 +64,45 @@ on message:
   query Base de datos
 ```
 
-La referencia completa está en [docs/dsl-spec.md](docs/dsl-spec.md).
+The full reference (in Spanish) is in [docs/dsl-spec.md](docs/dsl-spec.md).
 
-## Sesiones y autenticación
+## Sessions and auth
 
-Se puede mostrar dónde vive la sesión de un usuario y quién autentica:
+You can show where a user's session lives and who authenticates:
 
-- **Cliente**: tiene **Usuarios** (cada uno con su cookie) y **Autenticación** (con login o sin credenciales). Con más de un usuario, el nodo muestra 🍪 logueados/N.
-- **Paso `session`** del DSL: `session memory` (en el servidor), `session <Base>` (en una base compartida) o `session jwt` (en el token, que no se puede revocar). Una cookie que el servidor no conoce da `401` y el usuario se vuelve a loguear.
-- **Base de datos**: tiene **Tipo** (relacional, clave-valor o documental). La clave-valor es rápida pero volátil: si se reinicia, pierde las sesiones.
-- **Load Balancer**: **Sticky sessions** manda a cada usuario al servidor que le dio la cookie.
-- **Reverse Proxy**: **Autenticación** (ninguna, credenciales o JWT) corta en la puerta con `401` a quien no trae credenciales.
+- **Client**: has **Users** (each with its own cookie) and **Authentication** (with login or no credentials). With more than one user, the node shows 🍪 logged-in/N.
+- **`session` DSL step**: `session memory` (on the server), `session <Database>` (in a shared database) or `session jwt` (in the token, which cannot be revoked). A cookie the server does not know gets a `401` and the user logs in again.
+- **Database**: has a **Type** (relational, key-value or document). Key-value is fast but volatile: if it restarts, it loses the sessions.
+- **Load Balancer**: **Sticky sessions** sends each user to the server that gave it the cookie.
+- **Reverse Proxy**: **Authentication** (none, credentials or JWT) stops whoever comes without credentials at the door with a `401`.
 
-El preset **Sesiones** pone los tres casos lado a lado. La spec está en [docs/sessions-spec.md](docs/sessions-spec.md).
+The **Sessions** preset puts the three cases side by side. The spec (in Spanish) is in [docs/sessions-spec.md](docs/sessions-spec.md).
 
 ## Cache
 
-- **Cache**: sin salidas es una cache **cache-aside** (el servicio le pregunta y, tras un MISS, va a la base y guarda la clave); con salidas es **read-through**. **Modo** Claves reales (Capacidad con expulsión LRU y TTL) o Aleatorio (Hit rate). El nodo muestra 🔑 claves y hit %.
-- **Servicio**: conectado a una Cache sin salidas hace cache-aside automático, sin DSL.
-- **Paso `cache X:`** del DSL: el bloque corre solo en un MISS y, si sale bien, la clave se guarda sin esperar.
-- **Reverse Proxy**: cache de borde (Apagada, Aleatoria o Claves reales) solo para los **Paths cacheables** (vacío = todos).
+- **Cache**: with no outputs it is a **cache-aside** cache (the service asks it and, after a MISS, goes to the database and stores the key); with outputs it is **read-through**. **Mode** Real keys (Capacity with LRU eviction, and TTL) or Random (Hit rate). The node shows 🔑 keys and hit %.
+- **Service**: wired to a Cache with no outputs, it does cache-aside automatically, no DSL needed.
+- **`cache X:` DSL step**: the block runs only on a MISS and, if it goes well, the key is stored without waiting.
+- **Reverse Proxy**: an edge cache (Off, Random or Real keys) only for the **Cacheable paths** (empty = all).
 
-La spec está en [docs/cache-spec.md](docs/cache-spec.md).
+The spec (in Spanish) is in [docs/cache-spec.md](docs/cache-spec.md).
 
-## Solo flujo
+## Flow only
 
-El switch **Carga real | Solo flujo** de la barra de métricas sirve para ver por dónde va el tráfico sin pelearte con la capacidad: nada se satura ni falla por azar (capacidad, clientes en espera, cola máx., rate limit, tasa de fallo y `fail N%` del DSL quedan sin efecto). Lo único que corta un flujo es un componente **apagado**, o la lógica del propio flujo (rutas, sesiones, auth). Al activarlo o desactivarlo los contadores arrancan de cero. No cambia la configuración guardada.
+The **Real load | Flow only** switch in the metrics bar shows where traffic goes without fighting capacity: nothing saturates or fails by chance (capacity, waiting clients, max queue, rate limit, fail rate and the DSL's `fail N%` have no effect). Only a component that is **off** cuts a flow, or the flow's own logic (routes, sessions, auth). Turning it on or off starts the counters over. It does not change the saved configuration.
 
-## Cómo correrlo
+## Running it
 
 ```bash
 npm install
-npm run dev      # servidor de desarrollo
-npm test         # tests (vitest; requiere Node >= 22.22.2)
-npm run build    # build de producción en dist/
+npm run dev      # dev server
+npm test         # tests (vitest; requires Node >= 22.22.2)
+npm run build    # production build in dist/
 ```
 
-## Cómo agregar un tipo de componente
+## Adding a component type
 
-Cada componente es una definición creada con `defineComponent` en `src/components/`. Ejemplo, un `rate-limiter` (basado en `database.ts` y `service.ts`):
+Each component is a definition created with `defineComponent` in `src/components/`. For example, a `rate-limiter` (based on `database.ts` and `service.ts`):
 
 ```ts
 // src/components/rate-limiter.ts
@@ -129,7 +129,7 @@ export const rateLimiter = defineComponent<RateLimiterConfig, RateLimiterState>(
   color: 'slow',
   config: {
     ...processingFields,
-    maxPerSecond: { type: 'number', label: 'Máx. por segundo', default: 5, min: 1, max: 100 },
+    maxPerSecond: { type: 'number', label: 'Max per second', default: 5, min: 1, max: 100 },
   },
   initialState: () => ({ windowStart: 0, count: 0 }),
   onMessage(msg, ctx) {
@@ -153,7 +153,7 @@ export const rateLimiter = defineComponent<RateLimiterConfig, RateLimiterState>(
 })
 ```
 
-Después hay que registrarlo en `src/components/index.ts`, agregándolo a la lista `builtins` (que alimenta `defaultRegistry`):
+Then register it in `src/components/index.ts`, adding it to the `builtins` list (which feeds `defaultRegistry`):
 
 ```ts
 import { rateLimiter } from './rate-limiter'
@@ -161,45 +161,45 @@ import { rateLimiter } from './rate-limiter'
 const builtins: ComponentDef[] = [/* ... */, rateLimiter]
 ```
 
-`defineComponent` agrega automáticamente el campo `name`. Los campos de `config` se muestran solos en el panel de propiedades.
+`defineComponent` adds the `name` field automatically. The `config` fields show up in the properties panel on their own.
 
-Los textos de la definición (`label`, labels de campos, opciones y acciones) son el fallback. Para traducirlos, agregá las claves en `src/i18n/es.ts` y `src/i18n/en.ts` (las dos con las mismas claves; el tipo `Dict` lo verifica):
+The def's texts (`label`, field, option and action labels) are the fallback. To translate them, add keys to `src/i18n/es.ts` and `src/i18n/en.ts` (both must have the same keys; the `Dict` type checks it):
 
 ```ts
 'rate-limiter': {
   label: 'Rate limiter',
-  fields: { maxPerSecond: 'Máx. por segundo' }, // en: 'Max per second'
+  fields: { maxPerSecond: 'Max per second' }, // es: 'Máx. por segundo'
 },
 ```
 
-`name`, `up`, `processingTime`, `capacity` y `queueMax` ya tienen claves compartidas (`fields.<key>`). Las razones de `drop` y los textos de `label` son códigos estables en inglés (`'queue-full'`, `'retry'`); la UI busca `reasons.<code>` / `labels.<code>` y si no existe muestra el código tal cual.
+`name`, `up`, `processingTime`, `capacity` and `queueMax` already have shared keys (`fields.<key>`). Drop reasons and `label` texts are stable English codes (`'queue-full'`, `'retry'`); the UI looks up `reasons.<code>` / `labels.<code>` and shows the raw code when there is none.
 
-### API de `ctx`
+### The `ctx` API
 
-- `send(target, msg)`: envía un mensaje a otro nodo (agrega este nodo al `trail`).
-- `reply(msg, { status, code })`: responde al origen del mensaje.
-- `forwardResponse(res)`: pasa una respuesta un salto más hacia atrás.
-- `drop(msg, reason, code?)`: descarta el mensaje (y le devuelve un response de error a quien lo envió). `reason` es un código (`'down'`, `'queue-full'`, `'no-output'`…).
-- `process(msg, done)`: ocupa un slot de capacidad durante `processingTime` y luego llama a `done` (si no hay lugar, encola o rechaza).
-- `schedule(ms, fn)`: ejecuta `fn` después de `ms` de tiempo simulado.
-- `label(text, tone)`: muestra una etiqueta sobre el nodo (`text` es un código, ej. `'retry'`, o un literal como `'HIT'`).
-- `random()`: número aleatorio determinístico del motor.
-- `outputs()`: aristas de salida del nodo (`edgeId`, `target`, `targetType`, `rule`).
-- `inputs()`: aristas de entrada del nodo (`edgeId`, `source`, `sourceType`). Un consumidor las usa para saber a qué cola/broker pedirle trabajo.
-- `pull(source)`: pide (pull) el próximo mensaje a un upstream (cola/broker): manda un salto `poll` hacia `source`. El upstream responde en su `onPoll` entregando un mensaje si tiene.
-- `freeSlots()`: slots de proceso libres ahora (`capacity − inFlight`), para que el consumidor pida solo lo que puede tomar.
-- `flowOnly`: `true` en modo solo flujo; un componente con fallos aleatorios propios no debería fallar.
-- `peer(id)`: tipo y configuración de otro nodo.
-- `newMessage(kind, meta, parent?)`: crea un mensaje nuevo.
+- `send(target, msg)`: send a message to another node (adds this node to the `trail`).
+- `reply(msg, { status, code })`: answer the message's origin.
+- `forwardResponse(res)`: pass a response one hop further back.
+- `drop(msg, reason, code?)`: drop the message (and send an error response back to its sender). `reason` is a code (`'down'`, `'queue-full'`, `'no-output'`…).
+- `process(msg, done)`: hold a capacity slot for `processingTime`, then call `done` (queues or rejects when full).
+- `schedule(ms, fn)`: run `fn` after `ms` of simulated time.
+- `label(text, tone)`: show a floating label over the node (`text` is a code, e.g. `'retry'`, or a literal such as `'HIT'`).
+- `random()`: the engine's deterministic random number.
+- `outputs()`: the node's outgoing edges (`edgeId`, `target`, `targetType`, `rule`).
+- `inputs()`: the node's incoming edges (`edgeId`, `source`, `sourceType`). A consumer uses them to know which queue/broker to ask for work.
+- `pull(source)`: pull the next message from an upstream (queue/broker): sends a `poll` hop to `source`. The upstream answers in its `onPoll`, handing over a message if it has one.
+- `freeSlots()`: processing slots free right now (`capacity − inFlight`), so a consumer only pulls what it can take.
+- `flowOnly`: `true` in flow-only mode; a component with its own random failures should not fail.
+- `peer(id)`: another node's type and config.
+- `newMessage(kind, meta, parent?)`: create a new message.
 
-Además de `onMessage`/`onResponse`, un componente puede definir `onPoll(msg, ctx)`: lo llama el motor cuando un consumidor hace `pull` hacia él (la cola y el broker entregan ahí un mensaje por pedido, en vez de empujar).
+Besides `onMessage`/`onResponse`, a component can define `onPoll(msg, ctx)`: the engine calls it when a consumer `pull`s from it (the queue and broker hand over one message per request there, instead of pushing).
 
-También están disponibles `ctx.nodeId`, `ctx.now`, `ctx.config` y `ctx.state`.
+`ctx.nodeId`, `ctx.now`, `ctx.config` and `ctx.state` are also available.
 
-## Especificación
+## Specification
 
-El diseño completo está en [docs/spec.md](docs/spec.md); el DSL de comportamiento, en [docs/dsl-spec.md](docs/dsl-spec.md).
+The full design (in Spanish) is in [docs/spec.md](docs/spec.md); the behavior DSL, in [docs/dsl-spec.md](docs/dsl-spec.md).
 
 ## Deploy
 
-El workflow `.github/workflows/deploy.yml` corre los tests, hace el build y publica `dist/` en GitHub Pages en cada push a `main`.
+The `.github/workflows/deploy.yml` workflow runs the tests, builds and publishes `dist/` to GitHub Pages on every push to `main`.
