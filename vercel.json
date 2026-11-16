@@ -1,9 +1,9 @@
 {
   "redirects": [
     {
-      "source": "/:path*",
+      "source": "/(.*)",
       "has": [{ "type": "host", "value": "arch-play.shichi.app" }],
-      "destination": "https://nodarium.shichi.app/:path*",
+      "destination": "https://nodarium.shichi.app/$1",
       "permanent": true
     }
   ],
