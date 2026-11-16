@@ -140,8 +140,8 @@ describe('initialGraph', () => {
   it('clearLocationHash replaces the URL with path + query, without the hash', () => {
     const replaceState = vi.fn()
     vi.stubGlobal('history', { replaceState })
-    vi.stubGlobal('location', { pathname: '/architecture-playground/', search: '?x=1', hash: '#g=abc' })
+    vi.stubGlobal('location', { pathname: '/', search: '?x=1', hash: '#g=abc' })
     clearLocationHash()
-    expect(replaceState).toHaveBeenCalledWith(null, '', '/architecture-playground/?x=1')
+    expect(replaceState).toHaveBeenCalledWith(null, '', '/?x=1')
   })
 })

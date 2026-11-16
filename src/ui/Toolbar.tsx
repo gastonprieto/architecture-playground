@@ -10,6 +10,7 @@ import type { SimApi } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 import { useGraphText } from './store/graphText'
 import { useLoadGraph } from './useLoadGraph'
+import { track } from './analytics'
 
 const TOAST_MS = 2500
 /** Some browsers start the download asynchronously; keep the blob URL alive a while. */
@@ -55,7 +56,10 @@ function LangToggle() {
   return (
     <div className="lang-toggle" role="group" aria-label={t('lang.label')}>
       {LANGS.map((l) => (
-        <Btn key={l} className={l === lang ? 'active' : undefined} aria-pressed={l === lang} title={t(`lang.${l}`)} onClick={() => setLang(l)}>
+        <Btn key={l} className={l === lang ? 'active' : undefined} aria-pressed={l === lang} title={t(`lang.${l}`)} onClick={() => {
+            if (l !== lang) track({ name: 'lang_changed', props: { lang: l } })
+            setLang(l)
+          }}>
           {l.toUpperCase()}
         </Btn>
       ))}
@@ -95,6 +99,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const clearAll = useCallback(() => {
     useEditor.getState().replaceGraph({ nodes: [], edges: [] })
     reset()
+    track({ name: 'graph_cleared' })
     show(t('toolbar.cleared'))
   }, [reset, show, t])
 
@@ -131,6 +136,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     if (!preset) return
     // A preset starts paused, like the app.
     pause()
+    track({ name: 'preset_selected', props: { preset: preset.id } })
     load(preset.graph)
   }
 
@@ -144,6 +150,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     a.click()
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), REVOKE_URL_MS)
+    track({ name: 'graph_exported' })
   }
 
   const onImport = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -165,11 +172,13 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
       }
       return
     }
+    track({ name: 'graph_imported', props: { format: file.name.split('.').pop()?.toLowerCase() ?? 'unknown' } })
     load(r.graph)
   }
 
   const onCopyLink = () => {
     const url = location.origin + location.pathname + encodeHash(useEditor.getState().graph)
+    track({ name: 'link_copied' })
     const fail = () => show(url)
     try {
       navigator.clipboard.writeText(url).then(() => show(t('toolbar.linkCopied')), fail)
@@ -195,7 +204,11 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
           <select
             className="toolbar-select speed"
             value={String(speed)}
-            onChange={(e) => setSpeed(Number(e.target.value))}
+            onChange={(e) => {
+              const s = Number(e.target.value)
+              track({ name: 'speed_changed', props: { speed: s } })
+              setSpeed(s)
+            }}
             aria-label={t('toolbar.speedTitle')}
             title={t('toolbar.speedTitle')}
           >
@@ -241,7 +254,10 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
           <>
             <IconBtn icon="⤓" label={t('toolbar.export')} onClick={onExport} />
             <IconBtn icon="⤒" label={t('toolbar.import')} onClick={() => fileRef.current?.click()} />
-            <IconBtn icon="✎" label={t('toolbar.text')} onClick={(e) => useGraphText.getState().show(printGraphDsl(useEditor.getState().graph), e.currentTarget)} />
+            <IconBtn icon="✎" label={t('toolbar.text')} onClick={(e) => {
+                track({ name: 'text_editor_opened' })
+                useGraphText.getState().show(printGraphDsl(useEditor.getState().graph), e.currentTarget)
+              }} />
             <input ref={fileRef} type="file" accept=".arch,.txt,.json,text/plain,application/json" hidden onChange={onImport} />
             <IconBtn icon="🔗" label={t('toolbar.copyLink')} onClick={onCopyLink} />
           </>

@@ -28,6 +28,7 @@ import { ArchEdge, type ArchFlowEdge } from './ArchEdge'
 import { ArchNode, type ArchFlowNode } from './ArchNode'
 import { FloatingLabels } from './FloatingLabels'
 import { PacketLayer } from './PacketLayer'
+import { track } from '../analytics'
 
 const nodeTypes: NodeTypes = { arch: ArchNode }
 const edgeTypes: EdgeTypes = { arch: ArchEdge }
@@ -203,6 +204,7 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
       const config = type === 'client' ? { ip: nextClientIp(g), color: nextClientColor(g) } : undefined
       const id = addNode(type, { x: Math.round(p.x - DROP_OFFSET.x), y: Math.round(p.y - DROP_OFFSET.y) }, name, config)
       select({ kind: 'node', id })
+      track({ name: 'component_added', props: { type } })
     },
     [screenToFlowPosition],
   )

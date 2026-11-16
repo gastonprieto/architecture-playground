@@ -18,7 +18,7 @@ A Client sends to its first output (the first edge connected from it).
 
 The UI is in Spanish and English: the `ES | EN` switch in the toolbar changes the language instantly (so does `?lang=es` / `?lang=en` in the URL). With no saved choice, the browser language is used. Presets load in the current language; node names in graphs you already built are not translated.
 
-Online (once the repo is published): https://gastonprieto.github.io/architecture-playground/
+Online: https://arch-play.shichi.app
 
 ## Architecture as text
 

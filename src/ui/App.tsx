@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/react'
 import { ReactFlowProvider } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useEffect, useRef } from 'react'
@@ -20,6 +21,7 @@ import { useBehaviorEditor } from './store/behaviorEditor'
 import { useGraphText } from './store/graphText'
 import { useInfoPanel } from './store/infoPanel'
 import { useIsMobile } from './useIsMobile'
+import { stripHash, track } from './analytics'
 
 const SAVE_DEBOUNCE_MS = 500
 
@@ -30,7 +32,10 @@ function usePersistence() {
     if (!loaded.current) {
       loaded.current = true
       // A shared link is loaded once; after that the local copy is the source of truth.
-      useEditor.getState().loadGraph(prepareGraph(initialGraph(useLang.getState().lang, undefined, clearLocationHash)))
+      useEditor.getState().loadGraph(prepareGraph(initialGraph(useLang.getState().lang, undefined, () => {
+        clearLocationHash()
+        track({ name: 'shared_link_opened' })
+      })))
     }
     let timer: ReturnType<typeof setTimeout> | undefined
     const flush = () => {
@@ -86,6 +91,7 @@ export default function App() {
         <InfoDialog />
         <BehaviorEditorDialog />
         <GraphTextDialog api={api} />
+        <Analytics beforeSend={stripHash} />
       </SimContext.Provider>
     </ReactFlowProvider>
   )

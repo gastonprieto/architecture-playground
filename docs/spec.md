@@ -19,7 +19,7 @@ Una app web para **armar una arquitectura arrastrando componentes a un canvas** 
 | Tests | Vitest (motor headless con reloj determinístico) |
 | Backend | Ninguno |
 | Persistencia | `localStorage` + export/import JSON + link compartible (estado comprimido en el hash de la URL) |
-| Hosting | GitHub Pages, deploy con GitHub Actions en cada push a `main` (`base: '/architecture-playground/'`) |
+| Hosting | Vercel (`arch-play.shichi.app`), deploy automático en cada push a `main`; uso medido con Vercel Web Analytics (eventos custom) |
 | Idiomas | Español e inglés, con selector en la toolbar (`ES \| EN`; inicial: `?lang=`, la elección guardada o el idioma del navegador). Código, tipos y commits en inglés |
 | Estética | Paleta y estilo SVG de los decks (ver §8) |
 | Plataforma | Desktop-first; en mobile solo visualizar y correr presets (sin edición) |

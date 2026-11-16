@@ -18,7 +18,7 @@ Un Cliente envía a su primera salida (la primera arista que se conectó desde �
 
 La interfaz está en español e inglés: el selector `ES | EN` de la toolbar cambia el idioma al instante (también `?lang=es` / `?lang=en` en la URL). Sin elección guardada se usa el idioma del navegador. Los presets se cargan en el idioma actual; los nombres de los nodos que ya armaste no se traducen.
 
-Online (una vez publicado el repo): https://gastonprieto.github.io/architecture-playground/
+Online: https://arch-play.shichi.app
 
 ## Arquitectura como texto
 
