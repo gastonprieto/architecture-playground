@@ -6,8 +6,6 @@ import { es } from './es'
 export type Lang = 'es' | 'en'
 export const LANGS: readonly Lang[] = ['es', 'en']
 export const LANG_STORAGE_KEY = 'nodarium:lang'
-/** Where the language lived before the rename to Nodarium: read when there is no newer choice. */
-export const LEGACY_LANG_STORAGE_KEY = 'architecture-playground:lang'
 export const APP_TITLE = 'Nodarium'
 
 export type Params = Record<string, string | number>
@@ -79,9 +77,9 @@ export function detectLang({ search = '', stored, navigatorLanguage }: LangEnv):
   return navigatorLanguage?.toLowerCase().startsWith('es') ? 'es' : 'en'
 }
 
-/** The saved language choice (new key, then the pre-rename one), or null. */
+/** The saved language choice, or null. */
 export function storedLang(storage: Pick<Storage, 'getItem'> | undefined): string | null {
-  return storage?.getItem(LANG_STORAGE_KEY) ?? storage?.getItem(LEGACY_LANG_STORAGE_KEY) ?? null
+  return storage?.getItem(LANG_STORAGE_KEY) ?? null
 }
 
 function browserEnv(): LangEnv {

@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { en } from '../../src/i18n/en'
 import { es } from '../../src/i18n/es'
-import { LANG_STORAGE_KEY, LEGACY_LANG_STORAGE_KEY, codeText, detectLang, storedLang, t, translate, translateWith, useLang } from '../../src/i18n'
+import { LANG_STORAGE_KEY, codeText, detectLang, storedLang, t, translate, translateWith, useLang } from '../../src/i18n'
 
 /** Every leaf key of a nested dictionary, as dotted paths, sorted. */
 function keysOf(obj: object, prefix = ''): string[] {
@@ -80,10 +80,9 @@ describe('detectLang', () => {
 
 describe('storedLang', () => {
   const storage = (entries: Record<string, string>) => ({ getItem: (k: string) => entries[k] ?? null })
-  it('reads the Nodarium key, then the old Architecture Playground one', () => {
+  it('reads the Nodarium key', () => {
     expect(LANG_STORAGE_KEY).toBe('nodarium:lang')
-    expect(storedLang(storage({ [LANG_STORAGE_KEY]: 'en', [LEGACY_LANG_STORAGE_KEY]: 'es' }))).toBe('en')
-    expect(storedLang(storage({ [LEGACY_LANG_STORAGE_KEY]: 'es' }))).toBe('es')
+    expect(storedLang(storage({ [LANG_STORAGE_KEY]: 'en' }))).toBe('en')
     expect(storedLang(storage({}))).toBeNull()
     expect(storedLang(undefined)).toBeNull()
   })

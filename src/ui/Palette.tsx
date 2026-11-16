@@ -14,7 +14,7 @@ type Group = NonNullable<ComponentDef['group']> | 'other'
 const GROUP_ORDER: Group[] = ['edge', 'compute', 'data', 'messaging', 'other']
 
 /** localStorage key remembering whether the palette is collapsed to its icons. */
-export const PALETTE_COLLAPSED_KEY = 'arch-playground:palette-collapsed'
+export const PALETTE_COLLAPSED_KEY = 'nodarium:palette-collapsed'
 
 function readCollapsed(): boolean {
   try {
