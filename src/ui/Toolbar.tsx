@@ -28,7 +28,7 @@ function isActivatable(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('button, a[href], [role="button"]') !== null
 }
 
-const REPO_URL = 'https://github.com/gastonprieto/architecture-playground'
+const REPO_URL = 'https://github.com/gastonprieto/nodarium'
 
 const formatSpeed = (s: number) => `${s}x`
 

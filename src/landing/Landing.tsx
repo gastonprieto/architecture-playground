@@ -12,7 +12,7 @@ import { PLAY_PATH } from './legacyLink'
 import { Logo } from '../ui/Logo'
 import './landing.css'
 
-const REPO_URL = 'https://github.com/gastonprieto/architecture-playground'
+const REPO_URL = 'https://github.com/gastonprieto/nodarium'
 
 /** The legend shapes, drawn like PacketLayer draws them. */
 function PacketShape({ kind }: { kind: 'request' | 'message' | 'event' | '2xx' | '4xx' | '5xx' }) {
