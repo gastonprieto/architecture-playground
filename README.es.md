@@ -1,8 +1,8 @@
-# Architecture Playground
+# Nodarium
 
 [English version](README.md)
 
-Un playground para armar arquitecturas en un canvas (clientes, servicios, bases de datos, load balancers, proxies reversos, caches, colas, workers, DLQs, brokers y suscriptores) y ver cómo fluyen los requests, mensajes y eventos entre los componentes. Se puede cambiar la configuración de cada componente (capacidad, tiempo de proceso, caídas, etc.) para ver cómo se comporta el sistema bajo carga.
+Nodarium (antes Architecture Playground) es un playground para armar arquitecturas en un canvas (clientes, servicios, bases de datos, load balancers, proxies reversos, caches, colas, workers, DLQs, brokers y suscriptores) y ver cómo fluyen los requests, mensajes y eventos entre los componentes. Se puede cambiar la configuración de cada componente (capacidad, tiempo de proceso, caídas, etc.) para ver cómo se comporta el sistema bajo carga.
 
 Incluye 7 presets para empezar:
 
@@ -18,7 +18,7 @@ Un Cliente envía a su primera salida (la primera arista que se conectó desde �
 
 La interfaz está en español e inglés: el selector `ES | EN` de la toolbar cambia el idioma al instante (también `?lang=es` / `?lang=en` en la URL). Sin elección guardada se usa el idioma del navegador. Los presets se cargan en el idioma actual; los nombres de los nodos que ya armaste no se traducen.
 
-Online: https://arch-play.shichi.app
+Online: https://nodarium.shichi.app — la landing, con una demo en vivo; el playground está en [`/play`](https://nodarium.shichi.app/play). Los links compartidos viejos (`/#g=…`) redirigen a `/play`.
 
 ## Arquitectura como texto
 

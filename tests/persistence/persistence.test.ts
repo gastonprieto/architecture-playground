@@ -4,7 +4,7 @@ import { getPresets } from '../../src/presets'
 import { decodeHash, encodeHash } from '../../src/persistence/hash'
 import { clearLocationHash, initialGraph } from '../../src/persistence/initial'
 import { parseGraph, serializeGraph } from '../../src/persistence/serialize'
-import { loadLocal, saveLocal } from '../../src/persistence/storage'
+import { LEGACY_STORAGE_KEY, STORAGE_KEY, loadLocal, saveLocal } from '../../src/persistence/storage'
 
 const g: Graph = {
   nodes: [
@@ -106,9 +106,25 @@ describe('local storage', () => {
     expect(loadLocal()).toBeNull()
     expect(() => saveLocal(g)).not.toThrow()
   })
+  it('saves under the Nodarium key', () => {
+    const s = mem()
+    vi.stubGlobal('localStorage', s)
+    saveLocal(g)
+    expect(STORAGE_KEY).toBe('nodarium:graph')
+    expect(s.getItem(STORAGE_KEY)).toBe(serializeGraph(g))
+  })
+  it('loads a graph saved under the old Architecture Playground key, until a new one is saved', () => {
+    const s = mem()
+    vi.stubGlobal('localStorage', s)
+    s.setItem(LEGACY_STORAGE_KEY, serializeGraph(g))
+    expect(loadLocal()).toEqual(g)
+    const newer: Graph = { nodes: [], edges: [] }
+    saveLocal(newer)
+    expect(loadLocal()).toEqual(newer)
+  })
   it('loadLocal returns null for corrupt data', () => {
     const s = mem()
-    s.setItem('architecture-playground:graph', 'zzz')
+    s.setItem(STORAGE_KEY, 'zzz')
     vi.stubGlobal('localStorage', s)
     expect(loadLocal()).toBeNull()
   })

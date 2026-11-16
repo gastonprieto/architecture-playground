@@ -4,7 +4,7 @@
  */
 export const es = {
   app: {
-    title: 'Architecture Playground',
+    title: 'Nodarium',
   },
   lang: {
     label: 'Idioma',

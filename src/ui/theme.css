@@ -83,12 +83,16 @@ body {
   border-radius: var(--radius);
 }
 .app-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   font-size: 16px;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #f8fafc;
 }
+.app-title .logo-mark { width: 24px; height: 16px; flex: none; }
 
 .palette, .inspector {
   overflow-y: auto;

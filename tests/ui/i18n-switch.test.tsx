@@ -49,7 +49,7 @@ describe('language switch', () => {
     expect(screen.getByText(/Errors/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'EN' }).getAttribute('aria-pressed')).toBe('true')
     expect(document.documentElement.lang).toBe('en')
-    expect(localStorage.getItem('architecture-playground:lang')).toBe('en')
+    expect(localStorage.getItem('nodarium:lang')).toBe('en')
 
     fireEvent.click(screen.getByRole('button', { name: 'ES' }))
     expect(screen.getByText('Componentes')).toBeTruthy()

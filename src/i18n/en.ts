@@ -3,7 +3,7 @@ import type { Dict } from './es'
 /** English UI copy: same keys as `es` (checked by the `Dict` type and by tests/i18n). */
 export const en: Dict = {
   app: {
-    title: 'Architecture Playground',
+    title: 'Nodarium',
   },
   lang: {
     label: 'Language',

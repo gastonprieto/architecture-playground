@@ -11,6 +11,7 @@ import { useEditor } from './store/editor'
 import { useGraphText } from './store/graphText'
 import { useLoadGraph } from './useLoadGraph'
 import { track } from './analytics'
+import { Logo } from './Logo'
 
 const TOAST_MS = 2500
 /** Some browsers start the download asynchronously; keep the blob URL alive a while. */
@@ -189,7 +190,10 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
 
   return (
     <>
-      <h1 className="app-title">Architecture Playground</h1>
+      <h1 className="app-title">
+        <Logo />
+        Nodarium
+      </h1>
       <div className="toolbar-group">
         <Btn className="primary" onClick={toggle} aria-pressed={playing} title={t('toolbar.playTitle')}>
           {playing ? t('toolbar.pause') : t('toolbar.play')}
