@@ -9,12 +9,14 @@ import { SPEEDS, stepSpeed, useRuntime } from './runtime/runtimeStore'
 import type { SimApi } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 import { useGraphText } from './store/graphText'
+import { useNewDiagram } from './store/newDiagram'
 import { useScenario } from './store/scenario'
 import { useLoadGraph } from './useLoadGraph'
 import { fitViewOptions } from './fitView'
 import { useTheme } from './store/theme'
 import { track } from './analytics'
 import { Logo } from './Logo'
+import { ToolbarMenu } from './ToolbarMenu'
 
 const TOAST_MS = 2500
 /** Some browsers start the download asynchronously; keep the blob URL alive a while. */
@@ -32,6 +34,8 @@ function isActivatable(target: EventTarget | null): boolean {
 }
 
 const REPO_URL = 'https://github.com/gastonprieto/nodarium'
+const GITHUB_PATH =
+  'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z'
 
 const formatSpeed = (s: number) => `${s}x`
 
@@ -40,49 +44,80 @@ function Btn(props: ButtonHTMLAttributes<HTMLButtonElement>) {
   return <button type="button" onMouseDown={(e) => e.preventDefault()} {...props} />
 }
 
-/** A button that collapses to its icon on narrow screens; the label stays as its accessible name and tooltip. */
+/** An icon-only toolbar button; the label is its accessible name and tooltip. */
 function IconBtn({ icon, label, title, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { icon: string; label: string }) {
   return (
-    <Btn aria-label={label} title={title ?? label} {...props}>
-      <span className="tb-icon" aria-hidden="true">
-        {icon}
-      </span>
-      <span className="tb-label">{label}</span>
+    <Btn className="icon-btn" aria-label={label} title={title ?? label} {...props}>
+      <span aria-hidden="true">{icon}</span>
     </Btn>
   )
 }
 
-/** Sun/moon button: switches the playground between the light and the dark theme. */
-function ThemeToggle() {
+/** A row of the `⋯` menu: icon + label, closes the menu after running. */
+function MenuItem({ icon, label, onClick, close, ...props }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> & {
+  icon: string
+  label: string
+  onClick: () => void
+  close: () => void
+}) {
+  return (
+    <Btn
+      className="toolbar-menu-item"
+      onClick={() => {
+        onClick()
+        close()
+      }}
+      {...props}
+    >
+      <span className="toolbar-menu-icon" aria-hidden="true">
+        {icon}
+      </span>
+      {label}
+    </Btn>
+  )
+}
+
+/** `Claro | Oscuro` switch inside the menu; the active theme is pressed. */
+function ThemeSwitch() {
   const theme = useTheme((s) => s.theme)
   const toggle = useTheme((s) => s.toggle)
   const t = useT()
-  const label = t(theme === 'dark' ? 'theme.toLight' : 'theme.toDark')
   return (
-    <Btn className="theme-toggle" aria-label={label} title={label} onClick={() => {
-        track({ name: 'theme_changed', props: { theme: theme === 'dark' ? 'light' : 'dark' } })
-        toggle()
-      }}>
-      <span aria-hidden="true">{theme === 'dark' ? '☀' : '☾'}</span>
-    </Btn>
+    <div className="toolbar-menu-row">
+      <span>{t('toolbar.theme')}</span>
+      <div className="lang-toggle" role="group" aria-label={t('toolbar.theme')}>
+        {(['light', 'dark'] as const).map((th) => (
+          <Btn key={th} className={th === theme ? 'active' : undefined} aria-pressed={th === theme} onClick={() => {
+              if (th === theme) return
+              track({ name: 'theme_changed', props: { theme: th } })
+              toggle()
+            }}>
+            {t(`toolbar.${th}`)}
+          </Btn>
+        ))}
+      </div>
+    </div>
   )
 }
 
 /** `ES | EN` switch; the active language is pressed. */
-function LangToggle() {
+function LangSwitch() {
   const lang = useLang((s) => s.lang)
   const setLang = useLang((s) => s.setLang)
   const t = useT()
   return (
-    <div className="lang-toggle" role="group" aria-label={t('lang.label')}>
-      {LANGS.map((l) => (
-        <Btn key={l} className={l === lang ? 'active' : undefined} aria-pressed={l === lang} title={t(`lang.${l}`)} onClick={() => {
-            if (l !== lang) track({ name: 'lang_changed', props: { lang: l } })
-            setLang(l)
-          }}>
-          {l.toUpperCase()}
-        </Btn>
-      ))}
+    <div className="toolbar-menu-row">
+      <span>{t('lang.label')}</span>
+      <div className="lang-toggle" role="group" aria-label={t('lang.label')}>
+        {LANGS.map((l) => (
+          <Btn key={l} className={l === lang ? 'active' : undefined} aria-pressed={l === lang} title={t(`lang.${l}`)} onClick={() => {
+              if (l !== lang) track({ name: 'lang_changed', props: { lang: l } })
+              setLang(l)
+            }}>
+            {l.toUpperCase()}
+          </Btn>
+        ))}
+      </div>
     </div>
   )
 }
@@ -119,9 +154,10 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const fit = useMemo(() => fitViewOptions(false, mobile, true), [mobile])
   const load = useLoadGraph(api, fit)
 
-  /** Remove every component (undoable) and restart the simulation. */
-  const clearAll = useCallback(() => {
+  /** Start an empty diagram: remove every component (undoable), leave the scenario and restart the simulation. */
+  const newDiagram = useCallback(() => {
     useEditor.getState().replaceGraph({ nodes: [], edges: [] })
+    useScenario.getState().setCurrent(null)
     reset()
     track({ name: 'graph_cleared' })
     show(t('toolbar.cleared'))
@@ -208,6 +244,33 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
         Nodarium
       </h1>
       <div className="toolbar-group">
+        {!mobile && (
+          <Btn
+            aria-haspopup="dialog"
+            title={t('toolbar.newTitle')}
+            disabled={isEmpty}
+            onClick={(e) => useNewDiagram.getState().ask(e.currentTarget, newDiagram)}
+          >
+            <span aria-hidden="true">＋</span> {t('toolbar.new')}
+          </Btn>
+        )}
+        <Btn
+          className="scenario-btn"
+          aria-haspopup="dialog"
+          aria-label={scenario ? `${t('scenarios.button')}: ${scenario.name}` : t('scenarios.button')}
+          title={scenario ? `${t('scenarios.title')} · ${scenario.name}` : t('scenarios.title')}
+          onClick={(e) => useScenario.getState().openPicker(e.currentTarget)}
+        >
+          <span aria-hidden="true">🧭</span>
+          {t('scenarios.button')}
+          <span className="caret" aria-hidden="true">▾</span>
+        </Btn>
+        {scenario && !guideOpen && (
+          <IconBtn icon="📖" label={t('scenarios.guide')} onClick={() => useScenario.getState().setGuideOpen(true)} />
+        )}
+      </div>
+      <div className="toolbar-sep" aria-hidden="true" />
+      <div className="toolbar-group">
         <Btn className="primary" onClick={toggle} aria-pressed={playing} title={t('toolbar.playTitle')}>
           {playing ? t('toolbar.pause') : t('toolbar.play')}
         </Btn>
@@ -237,64 +300,61 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
           </select>
         )}
       </div>
-      <div className="toolbar-group">
-        <Btn
-          className="scenario-btn"
-          aria-haspopup="dialog"
-          aria-label={scenario ? `${t('scenarios.button')}: ${scenario.name}` : t('scenarios.button')}
-          title={t('scenarios.title')}
-          onClick={(e) => useScenario.getState().openPicker(e.currentTarget)}
-        >
-          <span aria-hidden="true">🧭</span>
-          <span className="scenario-btn-label">{scenario ? scenario.name : t('scenarios.button')}</span>
-          <span aria-hidden="true">▾</span>
-        </Btn>
-        {scenario && !guideOpen && (
-          <IconBtn icon="📖" label={t('scenarios.guide')} onClick={() => useScenario.getState().setGuideOpen(true)} />
-        )}
-      </div>
       {!mobile && (
-        <div className="toolbar-group">
-          <IconBtn
-            icon="↶"
-            label={t('toolbar.undo')}
-            onClick={() => useEditor.getState().undo()}
-            disabled={!canUndo}
-            title={`${t('toolbar.undo')} (Ctrl/Cmd+Z)`}
-          />
-          <IconBtn
-            icon="↷"
-            label={t('toolbar.redo')}
-            onClick={() => useEditor.getState().redo()}
-            disabled={!canRedo}
-            title={`${t('toolbar.redo')} (Ctrl/Cmd+Shift+Z)`}
-          />
-          <IconBtn icon="🗑" label={t('toolbar.clearAll')} className="danger" onClick={clearAll} disabled={isEmpty} />
-        </div>
+        <>
+          <div className="toolbar-sep" aria-hidden="true" />
+          <div className="toolbar-group">
+            <IconBtn
+              icon="↶"
+              label={t('toolbar.undo')}
+              onClick={() => useEditor.getState().undo()}
+              disabled={!canUndo}
+              title={`${t('toolbar.undo')} (Ctrl/Cmd+Z)`}
+            />
+            <IconBtn
+              icon="↷"
+              label={t('toolbar.redo')}
+              onClick={() => useEditor.getState().redo()}
+              disabled={!canRedo}
+              title={`${t('toolbar.redo')} (Ctrl/Cmd+Shift+Z)`}
+            />
+          </div>
+        </>
       )}
       <div className="toolbar-group toolbar-end">
-        {!mobile && (
-          <>
-            <IconBtn icon="⤓" label={t('toolbar.export')} onClick={onExport} />
-            <IconBtn icon="⤒" label={t('toolbar.import')} onClick={() => fileRef.current?.click()} />
-            <IconBtn icon="✎" label={t('toolbar.text')} onClick={(e) => {
-                track({ name: 'text_editor_opened' })
-                useGraphText.getState().show(printGraphDsl(useEditor.getState().graph), e.currentTarget)
-              }} />
-            <input ref={fileRef} type="file" accept=".arch,.txt,.json,text/plain,application/json" hidden onChange={onImport} />
-            <IconBtn icon="🔗" label={t('toolbar.copyLink')} onClick={onCopyLink} />
-          </>
-        )}
-        <ThemeToggle />
-        <LangToggle />
-        <a className="repo-link" href={REPO_URL} target="_blank" rel="noopener noreferrer" aria-label={t('toolbar.repo')} title={t('toolbar.repo')}>
-          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
-            />
-          </svg>
-        </a>
+        <input ref={fileRef} type="file" accept=".arch,.txt,.json,text/plain,application/json" hidden onChange={onImport} />
+        <ToolbarMenu label={t('toolbar.more')}>
+          {(close, trigger) => (
+            <>
+              {!mobile && (
+                <>
+                  <MenuItem icon="🔗" label={t('toolbar.copyLink')} onClick={onCopyLink} close={close} />
+                  <MenuItem icon="⤓" label={t('toolbar.export')} onClick={onExport} close={close} />
+                  <MenuItem icon="⤒" label={t('toolbar.import')} onClick={() => fileRef.current?.click()} close={close} />
+                  <MenuItem
+                    icon="✎"
+                    label={t('toolbar.text')}
+                    onClick={() => {
+                      track({ name: 'text_editor_opened' })
+                      useGraphText.getState().show(printGraphDsl(useEditor.getState().graph), trigger)
+                    }}
+                    close={close}
+                  />
+                  <hr />
+                </>
+              )}
+              <ThemeSwitch />
+              <LangSwitch />
+              <hr />
+              <a className="toolbar-menu-item" href={REPO_URL} target="_blank" rel="noopener noreferrer" onClick={close}>
+                <svg className="toolbar-menu-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                  <path fill="currentColor" d={GITHUB_PATH} />
+                </svg>
+                {t('toolbar.repo')}
+              </a>
+            </>
+          )}
+        </ToolbarMenu>
       </div>
       <AnimatePresence>
         {toast && (

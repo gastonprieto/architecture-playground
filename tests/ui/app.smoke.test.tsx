@@ -7,6 +7,7 @@ import { STORAGE_KEY } from '../../src/persistence/storage'
 import App from '../../src/ui/App'
 import { useRuntime } from '../../src/ui/runtime/runtimeStore'
 import { useEditor } from '../../src/ui/store/editor'
+import { openToolbarMenu } from './toolbarMenu'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -105,14 +106,15 @@ describe('App', () => {
     }
   })
 
-  it('"Limpiar todo" empties the canvas, and Deshacer brings the graph back', () => {
+  it('"Nuevo" empties the canvas, and Deshacer brings the graph back', () => {
     localStorage.clear()
     render(<App />)
     const before = useEditor.getState().graph
     expect(before.nodes.length).toBeGreaterThan(0)
-    fireEvent.click(screen.getByRole('button', { name: 'Limpiar todo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Borrar y empezar' }))
     expect(useEditor.getState().graph).toEqual({ nodes: [], edges: [] })
-    expect(screen.getByRole('button', { name: 'Limpiar todo' }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('button', { name: 'Nuevo' }).hasAttribute('disabled')).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: 'Deshacer' }))
     expect(useEditor.getState().graph).toBe(before)
     localStorage.clear()
@@ -214,6 +216,7 @@ describe('App', () => {
     expect(useRuntime.getState().playing).toBe(true)
     space(document.body, true)
     expect(useRuntime.getState().playing).toBe(true)
+    openToolbarMenu()
     const btn = screen.getByRole('button', { name: 'Exportar' })
     btn.focus()
     space(btn)

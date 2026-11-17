@@ -6,6 +6,7 @@ import { printGraphDsl } from '../../src/persistence/dsl'
 import App from '../../src/ui/App'
 import { useEditor } from '../../src/ui/store/editor'
 import { useGraphText } from '../../src/ui/store/graphText'
+import { openToolbarMenu } from './toolbarMenu'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -38,7 +39,11 @@ const setup = () => {
     useEditor.getState().addNode('cache', { x: 0, y: 0 })
   })
 }
-const openDialog = () => fireEvent.click(screen.getByRole('button', { name: 'Texto' }))
+const openDialog = () => {
+  openToolbarMenu()
+  openToolbarMenu()
+  fireEvent.click(screen.getByRole('button', { name: 'Editar como texto' }))
+}
 const area = () => screen.getByRole('textbox', { name: 'Arquitectura como texto' }) as HTMLTextAreaElement
 const type = (v: string) => fireEvent.change(area(), { target: { value: v } })
 const apply = () => screen.getByRole('button', { name: 'Aplicar' }) as HTMLButtonElement

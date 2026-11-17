@@ -106,6 +106,9 @@ function DemoInner() {
                 </optgroup>
               ))}
             </select>
+          </div>
+          <div className="toolbar-sep" aria-hidden="true" />
+          <div className="toolbar-group">
             <button type="button" className="primary" onClick={toggle} aria-pressed={playing}>
               {playing ? t('toolbar.pause') : t('toolbar.play')}
             </button>

@@ -5,6 +5,7 @@ import { useLang } from '../../src/i18n'
 import App from '../../src/ui/App'
 import { useEditor } from '../../src/ui/store/editor'
 import { useInspectorTab } from '../../src/ui/store/inspectorTab'
+import { openToolbarMenu } from './toolbarMenu'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -38,23 +39,29 @@ describe('language switch', () => {
     render(<App />)
     expect(screen.getByText('Componentes')).toBeTruthy()
     expect(screen.getByText(/^Arrastrá componentes desde la izquierda/)).toBeTruthy()
+    openToolbarMenu()
     expect(screen.getByRole('button', { name: 'ES' }).getAttribute('aria-pressed')).toBe('true')
 
+    openToolbarMenu()
     fireEvent.click(screen.getByRole('button', { name: 'EN' }))
     expect(screen.getByText('Components')).toBeTruthy()
     expect(palette().textContent).toContain('Client')
     expect(palette().textContent).toContain('Database')
     expect(screen.getByText('Drag components from the left and connect them. Select one to configure it.')).toBeTruthy()
+    openToolbarMenu()
     expect(screen.getByRole('button', { name: 'Export' })).toBeTruthy()
     expect(screen.getByText(/Errors/)).toBeTruthy()
+    openToolbarMenu()
     expect(screen.getByRole('button', { name: 'EN' }).getAttribute('aria-pressed')).toBe('true')
     expect(document.documentElement.lang).toBe('en')
     expect(localStorage.getItem('nodarium:lang')).toBe('en')
 
+    openToolbarMenu()
     fireEvent.click(screen.getByRole('button', { name: 'ES' }))
     expect(screen.getByText('Componentes')).toBeTruthy()
     expect(palette().textContent).toContain('Cliente')
     expect(screen.getByText(/^Arrastrá componentes desde la izquierda/)).toBeTruthy()
+    openToolbarMenu()
     expect(screen.getByRole('button', { name: 'Exportar' })).toBeTruthy()
   })
 
@@ -62,6 +69,7 @@ describe('language switch', () => {
     render(<App />)
     const client = useEditor.getState().graph.nodes.find((n) => n.type === 'client')!
     act(() => useEditor.getState().select({ kind: 'node', id: client.id }))
+    openToolbarMenu()
     fireEvent.click(screen.getByRole('button', { name: 'EN' }))
     expect(screen.getByLabelText('Name')).toBeTruthy()
     expect(screen.getByLabelText('Amount to send', { selector: 'input[type=number]' })).toBeTruthy()
@@ -74,6 +82,7 @@ describe('language switch', () => {
 
   it('loading a preset uses the current language', () => {
     render(<App />)
+    openToolbarMenu()
     fireEvent.click(screen.getByRole('button', { name: 'EN' }))
     fireEvent.click(screen.getByRole('button', { name: /^Scenarios/ }))
     fireEvent.click(screen.getByRole('tab', { name: /^Service integration/ }))
@@ -89,6 +98,7 @@ describe('language switch', () => {
   it("React Flow's built-in aria labels follow the language", () => {
     render(<App />)
     expect(screen.getByRole('button', { name: 'Acercar' })).toBeTruthy()
+    openToolbarMenu()
     fireEvent.click(screen.getByRole('button', { name: 'EN' }))
     expect(screen.getByRole('button', { name: 'Zoom in' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Fit view' })).toBeTruthy()
@@ -98,8 +108,10 @@ describe('language switch', () => {
     window.history.replaceState(null, '', '/?mobile=1')
     try {
       render(<App />)
+      openToolbarMenu()
       fireEvent.click(screen.getByRole('button', { name: 'EN' }))
       expect(screen.getByRole('button', { name: 'Reset' })).toBeTruthy()
+      openToolbarMenu()
       expect(screen.getByRole('button', { name: 'EN' }).getAttribute('aria-pressed')).toBe('true')
     } finally {
       window.history.replaceState(null, '', '/')

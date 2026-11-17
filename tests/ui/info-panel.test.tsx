@@ -8,6 +8,7 @@ import { componentInfo } from '../../src/i18n/componentText'
 import App from '../../src/ui/App'
 import { useInfoPanel } from '../../src/ui/store/infoPanel'
 import { useEditor } from '../../src/ui/store/editor'
+import { openToolbarMenu } from './toolbarMenu'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -81,6 +82,7 @@ describe('info panel', () => {
 
   it('switching to EN shows the English text', () => {
     render(<App />)
+    openToolbarMenu()
     fireEvent.click(screen.getByRole('button', { name: 'EN' }))
     fireEvent.click(screen.getByRole('button', { name: 'How Queue works' }))
     const dialog = screen.getByRole('dialog', { name: 'Queue' })
