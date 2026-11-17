@@ -10,6 +10,13 @@ export const en: Dict = {
     es: 'Spanish',
     en: 'English',
   },
+  theme: {
+    toLight: 'Light theme',
+    toDark: 'Dark theme',
+  },
+  islands: {
+    move: 'Drag to move the panel (or use the arrow keys) · double-click to put it back',
+  },
   toolbar: {
     play: '▶ Play',
     pause: '⏸ Pause',

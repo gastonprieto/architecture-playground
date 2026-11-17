@@ -1,0 +1,267 @@
+/*
+ * The playground's look, on top of theme.css (which the landing shares): a full-bleed canvas with
+ * floating islands, in two themes picked with `<html data-theme="dark|light">` (see store/theme.ts).
+ * Every rule is scoped to [data-theme]; the landing sets it too (always dark) for the colors, islands and
+ * nodes, while the floating layout is scoped to the playground's `.app`.
+ */
+
+/* ---------- Dark ---------- */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #121212;
+  --grid: #1f1f24;
+  --panel-solid: #232329;
+  --panel: #232329;
+  --panel-2: #1b1b1f;
+  --line: #3a3a43;
+  --line-soft: #2e2e35;
+  --text: #e3e3e8;
+  --text-strong: #ffffff;
+  --muted: #9a9aa6;
+  --dim: #6b6b76;
+  --cyan: #a8a5ff;
+  --accent-rgb: 168 165 255;
+  --on-accent: #cfcdff;
+  --code: #b9b7ff;
+  --ink-rgb: 255 255 255;
+  --shadow-rgb: 0 0 0;
+  --well-rgb: 28 28 32;
+  --radius: 10px;
+  --island-border: 1px solid #2e2e35;
+  --island-shadow: 0 1px 3px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35);
+  --node-bg: #1e1e23;
+  --node-border: 1px solid #34343c;
+  --node-shadow: 0 2px 6px rgb(0 0 0 / 0.4);
+}
+
+/* ---------- Light ---------- */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --green: #16a34a;
+  --yellow: #b45309;
+  --red: #dc2626;
+  --orange: #ea580c;
+  --purple: #7c3aed;
+  --pink: #db2777;
+  --teal: #0d9488;
+  --bg: #f6f6f8;
+  --grid: #e8e8ed;
+  --panel-solid: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #ffffff;
+  --line: #d9d9e0;
+  --line-soft: #e6e6ec;
+  --text: #1f1f25;
+  --text-strong: #111114;
+  --muted: #64646f;
+  --dim: #9d9daa;
+  --cyan: #5b57d1;
+  --accent-rgb: 91 87 209;
+  --on-accent: #4743b0;
+  --code: #4743b0;
+  --on-danger: #b91c1c;
+  --ink-rgb: 30 30 36;
+  --shadow-rgb: 20 20 30;
+  --track-rgb: 120 120 135;
+  --well-rgb: 244 244 247;
+  --radius: 10px;
+  --island-border: 1px solid #e3e3e9;
+  --island-shadow: 0 1px 3px rgb(20 20 30 / 0.06), 0 8px 24px rgb(20 20 30 / 0.06);
+  --node-bg: #ffffff;
+  --node-border: 1px solid #d6d6de;
+  --node-shadow: 0 2px 6px rgb(20 20 30 / 0.06);
+}
+
+/* ---------- Page ---------- */
+:root[data-theme] body {
+  background: var(--bg);
+  font-family: var(--sans);
+}
+
+/* Islands: solid, flat, soft shadow — no glass. Shared with the landing's demo. */
+:root[data-theme] .toolbar,
+:root[data-theme] .palette,
+:root[data-theme] .inspector,
+:root[data-theme] .metrics,
+:root[data-theme] .info-panel,
+:root[data-theme] .info-close,
+:root[data-theme] .scenario-guide,
+:root[data-theme] .scenario-picker {
+  background: var(--panel-solid);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: var(--island-border);
+  border-radius: var(--radius);
+  box-shadow: var(--island-shadow);
+}
+:root[data-theme] .toolbar { padding: 6px 8px; gap: 8px; }
+:root[data-theme] .toolbar-end { margin-left: 4px; }
+:root[data-theme] .app-title { font-size: 15px; padding: 0 6px 0 2px; color: var(--text-strong); }
+:root[data-theme] .canvas { background: var(--bg); box-shadow: none; }
+
+/* ---------- Floating layout (the playground's .app only) ---------- */
+:root[data-theme] .app {
+  display: block;
+  position: relative;
+  padding: 0;
+}
+:root[data-theme] .app .canvas {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+:root[data-theme] .app .toolbar {
+  position: absolute;
+  z-index: 10;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
+}
+
+:root[data-theme] .app .palette,
+:root[data-theme] .app .inspector {
+  position: absolute;
+  z-index: 9;
+  top: 72px;
+  max-height: calc(100% - 140px);
+}
+:root[data-theme] .app .palette { left: 12px; width: 196px; }
+:root[data-theme] .app .palette.collapsed { width: 60px; }
+:root[data-theme] .app .inspector { right: 12px; width: 280px; }
+/* Excalidraw shows properties only for a selection: hide the empty inspector. */
+:root[data-theme] .app .inspector:has(.inspector-help) { display: none; }
+
+/* Next to the zoom controls (bottom-left). */
+:root[data-theme] .app .metrics {
+  position: absolute;
+  z-index: 9;
+  left: 60px;
+  bottom: 12px;
+  width: max-content;
+  max-width: calc(100% - 24px);
+}
+:root[data-theme] .app .metrics:empty { display: none; }
+:root[data-theme] .app.mobile .metrics { left: 12px; right: 12px; width: auto; }
+
+:root[data-theme] .app .scenario-guide { top: 72px; left: 220px; border-top: 3px solid var(--topic-color); }
+:root[data-theme] .app:has(.palette.collapsed) .scenario-guide { left: 84px; }
+:root[data-theme] .app.mobile .scenario-guide { left: 12px; top: auto; }
+
+:root[data-theme] .react-flow__controls {
+  margin: 12px;
+  overflow: hidden;
+  border: var(--island-border);
+  border-radius: calc(var(--radius) - 2px);
+  box-shadow: var(--island-shadow);
+}
+:root[data-theme] .react-flow {
+  --xy-controls-button-background-color: var(--panel-solid);
+  --xy-controls-button-background-color-hover: rgb(var(--ink-rgb) / 0.06);
+  --xy-controls-button-color: var(--text);
+  --xy-controls-button-border-color: var(--line-soft);
+}
+
+/* Nodes: flat cards with a strip of the component color on top. */
+:root[data-theme] .arch-node {
+  background: var(--node-bg);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: var(--node-border);
+  border-radius: 8px;
+  border-top: 3px solid var(--node-color);
+  box-shadow: var(--node-shadow);
+}
+:root[data-theme] .arch-node.selected {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px rgb(var(--accent-rgb) / 0.35), var(--node-shadow);
+}
+:root[data-theme] .arch-edge-label {
+  background: var(--panel-solid);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-theme] .react-flow__handle.arch-handle { background: var(--panel-solid); }
+
+/* Controls: quieter, no gradients or glows. */
+:root[data-theme] .toolbar button,
+:root[data-theme] .toolbar-select,
+:root[data-theme] .inspector button,
+:root[data-theme] .dsl-actions button {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-theme] .toolbar button:hover:not(:disabled),
+:root[data-theme] .toolbar-select:hover,
+:root[data-theme] .inspector button:hover:not(:disabled),
+:root[data-theme] .dsl-actions button:hover {
+  background: rgb(var(--ink-rgb) / 0.06);
+  border-color: transparent;
+}
+:root[data-theme] .inspector button { border-color: var(--line-soft); }
+:root[data-theme] .toolbar button.primary,
+:root[data-theme] .dsl-actions button.primary {
+  color: var(--on-accent);
+  background: rgb(var(--accent-rgb) / 0.14);
+  border-color: transparent;
+  box-shadow: none;
+}
+:root[data-theme] .toolbar button.primary:hover:not(:disabled),
+:root[data-theme] .dsl-actions button.primary:hover { background: rgb(var(--accent-rgb) / 0.22); }
+:root[data-theme] .inspector button.danger { color: var(--red); background: transparent; border-color: rgb(var(--ink-rgb) / 0.12); }
+:root[data-theme] .switch:checked { background: var(--cyan); box-shadow: none; }
+:root[data-theme] .field input[type='range']::-webkit-slider-thumb { background: var(--panel-solid); border: 2px solid var(--cyan); box-shadow: none; }
+:root[data-theme] .field input[type='range']::-moz-range-thumb { background: var(--panel-solid); border: 2px solid var(--cyan); box-shadow: none; }
+:root[data-theme] .palette-tile { background: transparent; border-color: transparent; border-left-color: var(--node-color); }
+:root[data-theme] .palette-tile:hover { background: rgb(var(--ink-rgb) / 0.05); border-color: transparent; border-left-color: var(--node-color); transform: none; }
+:root[data-theme] .panel-title { font-family: var(--sans); font-weight: 600; letter-spacing: 0.04em; font-size: 11px; }
+:root[data-theme] .info-backdrop { background: rgb(var(--shadow-rgb) / 0.25); backdrop-filter: none; }
+:root[data-theme] .toast { background: var(--panel-solid); color: var(--text); box-shadow: var(--island-shadow); }
+
+/* Active segments in toggles (theme.css assumes white text on glass). */
+:root[data-theme] .mode-toggle button.active,
+:root[data-theme] .toolbar .lang-toggle button.active {
+  color: var(--on-accent);
+  background: rgb(var(--accent-rgb) / 0.16);
+}
+
+.toolbar .theme-toggle { width: 30px; padding: 0; justify-content: center; font-size: 15px; line-height: 1; }
+
+/* ---------- Draggable islands (useIsland.tsx) ---------- */
+/* A grip bar along the island's top edge; sticky, so it stays reachable while the island scrolls
+   (sticky `top` counts from the padding, so it is minus the island's top padding). */
+.island-grip {
+  position: sticky;
+  top: -12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 14px;
+  margin: -12px -12px 4px;
+  background: var(--panel-solid);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.island-grip::before {
+  content: '';
+  width: 32px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  transition: background 0.15s, width 0.15s;
+}
+.island-grip:hover::before,
+.island-grip:focus-visible::before,
+.dragging .island-grip::before { width: 40px; background: var(--muted); }
+.island-grip:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+.dragging .island-grip { cursor: grabbing; }
+.dragging { user-select: none; }
+:root[data-theme] .app .dragging { box-shadow: 0 2px 6px rgb(var(--shadow-rgb) / 0.2), 0 16px 40px rgb(var(--shadow-rgb) / 0.25); }
+.palette.collapsed .island-grip { margin: -12px -6px 4px; }
+.scenario-guide .island-grip { top: -14px; margin: -14px -16px -8px; }

@@ -6,17 +6,20 @@ import { prepareGraph } from './graphEntry'
 import type { SimApi } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 
-/** Replace the graph (undoable), restart the simulation and frame the new graph (with `fit`, if given). */
-export function useLoadGraph(api: SimApi): (g: Graph, fit?: FitViewOptions) => void {
+/**
+ * Replace the graph (undoable), restart the simulation and frame the new graph (with `fit`, if given,
+ * else `defaultFit`).
+ */
+export function useLoadGraph(api: SimApi, defaultFit: FitViewOptions = FIT_VIEW_OPTIONS): (g: Graph, fit?: FitViewOptions) => void {
   const { fitView } = useReactFlow()
   const { reset } = api
   return useCallback(
-    (g: Graph, fit: FitViewOptions = FIT_VIEW_OPTIONS) => {
+    (g: Graph, fit: FitViewOptions = defaultFit) => {
       useEditor.getState().replaceGraph(prepareGraph(g))
       reset()
       // React Flow queues the fit until the new nodes are measured.
       void fitView(fit)
     },
-    [reset, fitView],
+    [reset, fitView, defaultFit],
   )
 }

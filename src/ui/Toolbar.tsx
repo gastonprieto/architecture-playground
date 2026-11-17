@@ -11,6 +11,8 @@ import { useEditor } from './store/editor'
 import { useGraphText } from './store/graphText'
 import { useScenario } from './store/scenario'
 import { useLoadGraph } from './useLoadGraph'
+import { fitViewOptions } from './fitView'
+import { useTheme } from './store/theme'
 import { track } from './analytics'
 import { Logo } from './Logo'
 
@@ -46,6 +48,22 @@ function IconBtn({ icon, label, title, ...props }: ButtonHTMLAttributes<HTMLButt
         {icon}
       </span>
       <span className="tb-label">{label}</span>
+    </Btn>
+  )
+}
+
+/** Sun/moon button: switches the playground between the light and the dark theme. */
+function ThemeToggle() {
+  const theme = useTheme((s) => s.theme)
+  const toggle = useTheme((s) => s.toggle)
+  const t = useT()
+  const label = t(theme === 'dark' ? 'theme.toLight' : 'theme.toDark')
+  return (
+    <Btn className="theme-toggle" aria-label={label} title={label} onClick={() => {
+        track({ name: 'theme_changed', props: { theme: theme === 'dark' ? 'light' : 'dark' } })
+        toggle()
+      }}>
+      <span aria-hidden="true">{theme === 'dark' ? '☀' : '☾'}</span>
     </Btn>
   )
 }
@@ -98,7 +116,8 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const scenario = presets.find((p) => p.id === currentId)
   const reduced = useReducedMotion()
 
-  const load = useLoadGraph(api)
+  const fit = useMemo(() => fitViewOptions(false, mobile, true), [mobile])
+  const load = useLoadGraph(api, fit)
 
   /** Remove every component (undoable) and restart the simulation. */
   const clearAll = useCallback(() => {
@@ -266,6 +285,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
             <IconBtn icon="🔗" label={t('toolbar.copyLink')} onClick={onCopyLink} />
           </>
         )}
+        <ThemeToggle />
         <LangToggle />
         <a className="repo-link" href={REPO_URL} target="_blank" rel="noopener noreferrer" aria-label={t('toolbar.repo')} title={t('toolbar.repo')}>
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">

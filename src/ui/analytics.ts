@@ -7,6 +7,7 @@ export type UsageEvent =
   | { name: 'component_added'; props: { type: string } }
   | { name: 'speed_changed'; props: { speed: number } }
   | { name: 'lang_changed'; props: { lang: string } }
+  | { name: 'theme_changed'; props: { theme: string } }
   | { name: 'graph_exported' }
   | { name: 'graph_imported'; props: { format: string } }
   | { name: 'text_editor_opened' }

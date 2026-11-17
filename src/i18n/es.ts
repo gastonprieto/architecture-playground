@@ -11,6 +11,13 @@ export const es = {
     es: 'Español',
     en: 'Inglés',
   },
+  theme: {
+    toLight: 'Tema claro',
+    toDark: 'Tema oscuro',
+  },
+  islands: {
+    move: 'Arrastrá para mover el panel (o usá las flechas) · doble clic para volver a su lugar',
+  },
   toolbar: {
     play: '▶ Play',
     pause: '⏸ Pausa',

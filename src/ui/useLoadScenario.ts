@@ -20,7 +20,7 @@ export function useLoadScenario(api: SimApi): (id: string) => void {
       pause()
       track({ name: 'preset_selected', props: { preset: preset.id } })
       // The guide opens with it: frame the graph beside it.
-      load(preset.graph, fitViewOptions(true, mobile))
+      load(preset.graph, fitViewOptions(true, mobile, true))
       const scenario = useScenario.getState()
       scenario.setCurrent(preset.id)
       scenario.setGuideOpen(true)

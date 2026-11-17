@@ -5,6 +5,7 @@ import { useLang, useT } from '../i18n'
 import { componentLabel } from '../i18n/componentText'
 import { toneColor } from './colors'
 import { InfoButton } from './InfoDialog'
+import { useIsland } from './useIsland'
 
 /** dataTransfer type carrying the component type from a palette tile to the canvas. */
 export const ARCH_TYPE_MIME = 'application/x-arch-type'
@@ -28,6 +29,7 @@ export function Palette() {
   const lang = useLang((s) => s.lang)
   const t = useT()
   const [collapsed, setCollapsed] = useState(readCollapsed)
+  const { attach, style, className: islandClass, grip } = useIsland('palette')
   const toggle = () => {
     const next = !collapsed
     setCollapsed(next)
@@ -48,7 +50,8 @@ export function Palette() {
     ;(byGroup.get(g) ?? byGroup.set(g, []).get(g)!).push(def)
   }
   return (
-    <nav className={`palette${collapsed ? ' collapsed' : ''}`} aria-label={t('palette.title')}>
+    <nav ref={attach} style={style} className={`palette${collapsed ? ' collapsed' : ''}${islandClass}`} aria-label={t('palette.title')}>
+      {grip}
       <div className="palette-header">
         {!collapsed && <h2 className="panel-title">{t('palette.title')}</h2>}
         <button
