@@ -5,6 +5,7 @@ import { useLang } from '../../src/i18n'
 import App from '../../src/ui/App'
 import { useEditor } from '../../src/ui/store/editor'
 import { useInspectorTab } from '../../src/ui/store/inspectorTab'
+import { openToolbarMenu } from './toolbarMenu'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -54,6 +55,7 @@ describe('client color swatches', () => {
 
   it('names the swatches in English', () => {
     render(<App />)
+    openToolbarMenu()
     fireEvent.click(screen.getByRole('button', { name: 'EN' }))
     act(() => useEditor.getState().select({ kind: 'node', id: 'web' }))
     const group = within(inspector()).getByRole('radiogroup', { name: 'Color' })

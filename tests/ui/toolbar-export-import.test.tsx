@@ -6,6 +6,7 @@ import { printGraphDsl } from '../../src/persistence/dsl'
 import { serializeGraph } from '../../src/persistence/serialize'
 import App from '../../src/ui/App'
 import { useEditor } from '../../src/ui/store/editor'
+import { openToolbarMenu } from './toolbarMenu'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -52,6 +53,7 @@ describe('toolbar export / import', () => {
     act(() => {
       useEditor.getState().addNode('cache', { x: 0, y: 0 })
     })
+    openToolbarMenu()
     fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
     expect(download).toBe('arquitectura.arch')
     expect(blob?.type).toBe('text/plain')

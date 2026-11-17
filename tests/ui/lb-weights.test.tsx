@@ -7,6 +7,7 @@ import App from '../../src/ui/App'
 import { weightedEdgeShares } from '../../src/ui/lbWeights'
 import { useEditor } from '../../src/ui/store/editor'
 import { useInspectorTab } from '../../src/ui/store/inspectorTab'
+import { openToolbarMenu } from './toolbarMenu'
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -59,6 +60,7 @@ describe('weighted load balancer UI', () => {
 
   it('in English the section is "Weights"', () => {
     render(<App />)
+    openToolbarMenu()
     fireEvent.click(screen.getByRole('button', { name: 'EN' }))
     act(() => {
       useEditor.getState().updateNodeConfig('lb', { algorithm: 'weighted' })
