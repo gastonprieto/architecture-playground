@@ -4,15 +4,14 @@
 
 Nodarium (antes Architecture Playground) es un playground para armar arquitecturas en un canvas (clientes, servicios, bases de datos, load balancers, proxies reversos, caches, colas, workers, DLQs, brokers y suscriptores) y ver cómo fluyen los requests, mensajes y eventos entre los componentes. Se puede cambiar la configuración de cada componente (capacidad, tiempo de proceso, caídas, etc.) para ver cómo se comporta el sistema bajo carga.
 
-Incluye 7 presets para empezar:
+Incluye 12 escenarios en 6 temas. Cada escenario muestra una sola arquitectura, y una guía **Cómo funciona** sobre el canvas explica paso a paso qué hace, propone experimentos y enlaza los escenarios con los que conviene compararlo. El botón **🧭** de la toolbar abre el selector.
 
-- **Load Balancer**: dos clientes reparten su tráfico entre tres servidores con round robin.
-- **Sesiones**: la sesión en memoria del servidor (401 constantes detrás de un round robin), en un store clave-valor compartido y en un JWT, lado a lado.
-- **Sync vs cola**: el mismo tráfico contra un servicio síncrono (se satura con 503) y contra una cola con workers (responde 202).
-- **Pub/sub**: un evento se publica en el broker y llega a cuatro suscriptores; uno es lento y se atrasa.
-- **Reverse Proxy**: el proxy enruta por prefijo de path a cada servicio, corta con 401 al cliente sin credenciales y cachea `/static` en el borde.
+- **Escalado**: Load Balancer (dos clientes reparten su tráfico entre tres servidores con round robin).
+- **Estado y sesiones**: la sesión en la memoria del servidor (401 constantes detrás de un round robin), en un store clave-valor compartido o en un JWT.
+- **Asincronía**: un servicio síncrono (se satura con 503) o una cola con workers (responde 202), con el mismo tráfico.
+- **Integración de servicios**: pub/sub (un evento, cuatro suscriptores, uno lento), y la misma compra orquestada (Órdenes llama a cada servicio y espera) o coreografiada (Órdenes publica un evento y cada servicio reacciona por su cuenta), armadas con el DSL de comportamiento.
+- **Borde**: un reverse proxy que enruta por prefijo de path y corta con 401 al cliente sin credenciales, y uno que cachea `/static` en el borde.
 - **Cache**: cache-aside; el servicio le pregunta a la Cache por cada producto y en un MISS va a la base. Con 10 productos y lugar para 5, se ven las expulsiones (LRU) y la carga de la base.
-- **Orden de compra**: la misma compra orquestada (Órdenes llama a cada servicio y espera) y coreografiada (Órdenes publica un evento y cada servicio reacciona por su cuenta), armada con el DSL de comportamiento.
 
 Un Cliente envía a su primera salida (la primera arista que se conectó desde él).
 
@@ -76,7 +75,7 @@ Se puede mostrar dónde vive la sesión de un usuario y quién autentica:
 - **Load Balancer**: **Sticky sessions** manda a cada usuario al servidor que le dio la cookie.
 - **Reverse Proxy**: **Autenticación** (ninguna, credenciales o JWT) corta en la puerta con `401` a quien no trae credenciales.
 
-El preset **Sesiones** pone los tres casos lado a lado. La spec está en [docs/sessions-spec.md](docs/sessions-spec.md).
+El tema **Estado y sesiones** tiene un escenario por caso, con el mismo layout y el mismo tráfico para poder compararlos. La spec está en [docs/sessions-spec.md](docs/sessions-spec.md).
 
 ## Cache
 

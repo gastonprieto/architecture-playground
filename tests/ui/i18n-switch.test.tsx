@@ -75,10 +75,15 @@ describe('language switch', () => {
   it('loading a preset uses the current language', () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: 'EN' }))
-    fireEvent.change(screen.getByLabelText('Presets'), { target: { value: 'pubsub' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Scenarios/ }))
+    fireEvent.click(screen.getByRole('tab', { name: /^Service integration/ }))
+    expect(screen.getByRole('button', { name: /^Choreography/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /^Pub\/sub/ }))
     const names = useEditor.getState().graph.nodes.map((n) => n.config.name)
     expect(names).toEqual(['Orders', 'Broker', 'Billing', 'Inventory', 'Emails', 'Analytics'])
-    expect(screen.getByRole('option', { name: 'Reverse Proxy' })).toBeTruthy()
+    // The guide shows the scenario in English too.
+    expect(screen.getByRole('complementary', { name: 'How it works' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Scenarios: Pub/sub' })).toBeTruthy()
   })
 
   it("React Flow's built-in aria labels follow the language", () => {

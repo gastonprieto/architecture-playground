@@ -29,8 +29,8 @@ export const COPY = {
         legend: { request: 'request', message: 'mensaje', event: 'evento' },
       },
       presets: {
-        title: 'Siete presets que enseñan algo',
-        text: 'Load balancer, sesiones, sync vs cola, pub/sub, reverse proxy, cache y orden de compra (orquestada y coreografiada). Elegí uno arriba y miralo correr.',
+        title: 'Doce escenarios que enseñan algo',
+        text: 'Agrupados en seis temas: escalado, sesiones, asincronía, integración de servicios, borde y cache. Cada uno muestra una sola arquitectura y explica paso a paso qué hace. Elegí uno arriba y miralo correr.',
       },
       text: {
         title: 'La arquitectura como texto',
@@ -76,8 +76,8 @@ export const COPY = {
         legend: { request: 'request', message: 'message', event: 'event' },
       },
       presets: {
-        title: 'Seven presets that teach something',
-        text: 'Load balancer, sessions, sync vs queue, pub/sub, reverse proxy, cache and purchase order (orchestrated and choreographed). Pick one above and watch it run.',
+        title: 'Twelve scenarios that teach something',
+        text: 'Grouped in six topics: scaling, sessions, asynchrony, service integration, edge and cache. Each one shows a single architecture and explains step by step what it does. Pick one above and watch it run.',
       },
       text: {
         title: 'Architecture as text',

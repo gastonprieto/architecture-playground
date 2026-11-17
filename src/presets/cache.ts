@@ -11,13 +11,13 @@ const PRODUCTS = 10
  * warm-up, evictions and the database load; raising the capacity to 10 almost idles the database.
  */
 export function cachePreset(lang: Lang): PresetShape {
-  const { text, name, description } = presetText(lang, 'cache')
+  const { text, guide } = presetText(lang, 'cache')
   const mix = Array.from({ length: PRODUCTS }, (_, i) => ({ value: text('path', { n: i + 1 }), weight: 1 }))
   return {
     id: 'cache',
-    name,
-    description,
+    ...guide,
     demoRates: { client: 5 },
+    related: ['edge-cache'],
     graph: {
       nodes: [
         node('client', 'client', 0, 0.5 * ROW, text('nodes.client'), { rate: START_RATE, mix, ip: '10.0.0.1', color: CLIENT_COLORS[0] }),

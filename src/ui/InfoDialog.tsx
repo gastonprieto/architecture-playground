@@ -1,16 +1,12 @@
-import { useId, useRef, useState, type ReactNode } from 'react'
+import { useId, useRef, useState } from 'react'
 import { defaultRegistry } from '../components/index'
 import { useLang, useT } from '../i18n'
 import { componentInfo, componentLabel } from '../i18n/componentText'
 import { BehaviorReference } from './BehaviorReference'
+import { rich } from './richText'
 import { toneColor } from './colors'
 import { Modal } from './Modal'
 import { useInfoPanel } from './store/infoPanel'
-
-/** Info text with `code` spans (status codes, paths) shown in the mono font. */
-function rich(text: string): ReactNode {
-  return text.split(/`([^`]+)`/).map((part, i) => (i % 2 === 1 ? <code key={i}>{part}</code> : part))
-}
 
 function InfoPanel({ type }: { type: string }) {
   const lang = useLang((s) => s.lang)

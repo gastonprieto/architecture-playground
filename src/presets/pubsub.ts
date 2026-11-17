@@ -3,11 +3,10 @@ import type { Lang } from '../i18n'
 import { edge, node, presetText, ROW, type PresetShape, START_RATE } from './helpers'
 
 export function pubsubPreset(lang: Lang): PresetShape {
-  const { text, name, description } = presetText(lang, 'pubsub')
+  const { text, guide } = presetText(lang, 'pubsub')
   return {
     id: 'pubsub',
-    name,
-    description,
+    ...guide,
     // Clients start at START_RATE; these are the rates the demo is tuned for.
     demoRates: { ordenes: 1 },
     graph: {

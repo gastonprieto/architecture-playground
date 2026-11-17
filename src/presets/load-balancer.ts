@@ -3,12 +3,11 @@ import type { Lang } from '../i18n'
 import { edge, node, presetText, ROW, type PresetShape, START_RATE } from './helpers'
 
 export function loadBalancerPreset(lang: Lang): PresetShape {
-  const { text, name, description } = presetText(lang, 'load-balancer')
+  const { text, guide } = presetText(lang, 'load-balancer')
   const server = (n: number) => text('nodes.server', { n })
   return {
     id: 'load-balancer',
-    name,
-    description,
+    ...guide,
     // Clients start at START_RATE; these are the rates the demo is tuned for.
     demoRates: { web: 3, mobile: 3 },
     graph: {

@@ -18,8 +18,6 @@ export const en: Dict = {
     stepTitle: 'Advance 100 ms',
     reset: 'Reset',
     speedTitle: 'Speed (keys - and +)',
-    presets: 'Presets',
-    presetsPlaceholder: 'Presets…',
     undo: 'Undo',
     redo: 'Redo',
     export: 'Export',
@@ -504,7 +502,7 @@ export const en: Dict = {
           hitRate: 'Probability of having the data (0 to 1).',
           processingTime: 'How long the in-memory lookup takes.',
         },
-        tip: 'Try the "Cache" preset: with 10 paths and Capacity 5 there are MISSes from eviction; raise it to 10 and the database gets almost nothing.',
+        tip: 'Try the "Cache-aside" scenario (Cache topic): with 10 paths and Capacity 5 there are MISSes from eviction; raise it to 10 and the database gets almost nothing.',
       },
     },
     queue: {
@@ -616,10 +614,70 @@ export const en: Dict = {
     retry: 'retry',
     'no-subscribers': 'no subscribers',
   },
+  scenarios: {
+    button: 'Scenarios',
+    title: 'Pick a scenario',
+    close: 'Close',
+    topics: 'Topics',
+    nodes: '{n} nodes',
+    steps: '{n} steps',
+    current: 'open',
+    position: '{i} of {n}',
+    guide: 'How it works',
+    hideGuide: 'Hide the guide',
+    howTab: 'How it works',
+    tryTab: 'Try this',
+    compare: 'Compare with',
+    other: 'Another scenario',
+    startsPaused: 'It starts paused at 1 req/s: press Play and turn up the clients’ rate.',
+  },
+  topics: {
+    scaling: {
+      name: 'Scaling',
+      question: 'How do I spread the load?',
+      intro: 'What happens when one server is not enough and you put several behind a load balancer.',
+    },
+    sessions: {
+      name: 'State and sessions',
+      question: 'Where do I keep the session?',
+      intro: 'Five logged-in users behind a round-robin Load Balancer without sticky. Between scenarios only the place where the session lives changes.',
+    },
+    async: {
+      name: 'Asynchrony',
+      question: 'Answer now or later?',
+      intro: 'The same traffic against a service that answers right away and against a queue with workers.',
+    },
+    integration: {
+      name: 'Service integration',
+      question: 'Who coordinates whom?',
+      intro: 'How several services learn that something happened: through direct calls or through events.',
+    },
+    edge: {
+      name: 'Edge',
+      question: 'What happens before the service?',
+      intro: 'A reverse proxy at the door: it routes, authenticates and caches before the request reaches a service.',
+    },
+    cache: {
+      name: 'Cache',
+      question: 'How do I take load off the database?',
+      intro: 'Keeping answers close to the service so it does not go to the database every time.',
+    },
+  },
   presets: {
     'load-balancer': {
       name: 'Load Balancer',
       description: 'Two clients spread their traffic across three servers with round robin.',
+      steps: [
+        'Both clients send their requests to the Load Balancer, never straight to a server.',
+        'The LB picks servers in turn (round robin): 1, 2, 3, 1…',
+        'Each server serves up to its capacity; whatever does not fit waits in its queue.',
+        'The three servers share the same Database.',
+      ],
+      try: [
+        'Press Play and turn up the clients’ rate until `503`s show up.',
+        'Turn Server 2 off and watch the LB spread the load over the other two.',
+        'Switch the LB algorithm to `ip-hash`: each client sticks to one server.',
+      ],
       nodes: {
         web: 'Browser',
         mobile: 'Mobile app',
@@ -628,24 +686,83 @@ export const en: Dict = {
         db: 'Database',
       },
     },
+    'sessions-memory': {
+      name: 'In-memory session',
+      description: 'Each server keeps sessions in its own memory. Since the LB keeps switching servers, many requests get a 401.',
+      steps: [
+        'The user logs in and the server that handled it keeps the session in its memory.',
+        'The next request lands on another server (round robin, no sticky).',
+        'That server does not know the session and answers `401`; the user logs in again.',
+      ],
+      try: [
+        'Turn on Sticky sessions on the Load Balancer: the `401`s go away.',
+        'With sticky on, turn a server off: its users lose their session once and log in on another one.',
+      ],
+    },
+    'sessions-store': {
+      name: 'Shared store',
+      description: 'Sessions live in a key-value store shared by the three servers. Any server works.',
+      steps: [
+        'Login saves the session in the Sessions store, not in the server.',
+        'Whichever server gets the request looks it up in the store.',
+        'The cost: every request adds a store lookup.',
+      ],
+      try: [
+        'Turn the store off and on: every session is lost.',
+        'Lower the store’s capacity to 1 and watch the latency rise.',
+      ],
+    },
+    'sessions-jwt': {
+      name: 'JWT',
+      description: 'The session travels signed inside the client’s token. No store and no sticky needed.',
+      steps: [
+        'Login returns a token signed with the session data.',
+        'The client sends it with every request.',
+        'Any server checks the signature without asking anyone.',
+      ],
+      try: [
+        'Turn a server off: users still get no `401`.',
+        'Compare the latency with the shared store’s.',
+      ],
+    },
     sessions: {
-      name: 'Sessions',
-      description:
-        "Where the user's session lives. Three identical lanes: 5 users with login behind a round-robin Load Balancer without sticky. Top, session in the server's memory: most requests land on another server and get a 401. Middle, a shared key-value store: any server works (turn it off and on: the sessions are lost). Bottom, JWT: needs no store and no sticky. Try turning on Sticky sessions on the top LB.",
       nodes: {
-        client: { mem: 'Memory client', store: 'Store client', jwt: 'JWT client' },
-        lb: { mem: 'Memory LB', store: 'Store LB', jwt: 'JWT LB' },
-        server: { mem: 'Memory {n}', store: 'Store {n}', jwt: 'JWT {n}' },
+        client: 'Client',
+        lb: 'Load Balancer',
+        server: 'Server {n}',
         store: 'Sessions',
       },
     },
+    sync: {
+      name: 'Synchronous service',
+      description: 'The client waits for the answer. Once the service is full, it answers 503.',
+      steps: [
+        'Each request takes a slot of the Service while it is processed (1.5 s).',
+        'With capacity 2, two run at once; the rest wait in the Service’s queue.',
+        'When that queue is full, the Service answers `503`.',
+      ],
+      try: [
+        'Press Play and turn the client up to 4 req/s: `503`s show up.',
+        'Double the Service’s capacity: how much rate does it take now?',
+      ],
+    },
+    queue: {
+      name: 'Queue with workers',
+      description: 'The client gets 202 right away; three workers process the messages at their own pace.',
+      steps: [
+        'The Queue takes the message and answers `202` without waiting for it to be processed.',
+        'Each Worker takes a message, processes it and asks for the next one.',
+        'A message that fails too many times goes to the DLQ.',
+      ],
+      try: [
+        'Press Play and turn the rate up to 4 req/s: the queue grows, but there are no `503`s.',
+        'Add a fourth worker and watch the queue go down.',
+      ],
+    },
     'sync-vs-queue': {
-      name: 'Sync vs queue',
-      description: 'The same traffic against a synchronous service (it saturates and returns 503s) and against a queue with workers (it answers 202).',
       nodes: {
-        clientSync: 'Sync client',
+        client: 'Client',
         service: 'Service',
-        clientQueue: 'Queue client',
         queue: 'Queue',
         worker: 'Worker {n}',
         dlq: 'DLQ',
@@ -654,6 +771,15 @@ export const en: Dict = {
     pubsub: {
       name: 'Pub/sub',
       description: 'An OrderCreated event is published to the broker and reaches four subscribers; Analytics is slow and falls behind.',
+      steps: [
+        'Orders publishes `OrderCreated` to the Broker.',
+        'The Broker hands a copy to each subscriber.',
+        'Each subscriber works at its own pace: a slow one does not hold the others back.',
+      ],
+      try: [
+        'Watch Analytics pile up pending messages in the Broker.',
+        'Add a fifth subscriber without touching Orders.',
+      ],
       eventType: 'OrderCreated',
       nodes: {
         orders: 'Orders',
@@ -664,10 +790,69 @@ export const en: Dict = {
         analytics: 'Analytics',
       },
     },
+    orchestration: {
+      name: 'Orchestration',
+      description: 'Orders calls Inventory, Payments and Emails, waits for each one and only then answers 201.',
+      steps: [
+        'Orders calls Inventory to reserve and waits for the answer.',
+        'Then it calls Payments; if that fails, it answers `402`.',
+        'It notifies Emails without waiting (`nowait`) and answers `201`.',
+      ],
+      try: [
+        'Open the Behavior (DSL) of Orders and read its steps.',
+        'Raise the `fail` of Payments to 30% and watch the `402`s.',
+      ],
+    },
+    choreography: {
+      name: 'Choreography',
+      description: 'Orders saves the order, publishes OrderCreated and answers 202 right away; each service reacts to the event on its own.',
+      steps: [
+        'Orders saves the order in its database.',
+        'It publishes `OrderCreated` and answers `202` without waiting for anyone.',
+        'Inventory, Payments and Emails get the event and do their part.',
+      ],
+      try: [
+        'Compare the purchase latency with Orchestration’s.',
+        'Turn Payments off: the purchase keeps answering `202`.',
+      ],
+    },
+    'purchase-order': {
+      eventType: 'OrderCreated',
+      comments: {
+        orchestration: '# Orchestration: Orders coordinates every step',
+        choreography: '# Choreography: Orders announces and waits for nobody',
+      },
+      paths: {
+        orders: '/orders',
+        reserve: '/reservations',
+        charge: '/charges',
+        send: '/send',
+      },
+      nodes: {
+        client: 'Client',
+        orders: 'Orders',
+        stock: 'Inventory',
+        payments: 'Payments',
+        mails: 'Emails',
+        broker: 'Broker',
+        ordersDb: 'Orders DB',
+        stockDb: 'Inventory DB',
+        paymentsDb: 'Payments DB',
+        mailsDb: 'Emails DB',
+      },
+    },
     'reverse-proxy': {
-      name: 'Reverse Proxy',
-      description:
-        'The proxy routes each path prefix to its service; anything that matches no rule goes to Web. It also authenticates at the door: the client with no credentials gets a 401 and never reaches a service. And it caches only /static at the edge (Real keys): Web gets cached, Payments never.',
+      name: 'Routing and auth',
+      description: 'The proxy routes by path prefix; the client with no credentials gets a 401 and never reaches a service.',
+      steps: [
+        'The proxy checks the credentials; without them it answers `401`.',
+        'It looks at the path prefix and picks the service.',
+        'Anything that matches no rule goes to Web.',
+      ],
+      try: [
+        'Set the proxy’s Authentication to None and watch how much traffic reaches the services.',
+        'Add a new service with an `/admin` rule.',
+      ],
       paths: {
         users: '/users',
         orders: '/orders',
@@ -685,45 +870,38 @@ export const en: Dict = {
         site: 'Web',
       },
     },
+    'edge-cache': {
+      name: 'Edge cache',
+      description: 'The proxy caches only /static (Real keys): Web is served from the edge, Payments never.',
+      steps: [
+        'The proxy keeps the answer of cacheable paths (`/static`).',
+        'The next request for the same key is answered by the proxy, without reaching Web.',
+        'Paths not on the list, like `/payments`, always reach the service.',
+      ],
+      try: [
+        'Watch the proxy’s hit % and how many requests reach Web.',
+        'Add `/payments` to the cacheable paths and think about why that is a bad idea.',
+      ],
+    },
     cache: {
-      name: 'Cache',
-      description:
-        'Cache-aside: the Service asks the Cache for each product; on a MISS it goes to the Database and then stores the key. There are 10 products and the Cache has room for 5: watch 🔑 and hit % on the Cache, and how evictions (LRU) keep sending requests to the database. Raise the Capacity to 10: the database gets almost nothing.',
+      name: 'Cache-aside',
+      description: 'There are 10 products and the Cache has room for 5: evictions (LRU) keep sending requests to the database.',
+      steps: [
+        'The Service asks the Cache for each product.',
+        'On a MISS it goes to the Database.',
+        'Then it stores the key in the Cache for next time.',
+        'With the Cache full, it evicts the least recently used key (LRU).',
+      ],
+      try: [
+        'Watch 🔑 and hit % on the Cache.',
+        'Raise the Cache’s Capacity to 10: the database gets almost nothing.',
+      ],
       path: '/products/{n}',
       nodes: {
         client: 'Client',
         service: 'Service',
         cache: 'Cache',
         db: 'Database',
-      },
-    },
-    'purchase-order': {
-      name: 'Purchase order',
-      description:
-        'The same purchase in two styles. Top, orchestration: Orders calls Inventory, Payments and Emails, waits for each one and only then responds 201. Bottom, choreography: Orders saves the order, publishes OrderCreated and responds 202 right away; each service reacts to the event on its own. Open the Behavior (DSL) of each node to see its steps.',
-      eventType: 'OrderCreated',
-      comments: {
-        orchestration: '# Orchestration: Orders coordinates every step',
-        choreography: '# Choreography: Orders announces and waits for nobody',
-      },
-      paths: {
-        orders: '/orders',
-        reserve: '/reservations',
-        charge: '/charges',
-        send: '/send',
-      },
-      nodes: {
-        clientOrchestration: 'Orchestration client',
-        clientChoreography: 'Choreography client',
-        orders: 'Orders',
-        stock: 'Inventory',
-        payments: 'Payments',
-        mails: 'Emails',
-        broker: 'Broker',
-        ordersDb: 'Orders DB',
-        stockDb: 'Inventory DB',
-        paymentsDb: 'Payments DB',
-        mailsDb: 'Emails DB',
       },
     },
   },

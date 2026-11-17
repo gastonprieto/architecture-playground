@@ -19,8 +19,6 @@ export const es = {
     stepTitle: 'Avanzar 100 ms',
     reset: 'Reset',
     speedTitle: 'Velocidad (teclas - y +)',
-    presets: 'Presets',
-    presetsPlaceholder: 'Presets…',
     undo: 'Deshacer',
     redo: 'Rehacer',
     export: 'Exportar',
@@ -508,7 +506,7 @@ export const es = {
           hitRate: 'Probabilidad de tener el dato (0 a 1).',
           processingTime: 'Lo que tarda la búsqueda en memoria.',
         },
-        tip: 'Probá el preset "Cache": con 10 paths y Capacidad 5 hay MISS por expulsión; subila a 10 y la base casi no recibe nada.',
+        tip: 'Probá el escenario "Cache-aside" (tema Cache): con 10 paths y Capacidad 5 hay MISS por expulsión; subila a 10 y la base casi no recibe nada.',
       },
     },
     queue: {
@@ -622,10 +620,70 @@ export const es = {
     retry: 'reintento',
     'no-subscribers': 'sin suscriptores',
   },
+  scenarios: {
+    button: 'Escenarios',
+    title: 'Elegí un escenario',
+    close: 'Cerrar',
+    topics: 'Temas',
+    nodes: '{n} nodos',
+    steps: '{n} pasos',
+    current: 'abierto',
+    position: '{i} de {n}',
+    guide: 'Cómo funciona',
+    hideGuide: 'Ocultar la guía',
+    howTab: 'Cómo funciona',
+    tryTab: 'Probá esto',
+    compare: 'Comparar con',
+    other: 'Otro escenario',
+    startsPaused: 'Arranca en pausa y con 1 req/s: dale Play y subí el rate de los clientes.',
+  },
+  topics: {
+    scaling: {
+      name: 'Escalado',
+      question: '¿Cómo reparto la carga?',
+      intro: 'Qué pasa cuando un solo servidor no alcanza y ponés varios detrás de un balanceador.',
+    },
+    sessions: {
+      name: 'Estado y sesiones',
+      question: '¿Dónde guardo la sesión?',
+      intro: 'Cinco usuarios con login detrás de un Load Balancer round robin sin sticky. Entre un escenario y otro solo cambia dónde vive la sesión.',
+    },
+    async: {
+      name: 'Asincronía',
+      question: '¿Respondo ya o después?',
+      intro: 'El mismo tráfico contra un servicio que responde en el momento y contra una cola con workers.',
+    },
+    integration: {
+      name: 'Integración de servicios',
+      question: '¿Quién coordina a quién?',
+      intro: 'Cómo se enteran varios servicios de que pasó algo: con llamadas directas o con eventos.',
+    },
+    edge: {
+      name: 'Borde',
+      question: '¿Qué pasa antes de llegar al servicio?',
+      intro: 'Un reverse proxy en la puerta: enruta, autentica y cachea antes de que el request llegue a un servicio.',
+    },
+    cache: {
+      name: 'Cache',
+      question: '¿Cómo le saco carga a la base?',
+      intro: 'Guardar respuestas cerca del servicio para no ir a la base de datos cada vez.',
+    },
+  },
   presets: {
     'load-balancer': {
       name: 'Load Balancer',
       description: 'Dos clientes reparten su tráfico entre tres servidores con round robin.',
+      steps: [
+        'Los dos clientes le mandan sus requests al Load Balancer, nunca a un servidor directo.',
+        'El LB elige servidor en orden (round robin): 1, 2, 3, 1…',
+        'Cada servidor atiende hasta su capacidad; lo que no entra espera en su cola.',
+        'Los tres servidores usan la misma Base de datos.',
+      ],
+      try: [
+        'Dale Play y subí el rate de los clientes hasta que aparezcan `503`.',
+        'Apagá el Servidor 2 y mirá cómo el LB reparte entre los dos que quedan.',
+        'Cambiá el algoritmo del LB a `ip-hash`: cada cliente queda pegado a un servidor.',
+      ],
       nodes: {
         web: 'Navegador',
         mobile: 'App móvil',
@@ -634,24 +692,83 @@ export const es = {
         db: 'Base de datos',
       },
     },
+    'sessions-memory': {
+      name: 'Sesión en memoria',
+      description: 'Cada servidor guarda las sesiones en su propia memoria. Como el LB cambia de servidor, muchos requests reciben 401.',
+      steps: [
+        'El usuario hace login y el servidor que lo atendió guarda la sesión en su memoria.',
+        'El siguiente request cae en otro servidor (round robin, sin sticky).',
+        'Ese servidor no conoce la sesión y responde `401`; el usuario vuelve a loguearse.',
+      ],
+      try: [
+        'Prendé Sticky sessions en el Load Balancer: los `401` desaparecen.',
+        'Con sticky prendido, apagá un servidor: sus usuarios pierden la sesión una vez y se loguean en otro.',
+      ],
+    },
+    'sessions-store': {
+      name: 'Store compartido',
+      description: 'Las sesiones viven en un store clave-valor que comparten los tres servidores. Funciona con cualquier servidor.',
+      steps: [
+        'El login guarda la sesión en el store Sesiones, no en el servidor.',
+        'Cualquier servidor que reciba el request la busca en el store.',
+        'El costo: cada request suma una consulta al store.',
+      ],
+      try: [
+        'Apagá y prendé el store: se pierden todas las sesiones.',
+        'Bajá la capacidad del store a 1 y mirá cómo sube la latencia.',
+      ],
+    },
+    'sessions-jwt': {
+      name: 'JWT',
+      description: 'La sesión viaja firmada en el token del cliente. No hace falta store ni sticky.',
+      steps: [
+        'El login devuelve un token firmado con los datos de la sesión.',
+        'El cliente lo manda en cada request.',
+        'Cualquier servidor verifica la firma sin consultarle a nadie.',
+      ],
+      try: [
+        'Apagá un servidor: los usuarios siguen sin `401`.',
+        'Compará la latencia con la del store compartido.',
+      ],
+    },
     sessions: {
-      name: 'Sesiones',
-      description:
-        'Dónde vive la sesión del usuario. Tres carriles iguales: 5 usuarios con login detrás de un Load Balancer round robin sin sticky. Arriba, sesión en memoria del servidor: muchos requests caen en otro servidor y reciben 401. En el medio, un store clave-valor compartido: funciona con cualquier servidor (apagalo y prendelo: se pierden las sesiones). Abajo, JWT: no necesita store ni sticky. Probá prender Sticky sessions en el LB de arriba.',
       nodes: {
-        client: { mem: 'Cliente memoria', store: 'Cliente store', jwt: 'Cliente JWT' },
-        lb: { mem: 'LB memoria', store: 'LB store', jwt: 'LB JWT' },
-        server: { mem: 'Memoria {n}', store: 'Store {n}', jwt: 'JWT {n}' },
+        client: 'Cliente',
+        lb: 'Load Balancer',
+        server: 'Servidor {n}',
         store: 'Sesiones',
       },
     },
+    sync: {
+      name: 'Servicio síncrono',
+      description: 'El cliente espera la respuesta. Cuando el servicio se llena, responde 503.',
+      steps: [
+        'Cada request ocupa un lugar del Servicio mientras se procesa (1,5 s).',
+        'Con capacidad 2 entran dos a la vez; el resto espera en la cola del Servicio.',
+        'Cuando la cola se llena, el Servicio responde `503`.',
+      ],
+      try: [
+        'Dale Play y subí el rate del cliente a 4 req/s: aparecen los `503`.',
+        'Duplicá la capacidad del Servicio: ¿cuánto rate aguanta ahora?',
+      ],
+    },
+    queue: {
+      name: 'Cola con workers',
+      description: 'El cliente recibe 202 al instante; tres workers procesan los mensajes a su ritmo.',
+      steps: [
+        'La Cola acepta el mensaje y responde `202` sin esperar a que se procese.',
+        'Cada Worker toma un mensaje, lo procesa y pide el siguiente.',
+        'Si un mensaje falla demasiadas veces, va a la DLQ.',
+      ],
+      try: [
+        'Dale Play y subí el rate a 4 req/s: la cola crece, pero no hay `503`.',
+        'Agregá un cuarto worker y mirá cómo baja la cola.',
+      ],
+    },
     'sync-vs-queue': {
-      name: 'Sync vs cola',
-      description: 'El mismo tráfico contra un servicio síncrono (se satura con 503) y contra una cola con workers (responde 202).',
       nodes: {
-        clientSync: 'Cliente sync',
+        client: 'Cliente',
         service: 'Servicio',
-        clientQueue: 'Cliente cola',
         queue: 'Cola',
         worker: 'Worker {n}',
         dlq: 'DLQ',
@@ -660,6 +777,15 @@ export const es = {
     pubsub: {
       name: 'Pub/sub',
       description: 'Un evento OrdenCreada se publica en el broker y llega a cuatro suscriptores; Analytics es lento y se atrasa.',
+      steps: [
+        'Órdenes publica `OrdenCreada` en el Broker.',
+        'El Broker le entrega una copia a cada suscriptor.',
+        'Cada suscriptor procesa a su ritmo: uno lento no frena a los demás.',
+      ],
+      try: [
+        'Mirá cómo Analytics acumula mensajes pendientes en el Broker.',
+        'Agregá un quinto suscriptor sin tocar Órdenes.',
+      ],
       eventType: 'OrdenCreada',
       nodes: {
         orders: 'Órdenes',
@@ -670,10 +796,69 @@ export const es = {
         analytics: 'Analytics',
       },
     },
+    orchestration: {
+      name: 'Orquestación',
+      description: 'Órdenes llama a Stock, Pagos y Mails, espera a cada uno y recién ahí responde 201.',
+      steps: [
+        'Órdenes llama a Stock para reservar y espera la respuesta.',
+        'Después llama a Pagos; si falla, responde `402`.',
+        'Avisa a Mails sin esperar (`nowait`) y responde `201`.',
+      ],
+      try: [
+        'Abrí el Comportamiento (DSL) de Órdenes y leé los pasos.',
+        'Subí el `fail` de Pagos al 30% y mirá los `402`.',
+      ],
+    },
+    choreography: {
+      name: 'Coreografía',
+      description: 'Órdenes guarda la orden, publica OrdenCreada y responde 202 al toque; cada servicio reacciona al evento por su cuenta.',
+      steps: [
+        'Órdenes guarda la orden en su base.',
+        'Publica `OrdenCreada` y responde `202` sin esperar a nadie.',
+        'Stock, Pagos y Mails reciben el evento y hacen su parte.',
+      ],
+      try: [
+        'Compará la latencia de la compra con la de Orquestación.',
+        'Apagá Pagos: la compra sigue respondiendo `202`.',
+      ],
+    },
+    'purchase-order': {
+      eventType: 'OrdenCreada',
+      comments: {
+        orchestration: '# Orquestación: Órdenes coordina cada paso',
+        choreography: '# Coreografía: Órdenes avisa y no espera a nadie',
+      },
+      paths: {
+        orders: '/ordenes',
+        reserve: '/reservas',
+        charge: '/cobros',
+        send: '/enviar',
+      },
+      nodes: {
+        client: 'Cliente',
+        orders: 'Órdenes',
+        stock: 'Stock',
+        payments: 'Pagos',
+        mails: 'Mails',
+        broker: 'Broker',
+        ordersDb: 'BD Órdenes',
+        stockDb: 'BD Stock',
+        paymentsDb: 'BD Pagos',
+        mailsDb: 'BD Mails',
+      },
+    },
     'reverse-proxy': {
-      name: 'Reverse Proxy',
-      description:
-        'El proxy enruta por prefijo de path a cada servicio; lo que no coincide con ninguna regla va a Web. Además autentica en la puerta: el cliente sin credenciales recibe 401 y nunca llega a un servicio. Y cachea en el borde solo /static (Claves reales): Web se cachea, Pagos nunca.',
+      name: 'Ruteo y auth',
+      description: 'El proxy enruta por prefijo de path; el cliente sin credenciales recibe 401 y nunca llega a un servicio.',
+      steps: [
+        'El proxy revisa las credenciales; sin ellas responde `401`.',
+        'Mira el prefijo del path y elige el servicio.',
+        'Lo que no coincide con ninguna regla va a Web.',
+      ],
+      try: [
+        'Cambiá la Autenticación del proxy a Ninguna y mirá cuánto tráfico llega a los servicios.',
+        'Agregá un servicio nuevo con una regla `/admin`.',
+      ],
       paths: {
         users: '/usuarios',
         orders: '/ordenes',
@@ -691,45 +876,38 @@ export const es = {
         site: 'Web',
       },
     },
+    'edge-cache': {
+      name: 'Cache de borde',
+      description: 'El proxy cachea solo /static (Claves reales): Web se sirve desde el borde, Pagos nunca.',
+      steps: [
+        'El proxy guarda la respuesta de los paths cacheables (`/static`).',
+        'El próximo request a la misma clave se responde desde el proxy, sin llegar a Web.',
+        'Los paths que no están en la lista, como `/pagos`, siempre llegan al servicio.',
+      ],
+      try: [
+        'Mirá el hit % del proxy y cuántos requests le llegan a Web.',
+        'Agregá `/pagos` a los paths cacheables y pensá por qué es mala idea.',
+      ],
+    },
     cache: {
-      name: 'Cache',
-      description:
-        'Cache-aside: el Servicio le pide cada producto a la Cache; si es MISS va a la Base de datos y después guarda la clave. Hay 10 productos y la Cache tiene lugar para 5: mirá 🔑 y hit % en la Cache, y cómo las expulsiones (LRU) siguen mandando requests a la base. Subí la Capacidad a 10: la base casi no recibe nada.',
+      name: 'Cache-aside',
+      description: 'Hay 10 productos y la Cache tiene lugar para 5: las expulsiones (LRU) siguen mandando requests a la base.',
+      steps: [
+        'El Servicio le pide cada producto a la Cache.',
+        'Si es MISS, va a la Base de datos.',
+        'Después guarda la clave en la Cache para la próxima vez.',
+        'Con la Cache llena, expulsa la clave usada hace más tiempo (LRU).',
+      ],
+      try: [
+        'Mirá 🔑 y hit % en la Cache.',
+        'Subí la Capacidad de la Cache a 10: la base casi no recibe nada.',
+      ],
       path: '/productos/{n}',
       nodes: {
         client: 'Cliente',
         service: 'Servicio',
         cache: 'Cache',
         db: 'Base de datos',
-      },
-    },
-    'purchase-order': {
-      name: 'Orden de compra',
-      description:
-        'La misma compra en dos estilos. Arriba, orquestación: Órdenes llama a Stock, Pagos y Mails, espera a cada uno y recién ahí responde 201. Abajo, coreografía: Órdenes guarda la orden, publica OrdenCreada y responde 202 al toque; cada servicio reacciona al evento por su cuenta. Abrí el Comportamiento (DSL) de cada nodo para ver sus pasos.',
-      eventType: 'OrdenCreada',
-      comments: {
-        orchestration: '# Orquestación: Órdenes coordina cada paso',
-        choreography: '# Coreografía: Órdenes avisa y no espera a nadie',
-      },
-      paths: {
-        orders: '/ordenes',
-        reserve: '/reservas',
-        charge: '/cobros',
-        send: '/enviar',
-      },
-      nodes: {
-        clientOrchestration: 'Cliente orquestación',
-        clientChoreography: 'Cliente coreografía',
-        orders: 'Órdenes',
-        stock: 'Stock',
-        payments: 'Pagos',
-        mails: 'Mails',
-        broker: 'Broker',
-        ordersDb: 'BD Órdenes',
-        stockDb: 'BD Stock',
-        paymentsDb: 'BD Pagos',
-        mailsDb: 'BD Mails',
       },
     },
   },

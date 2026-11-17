@@ -4,7 +4,7 @@ import { useReducedMotion } from 'framer-motion'
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useLang, useT } from '../i18n'
 import { encodeHash } from '../persistence/hash'
-import { getPresets } from '../presets'
+import { getPresets, TOPICS } from '../presets'
 import { Canvas } from '../ui/canvas/Canvas'
 import { BehaviorEditorDialog } from '../ui/BehaviorEditor'
 import { prepareGraph } from '../ui/graphEntry'
@@ -93,10 +93,16 @@ function DemoInner() {
           </span>
           <div className="toolbar-group">
             <select className="toolbar-select" value={presetId} onChange={onPreset} aria-label={c.preset}>
-              {presets.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
+              {TOPICS.map((topic) => (
+                <optgroup key={topic.id} label={t(`topics.${topic.id}.name`)}>
+                  {presets
+                    .filter((p) => p.topic === topic.id)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                </optgroup>
               ))}
             </select>
             <button type="button" className="primary" onClick={toggle} aria-pressed={playing}>

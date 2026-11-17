@@ -9,6 +9,7 @@ import { SPEEDS, stepSpeed, useRuntime } from './runtime/runtimeStore'
 import type { SimApi } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 import { useGraphText } from './store/graphText'
+import { useScenario } from './store/scenario'
 import { useLoadGraph } from './useLoadGraph'
 import { track } from './analytics'
 import { Logo } from './Logo'
@@ -88,10 +89,13 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
   const isEmpty = useEditor((s) => s.graph.nodes.length === 0)
   const fileRef = useRef<HTMLInputElement>(null)
   const { toast, show } = useToast()
-  const { toggle, pause, step, reset, setSpeed } = api
+  const { toggle, step, reset, setSpeed } = api
   const lang = useLang((s) => s.lang)
   const t = useT()
   const presets = useMemo(() => getPresets(lang), [lang])
+  const currentId = useScenario((st) => st.currentId)
+  const guideOpen = useScenario((st) => st.guideOpen)
+  const scenario = presets.find((p) => p.id === currentId)
   const reduced = useReducedMotion()
 
   const load = useLoadGraph(api)
@@ -130,17 +134,6 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [mobile, toggle, setSpeed])
 
-  const onPreset = (e: ChangeEvent<HTMLSelectElement>) => {
-    // Reusing the memoized graphs is safe: the editor and the engine never mutate a graph in place.
-    const preset = presets.find((p) => p.id === e.target.value)
-    e.target.blur()
-    if (!preset) return
-    // A preset starts paused, like the app.
-    pause()
-    track({ name: 'preset_selected', props: { preset: preset.id } })
-    load(preset.graph)
-  }
-
   const onExport = () => {
     const blob = new Blob([printGraphDsl(useEditor.getState().graph)], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
@@ -175,6 +168,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
     }
     track({ name: 'graph_imported', props: { format: file.name.split('.').pop()?.toLowerCase() ?? 'unknown' } })
     load(r.graph)
+    useScenario.getState().setCurrent(null)
   }
 
   const onCopyLink = () => {
@@ -224,16 +218,22 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
           </select>
         )}
       </div>
-      <select className="toolbar-select" value="" onChange={onPreset} aria-label={t('toolbar.presets')}>
-        <option value="" disabled>
-          {t('toolbar.presetsPlaceholder')}
-        </option>
-        {presets.map((p) => (
-          <option key={p.id} value={p.id} title={p.description}>
-            {p.name}
-          </option>
-        ))}
-      </select>
+      <div className="toolbar-group">
+        <Btn
+          className="scenario-btn"
+          aria-haspopup="dialog"
+          aria-label={scenario ? `${t('scenarios.button')}: ${scenario.name}` : t('scenarios.button')}
+          title={t('scenarios.title')}
+          onClick={(e) => useScenario.getState().openPicker(e.currentTarget)}
+        >
+          <span aria-hidden="true">🧭</span>
+          <span className="scenario-btn-label">{scenario ? scenario.name : t('scenarios.button')}</span>
+          <span aria-hidden="true">▾</span>
+        </Btn>
+        {scenario && !guideOpen && (
+          <IconBtn icon="📖" label={t('scenarios.guide')} onClick={() => useScenario.getState().setGuideOpen(true)} />
+        )}
+      </div>
       {!mobile && (
         <div className="toolbar-group">
           <IconBtn

@@ -20,6 +20,9 @@ import { Toolbar } from './Toolbar'
 import { useBehaviorEditor } from './store/behaviorEditor'
 import { useGraphText } from './store/graphText'
 import { useInfoPanel } from './store/infoPanel'
+import { useScenario } from './store/scenario'
+import { ScenarioGuide } from './ScenarioGuide'
+import { ScenarioPicker } from './ScenarioPicker'
 import { useIsMobile } from './useIsMobile'
 import { stripHash, track } from './analytics'
 
@@ -32,10 +35,21 @@ function usePersistence() {
     if (!loaded.current) {
       loaded.current = true
       // A shared link is loaded once; after that the local copy is the source of truth.
-      useEditor.getState().loadGraph(prepareGraph(initialGraph(useLang.getState().lang, undefined, () => {
-        clearLocationHash()
-        track({ name: 'shared_link_opened' })
-      })))
+      useEditor.getState().loadGraph(
+        prepareGraph(
+          initialGraph(
+            useLang.getState().lang,
+            undefined,
+            () => {
+              clearLocationHash()
+              track({ name: 'shared_link_opened' })
+              // A shared graph is the sender's own: no scenario guide.
+              useScenario.getState().setCurrent(null)
+            },
+            (id) => useScenario.getState().setCurrent(id),
+          ),
+        ),
+      )
     }
     let timer: ReturnType<typeof setTimeout> | undefined
     const flush = () => {
@@ -67,17 +81,20 @@ export default function App() {
   const infoOpen = useInfoPanel((s) => s.type !== null)
   const behaviorOpen = useBehaviorEditor((s) => s.nodeId !== null)
   const textOpen = useGraphText((s) => s.text !== null)
+  const pickerOpen = useScenario((s) => s.pickerOpen)
+  const guideShown = useScenario((s) => s.currentId !== null && s.guideOpen)
   return (
     <ReactFlowProvider>
       <SimContext.Provider value={api}>
         {/* Inert behind a dialog: no clicks, focus or keys reach the editor while it is open. */}
-        <div className={`app${mobile ? ' mobile' : ''}`} inert={infoOpen || behaviorOpen || textOpen}>
+        <div className={`app${mobile ? ' mobile' : ''}`} inert={infoOpen || behaviorOpen || textOpen || pickerOpen}>
           <header className="toolbar">
             <Toolbar api={api} mobile={mobile} />
           </header>
           {!mobile && <Palette />}
           <main className="canvas">
-            <Canvas readOnly={mobile} />
+            <Canvas readOnly={mobile} guide={guideShown} />
+            <ScenarioGuide api={api} />
           </main>
           {!mobile && (
             <aside className="inspector" aria-label={t('inspector.label')}>
@@ -91,6 +108,7 @@ export default function App() {
         <InfoDialog />
         <BehaviorEditorDialog />
         <GraphTextDialog api={api} />
+        {pickerOpen && <ScenarioPicker api={api} />}
         <Analytics beforeSend={stripHash} />
       </SimContext.Provider>
     </ReactFlowProvider>

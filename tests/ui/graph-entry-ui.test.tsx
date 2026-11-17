@@ -25,7 +25,7 @@ vi.mock('../../src/presets', async (importOriginal) => {
     ...mod,
     getPresets: (lang: Parameters<typeof mod.getPresets>[0]) => [
       ...mod.getPresets(lang),
-      { id: 'legacy', name: 'Legacy', description: '', demoRates: {}, graph: legacy },
+      { id: 'legacy', name: 'Legacy', description: '', steps: [], tryThis: [], topic: 'cache', compare: [], demoRates: {}, graph: legacy },
     ],
   }
 })
@@ -91,7 +91,9 @@ describe('authFailRate / cacheHitRate / Cache mode migration at every graph entr
 
   it('choose a preset', () => {
     render(<App />)
-    fireEvent.change(screen.getByRole('combobox', { name: 'Presets' }), { target: { value: 'legacy' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Escenarios/ }))
+    fireEvent.click(screen.getByRole('tab', { name: /^Cache/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Legacy/ }))
     migrated()
   })
 })

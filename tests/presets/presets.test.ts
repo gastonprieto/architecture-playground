@@ -4,7 +4,7 @@ import { defaultRegistry } from '../../src/components/index'
 import { Simulation } from '../../src/engine/simulation'
 import type { Message } from '../../src/engine/types'
 import { parseGraph, serializeGraph } from '../../src/persistence/serialize'
-import { getPresets, withDemoTraffic } from '../../src/presets'
+import { getPresets, TOPICS, withDemoTraffic } from '../../src/presets'
 import { START_RATE } from '../../src/presets/helpers'
 import { CLIENT_COLORS } from '../../src/ui/colors'
 import type { Graph } from '../../src/engine/types'
@@ -30,8 +30,22 @@ function responsesByClient(sim: Simulation): Record<string, Message[]> {
 }
 
 describe('presets', () => {
-  it('exposes the seven presets with valid, uniquely-id graphs', () => {
-    expect(presets.map((p) => p.id)).toEqual(['load-balancer', 'sessions', 'sync-vs-queue', 'pubsub', 'reverse-proxy', 'cache', 'purchase-order'])
+  it('exposes the twelve presets in topic order, with valid, uniquely-id graphs', () => {
+    expect(presets.map((p) => p.id)).toEqual(TOPICS.flatMap((t) => [...t.presets]))
+    expect(presets.map((p) => p.id)).toEqual([
+      'load-balancer',
+      'sessions-memory',
+      'sessions-store',
+      'sessions-jwt',
+      'sync',
+      'queue',
+      'pubsub',
+      'orchestration',
+      'choreography',
+      'reverse-proxy',
+      'edge-cache',
+      'cache',
+    ])
     for (const p of presets) {
       const ids = p.graph.nodes.map((n) => n.id)
       expect(new Set(ids).size).toBe(ids.length)
@@ -50,12 +64,52 @@ describe('presets', () => {
     for (const id of ['srv-1', 'srv-2', 'srv-3']) expect(sim.nodeStats(id).ok).toBeGreaterThan(0)
   })
 
-  it('sync-vs-queue: sync lane gets 503s, queue lane gets only 202s', () => {
-    const sim = run('sync-vs-queue')
-    const byClient = responsesByClient(sim)
-    sim.advance(30_000)
-    const sync = byClient['client-sync']
-    const queued = byClient['client-queue']
+  it('every preset has a guide in both languages: description, steps, experiments and existing scenarios to compare', () => {
+    for (const lang of ['es', 'en'] as const) {
+      const all = getPresets(lang)
+      const ids = all.map((p) => p.id)
+      for (const p of all) {
+        const label = `${lang}/${p.id}`
+        expect(p.name, label).not.toMatch(/^presets\./)
+        expect(p.description, label).not.toMatch(/^presets\./)
+        expect(p.steps.length, label).toBeGreaterThanOrEqual(3)
+        expect(p.tryThis.length, label).toBeGreaterThanOrEqual(1)
+        for (const id of p.compare) expect(ids, label).toContain(id)
+        expect(p.compare, label).not.toContain(p.id)
+        // The rest of its topic is always offered.
+        const topic = TOPICS.find((t) => t.id === p.topic)!
+        for (const id of topic.presets) if (id !== p.id) expect(p.compare, label).toContain(id)
+      }
+    }
+  })
+
+  it('each preset shows a single architecture: one connected graph', () => {
+    for (const p of presets) {
+      const ids = p.graph.nodes.map((n) => n.id)
+      const seen = new Set([ids[0]])
+      for (let grew = true; grew; ) {
+        grew = false
+        for (const e of p.graph.edges)
+          if (seen.has(e.source) !== seen.has(e.target)) {
+            seen.add(e.source)
+            seen.add(e.target)
+            grew = true
+          }
+      }
+      expect(seen.size, p.id).toBe(ids.length)
+    }
+  })
+
+  it('sync gets 503s; queue, with the same traffic, gets only 202s', () => {
+    const syncSim = run('sync')
+    const queueSim = run('queue')
+    const syncBy = responsesByClient(syncSim)
+    const queueBy = responsesByClient(queueSim)
+    syncSim.advance(30_000)
+    queueSim.advance(30_000)
+    expect(preset('sync').demoRates['client-sync']).toBe(preset('queue').demoRates['client-queue'])
+    const sync = syncBy['client-sync']
+    const queued = queueBy['client-queue']
     expect(sync.some((m) => m.code === 503)).toBe(true)
     expect(queued.length).toBeGreaterThan(0)
     expect(queued.filter((m) => m.status === 'error')).toHaveLength(0)
@@ -138,8 +192,22 @@ describe('presets', () => {
     const names = enPresets.flatMap((p) => p.graph.nodes.map((n) => n.config.name))
     for (const name of ['Browser', 'Mobile app', 'Server 1', 'Database', 'Orders', 'Billing', 'Inventory', 'Emails', 'Analytics', 'Users', 'Payments', 'Web'])
       expect(names).toContain(name)
-    expect(enPresets.map((p) => p.name)).toEqual(['Load Balancer', 'Sessions', 'Sync vs queue', 'Pub/sub', 'Reverse Proxy', 'Cache', 'Purchase order'])
-    expect(enPresets.find((p) => p.id === 'sync-vs-queue')!.description).toMatch(/^The same traffic/)
+    expect(enPresets.map((p) => p.name)).toEqual([
+      'Load Balancer',
+      'In-memory session',
+      'Shared store',
+      'JWT',
+      'Synchronous service',
+      'Queue with workers',
+      'Pub/sub',
+      'Orchestration',
+      'Choreography',
+      'Routing and auth',
+      'Edge cache',
+      'Cache-aside',
+    ])
+    expect(enPresets.find((p) => p.id === 'sync')!.description).toMatch(/^The client waits/)
+    expect(enPresets.find((p) => p.id === 'sync')!.steps[0]).toMatch(/^Each request takes a slot/)
     for (const [i, p] of enPresets.entries()) {
       const es = presets[i]
       // Same topology and ids; only texts (names, paths, event types) change.
@@ -185,27 +253,30 @@ function outputsOf(graph: Graph, id: string) {
   })
 }
 
-describe('purchase-order preset', () => {
+describe('purchase order: orchestration and choreography presets', () => {
   const ORCH_DSL = ['ordenes-orq', 'stock-orq', 'pagos-orq', 'mails-orq']
   const CHOR_DSL = ['ordenes-cor', 'stock-cor', 'pagos-cor', 'mails-cor']
 
   it.each(['es', 'en'] as const)('every DSL compiles with zero errors and at least one handler (%s)', (lang) => {
-    const p = getPresets(lang).find((x) => x.id === 'purchase-order')!
-    const withDsl = p.graph.nodes.filter((n) => typeof n.config.behavior === 'string' && n.config.behavior.trim() !== '')
-    expect(withDsl.map((n) => n.id).sort()).toEqual([...ORCH_DSL, ...CHOR_DSL].sort())
-    for (const n of withDsl) {
-      const { program, errors } = compileBehavior(n.config.behavior as string, outputsOf(p.graph, n.id))
-      expect(errors, `${lang}/${n.id}`).toEqual([])
-      expect(program.handlers.length, `${lang}/${n.id}`).toBeGreaterThan(0)
+    for (const [id, expected] of [['orchestration', ORCH_DSL], ['choreography', CHOR_DSL]] as const) {
+      const p = getPresets(lang).find((x) => x.id === id)!
+      const withDsl = p.graph.nodes.filter((n) => typeof n.config.behavior === 'string' && n.config.behavior.trim() !== '')
+      expect(withDsl.map((n) => n.id).sort()).toEqual([...expected].sort())
+      for (const n of withDsl) {
+        const { program, errors } = compileBehavior(n.config.behavior as string, outputsOf(p.graph, n.id))
+        expect(errors, `${lang}/${n.id}`).toEqual([])
+        expect(program.handlers.length, `${lang}/${n.id}`).toBeGreaterThan(0)
+      }
     }
   })
 
   it('names and DSL follow the language', () => {
-    const es = getPresets('es').find((x) => x.id === 'purchase-order')!
-    const en = getPresets('en').find((x) => x.id === 'purchase-order')!
-    expect(es.name).toBe('Orden de compra')
-    expect(en.name).toBe('Purchase order')
-    const cfg = (p: typeof es, id: string) => p.graph.nodes.find((n) => n.id === id)!.config
+    const nodes = (lang: 'es' | 'en') => getPresets(lang).filter((x) => x.id === 'orchestration' || x.id === 'choreography').flatMap((p) => p.graph.nodes)
+    const es = nodes('es')
+    const en = nodes('en')
+    expect(getPresets('es').find((x) => x.id === 'orchestration')!.name).toBe('Orquestación')
+    expect(getPresets('en').find((x) => x.id === 'choreography')!.name).toBe('Choreography')
+    const cfg = (all: typeof es, id: string) => all.find((n) => n.id === id)!.config
     expect(cfg(es, 'ordenes-orq').behavior).toContain('on request /ordenes:')
     expect(cfg(es, 'ordenes-orq').behavior).toContain('call Pagos /cobros or reply 402')
     expect(cfg(es, 'ordenes-cor').behavior).toContain('publish OrdenCreada')
@@ -219,19 +290,19 @@ describe('purchase-order preset', () => {
   })
 
   it.each(['es', 'en'] as const)('30 s: orchestration answers 201, choreography 202, every subscriber processed events (%s)', (lang) => {
-    const p = getPresets(lang).find((x) => x.id === 'purchase-order')!
-    const sim = new Simulation(withDemoTraffic(p), { seed: 1, registry: defaultRegistry })
-    const byClient = responsesByClient(sim)
-    sim.advance(30_000)
-    const orch = byClient['client-orq'] ?? []
-    const chor = byClient['client-cor'] ?? []
+    const sims = ['orchestration', 'choreography'].map((id) => new Simulation(withDemoTraffic(getPresets(lang).find((x) => x.id === id)!), { seed: 1, registry: defaultRegistry }))
+    const [orchBy, chorBy] = sims.map(responsesByClient)
+    for (const s of sims) s.advance(30_000)
+    const [orchSim, chorSim] = sims
+    const orch = orchBy['client-orq'] ?? []
+    const chor = chorBy['client-cor'] ?? []
     expect(orch.filter((m) => m.code === 201).length).toBeGreaterThan(20)
     expect(orch.every((m) => m.code === 201 || m.code === 402)).toBe(true)
     expect(chor.filter((m) => m.code === 202).length).toBeGreaterThan(20)
     expect(chor.every((m) => m.code === 202)).toBe(true)
-    for (const id of ['stock-cor', 'pagos-cor', 'mails-cor']) expect(sim.nodeStats(id).ok, id).toBeGreaterThan(20)
-    for (const id of ['db-stock-orq', 'db-pagos-orq', 'db-mails-orq', 'db-ordenes-cor', 'db-stock-cor', 'db-pagos-cor', 'db-mails-cor'])
-      expect(sim.nodeStats(id).ok, id).toBeGreaterThan(0)
+    for (const id of ['stock-cor', 'pagos-cor', 'mails-cor']) expect(chorSim.nodeStats(id).ok, id).toBeGreaterThan(20)
+    for (const id of ['db-stock-orq', 'db-pagos-orq', 'db-mails-orq']) expect(orchSim.nodeStats(id).ok, id).toBeGreaterThan(0)
+    for (const id of ['db-ordenes-cor', 'db-stock-cor', 'db-pagos-cor', 'db-mails-cor']) expect(chorSim.nodeStats(id).ok, id).toBeGreaterThan(0)
   })
 })
 
@@ -248,10 +319,15 @@ describe('sessions preset', () => {
   const LANES = { mem: 'client-mem', store: 'client-store', jwt: 'client-jwt' } as const
   const WARM_UP = 8_000
 
-  it('three lanes: 5 users with login, round robin without sticky, 3 servers each; a key-value store', () => {
-    const p = preset('sessions')
-    const cfg = (id: string) => p.graph.nodes.find((n) => n.id === id)!.config
-    for (const lane of ['mem', 'store', 'jwt']) {
+  const PRESET = { mem: 'sessions-memory', store: 'sessions-store', jwt: 'sessions-jwt' } as const
+
+  it('one preset per place: 5 users with login, round robin without sticky, 3 servers; a key-value store only for the store', () => {
+    const cfg = (id: string) => presets.flatMap((p) => p.graph.nodes).find((n) => n.id === id)!.config
+    expect(preset('sessions-store').graph.nodes.some((n) => n.id === 'sessions-db')).toBe(true)
+    expect(preset('sessions-memory').graph.nodes.some((n) => n.id === 'sessions-db')).toBe(false)
+    expect(preset('sessions-jwt').graph.nodes.some((n) => n.id === 'sessions-db')).toBe(false)
+    for (const lane of ['mem', 'store', 'jwt'] as const) {
+      const p = preset(PRESET[lane])
       expect(cfg(`client-${lane}`)).toMatchObject({ users: 5, auth: 'login', rate: START_RATE })
       expect(cfg(`lb-${lane}`)).toMatchObject({ algorithm: 'round-robin', sticky: false, healthChecks: true })
       for (const i of [1, 2, 3]) expect(p.graph.edges.some((e) => e.source === `lb-${lane}` && e.target === `${lane}-${i}`)).toBe(true)
@@ -260,25 +336,31 @@ describe('sessions preset', () => {
     expect(cfg('store-1').behavior).toContain('session Sesiones')
     expect(cfg('jwt-1').behavior).toContain('session jwt')
     expect(cfg('sessions-db')).toMatchObject({ name: 'Sesiones', kind: 'key-value', processingTime: 20 })
-    expect(getPresets('en').find((x) => x.id === 'sessions')!.graph.nodes.find((n) => n.id === 'sessions-db')!.config.name).toBe('Sessions')
+    expect(getPresets('en').find((x) => x.id === 'sessions-store')!.graph.nodes.find((n) => n.id === 'sessions-db')!.config.name).toBe('Sessions')
   })
 
   it.each(['es', 'en'] as const)('every DSL compiles (%s)', (lang) => {
-    const p = getPresets(lang).find((x) => x.id === 'sessions')!
-    expectDslsCompile(p, lang)
-    expect(p.graph.nodes.filter((n) => n.config.behavior).length).toBe(9)
+    for (const id of Object.values(PRESET)) {
+      const p = getPresets(lang).find((x) => x.id === id)!
+      expectDslsCompile(p, `${lang}/${id}`)
+      expect(p.graph.nodes.filter((n) => n.config.behavior).length).toBe(3)
+    }
   })
 
-  it('30 s: the memory lane loses sessions; the store and jwt lanes do not after warm-up', () => {
-    const sim = run('sessions')
+  it('30 s: memory loses sessions; the store and jwt do not after warm-up', () => {
     const lost: Record<string, number> = {}
     const ok: Record<string, number> = {}
-    sim.on('message:arrived', (e) => {
-      if (e.msg.kind !== 'response' || sim.now < WARM_UP) return
-      if (e.msg.code === 401 && e.msg.meta.authError === 'session-lost') lost[e.at] = (lost[e.at] ?? 0) + 1
-      if (e.msg.status === 'ok') ok[e.at] = (ok[e.at] ?? 0) + 1
+    const sims = Object.values(PRESET).map((id) => {
+      const sim = run(id)
+      sim.on('message:arrived', (e) => {
+        if (e.msg.kind !== 'response' || sim.now < WARM_UP) return
+        if (e.msg.code === 401 && e.msg.meta.authError === 'session-lost') lost[e.at] = (lost[e.at] ?? 0) + 1
+        if (e.msg.status === 'ok') ok[e.at] = (ok[e.at] ?? 0) + 1
+      })
+      sim.advance(30_000)
+      return sim
     })
-    sim.advance(30_000)
+    const sim = sims[1]
     expect(lost[LANES.mem] ?? 0).toBeGreaterThan(5)
     expect(lost[LANES.store] ?? 0).toBe(0)
     expect(lost[LANES.jwt] ?? 0).toBe(0)
@@ -288,7 +370,7 @@ describe('sessions preset', () => {
   })
 
   it('sticky on and a memory server off: its users get one session-lost 401, log in elsewhere, no lasting 503s', () => {
-    const p = preset('sessions')
+    const p = preset('sessions-memory')
     const traffic = withDemoTraffic(p)
     const sticky = { ...traffic, nodes: traffic.nodes.map((n) => (n.id === 'lb-mem' ? { ...n, config: { ...n.config, sticky: true } } : n)) }
     const sim = new Simulation(sticky, { seed: 1, registry: defaultRegistry })
@@ -348,7 +430,7 @@ describe('cache preset (cache-spec §7)', () => {
 
   it('a client mixing 10 product paths at the start rate, a plain Servicio, a keys Cache of 5 and a relational database', () => {
     const p = cacheOf()
-    expect(p.name).toBe('Cache')
+    expect(p.name).toBe('Cache-aside')
     const byId = Object.fromEntries(p.graph.nodes.map((n) => [n.id, n]))
     expect(byId.client.config.rate).toBe(START_RATE)
     expect(p.demoRates.client).toBeGreaterThan(0)
@@ -361,7 +443,7 @@ describe('cache preset (cache-spec §7)', () => {
     // Entering the editor keeps the Cache in keys mode (the migration only touches Caches without a mode).
     expect(prepareGraph(p.graph).nodes.find((n) => n.id === 'cache')!.config.mode).toBe('keys')
     const en = cacheOf('en')
-    expect(en.name).toBe('Cache')
+    expect(en.name).toBe('Cache-aside')
     expect((en.graph.nodes.find((n) => n.id === 'client')!.config.mix as { value: string }[])[9].value).toBe('/products/10')
   })
 
@@ -436,14 +518,16 @@ describe('cache preset (cache-spec §7)', () => {
   })
 })
 
-describe('reverse-proxy edge cache (cache-spec §7)', () => {
+describe('edge-cache preset (cache-spec §7)', () => {
   it('the proxy caches real keys on /static only', () => {
-    const proxy = preset('reverse-proxy').graph.nodes.find((n) => n.id === 'proxy')!
+    const proxy = preset('edge-cache').graph.nodes.find((n) => n.id === 'proxy')!
     expect(proxy.config).toMatchObject({ cache: 'keys', cacheablePaths: ['/static'] })
+    // Routing and auth stay in their own scenario, without the cache.
+    expect(preset('reverse-proxy').graph.nodes.find((n) => n.id === 'proxy')!.config.cache).toBe('off')
   })
 
   it('30 s: only /static is answered from the proxy cache; Pagos is never answered by it', () => {
-    const sim = run('reverse-proxy')
+    const sim = run('edge-cache')
     const hitPaths: string[] = []
     const pagosSent: string[] = []
     const pagosArrived: string[] = []

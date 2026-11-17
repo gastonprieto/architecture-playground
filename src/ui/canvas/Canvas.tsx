@@ -29,6 +29,7 @@ import { ArchNode, type ArchFlowNode } from './ArchNode'
 import { FloatingLabels } from './FloatingLabels'
 import { PacketLayer } from './PacketLayer'
 import { track } from '../analytics'
+import { fitViewOptions } from '../fitView'
 
 const nodeTypes: NodeTypes = { arch: ArchNode }
 const edgeTypes: EdgeTypes = { arch: ArchEdge }
@@ -42,7 +43,6 @@ const MARKER_SELECTED = { ...MARKER, color: 'var(--cyan)' }
 const MIN_ZOOM = 0.2
 /** Dropping a new wire this close to an input port snaps it there (Strict mode: output → input only). */
 const CONNECTION_RADIUS = 60
-const FIT_VIEW_OPTIONS = { padding: 0.15 }
 
 type Size = { width: number; height: number }
 
@@ -70,10 +70,14 @@ function applySelect(kind: 'node' | 'edge', changes: { type: string; id?: string
   }
 }
 
-export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
+/**
+ * `guide`: the scenario guide floats over the canvas, so fitting the view leaves room for it.
+ */
+export function Canvas({ readOnly = false, guide = false }: { readOnly?: boolean; guide?: boolean }) {
   const graph = useEditor((s) => s.graph)
   const selection = useEditor((s) => s.selection)
   const { screenToFlowPosition, fitView } = useReactFlow()
+  const fitOptions = useMemo(() => fitViewOptions(guide, readOnly), [guide, readOnly])
   const t = useT()
   const ariaLabelConfig = useMemo<Partial<AriaLabelConfig>>(
     () => ({
@@ -147,8 +151,8 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
     if (prevReadOnly.current === readOnly) return
     prevReadOnly.current = readOnly
     if (readOnly) useEditor.getState().select(null)
-    void fitView(FIT_VIEW_OPTIONS)
-  }, [readOnly, fitView])
+    void fitView(fitOptions)
+  }, [readOnly, fitView, fitOptions])
 
   const onNodesChange = useCallback((changes: NodeChange<ArchFlowNode>[]) => {
     const measured: Record<string, Size> = {}
@@ -234,7 +238,7 @@ export function Canvas({ readOnly = false }: { readOnly?: boolean }) {
       ariaLabelConfig={ariaLabelConfig}
       minZoom={MIN_ZOOM}
       fitView
-      fitViewOptions={FIT_VIEW_OPTIONS}
+      fitViewOptions={fitOptions}
     >
       <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} color="var(--line)" />
       <Controls showInteractive={false} />

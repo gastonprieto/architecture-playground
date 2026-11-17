@@ -976,3 +976,179 @@ body {
 .dsl-textarea:focus-visible,
 .inspector .swatch:focus-visible { outline: none; }
 .inspector .swatch:focus-visible { box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(56, 189, 248, 0.6); }
+
+/* ---------- scenarios: picker and "How it works" guide ---------- */
+
+.toolbar .scenario-btn { display: inline-flex; align-items: center; gap: 6px; max-width: 260px; }
+.scenario-btn-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.scenario-picker {
+  width: min(880px, 100%);
+  height: min(600px, calc(100vh - 32px));
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--panel-solid);
+  color: var(--text);
+  font: 14px/1.5 var(--sans);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.scenario-picker:focus { outline: none; }
+.scenario-picker-head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.scenario-picker-head h2 { flex: 1; margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.scenario-topics {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  overflow-y: auto;
+  border-right: 1px solid var(--line-soft);
+}
+.scenario-topic {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.scenario-topic:hover { background: rgba(255, 255, 255, 0.04); }
+.scenario-topic[aria-selected='true'] { background: rgba(255, 255, 255, 0.06); box-shadow: inset 3px 0 0 var(--topic-color); }
+.scenario-topic:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+.scenario-topic-name { font-weight: 600; }
+.scenario-topic-count { font: 500 11px var(--mono); color: var(--dim); }
+.scenario-topic-question { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.scenario-topic-body { display: flex; flex-direction: column; gap: 14px; padding: 16px 18px 18px; overflow-y: auto; }
+.scenario-topic-intro h3 { margin: 0 0 4px; font-size: 17px; font-weight: 700; }
+.scenario-topic-intro p { margin: 0; max-width: 62ch; color: var(--muted); }
+.scenario-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.scenario-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.scenario-card:hover, .scenario-card:focus-visible { border-color: var(--topic-color); background: rgba(255, 255, 255, 0.045); outline: none; }
+.scenario-card-name { font-weight: 700; }
+.scenario-card-description { font-size: 13px; color: var(--muted); }
+.scenario-card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.scenario-pill { padding: 2px 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); color: var(--muted); font: 500 10.5px var(--mono); }
+.scenario-pill.current { background: var(--topic-color); color: var(--bg); }
+
+.scenario-guide {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(320px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+  border: 1px solid var(--line-soft);
+  border-top: 3px solid var(--topic-color);
+  border-radius: var(--radius);
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(140%);
+  backdrop-filter: blur(var(--blur)) saturate(140%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: 13px/1.5 var(--sans);
+}
+.scenario-guide-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; align-items: start; }
+.scenario-eyebrow { align-self: center; color: var(--topic-color); font: 600 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.scenario-guide-close {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font: 12px/1 var(--sans);
+  cursor: pointer;
+}
+.scenario-guide-close:hover, .scenario-guide-close:focus-visible { color: var(--text); border-color: rgba(56, 189, 248, 0.5); }
+.scenario-guide h2 { grid-column: 1 / -1; margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+.scenario-guide-description { grid-column: 1 / -1; margin: 0; color: var(--muted); }
+.scenario-tabs { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line-soft); border-radius: 10px; background: rgba(255, 255, 255, 0.03); }
+.scenario-tabs button {
+  flex: 1;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: 600 12px/1.2 var(--sans);
+  cursor: pointer;
+}
+.scenario-tabs button[aria-selected='true'] { background: rgba(56, 189, 248, 0.16); color: var(--text); }
+.scenario-tabs button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+.scenario-guide-body { display: flex; flex-direction: column; gap: 14px; }
+.scenario-steps { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.scenario-steps li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 9px; counter-increment: step; }
+.scenario-steps li::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--line-soft);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font: 600 10.5px/1 var(--mono);
+}
+.scenario-try { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.scenario-try li { padding: 7px 10px; border: 1px solid rgba(250, 204, 21, 0.22); border-radius: 10px; background: rgba(250, 204, 21, 0.06); }
+.scenario-guide code { padding: 1px 5px; border-radius: 5px; background: rgba(255, 255, 255, 0.06); font: 500 11.5px var(--mono); }
+.scenario-compare h3 { margin: 0 0 6px; color: var(--muted); font: 600 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.scenario-compare-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.scenario-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font: 600 12px/1.3 var(--sans);
+  cursor: pointer;
+}
+.scenario-chip:hover, .scenario-chip:focus-visible { border-color: var(--topic-color); outline: none; }
+.scenario-guide-foot { margin: 0; color: var(--dim); font-size: 12px; }
+
+@media (max-width: 767px) {
+  .scenario-picker { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); }
+  .scenario-topics { flex-direction: row; overflow-x: auto; padding: 8px; gap: 6px; border-right: 0; border-bottom: 1px solid var(--line-soft); }
+  .scenario-topic { flex: none; width: auto; grid-template-columns: auto; padding: 6px 10px; }
+  .scenario-topic-count, .scenario-topic-question { display: none; }
+  .toolbar .scenario-btn { max-width: 180px; }
+}
+/* On a phone the guide sits at the bottom of the canvas and keeps the top of the graph visible. */
+.app.mobile .scenario-guide { top: auto; bottom: 12px; max-height: 50%; width: calc(100% - 24px); }
