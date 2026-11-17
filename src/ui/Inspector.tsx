@@ -1,4 +1,4 @@
-import { useId, useState, type KeyboardEvent } from 'react'
+import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { DEFAULT_WEIGHT } from '../engine/weights'
 import type { DbKind } from '../components/database'
@@ -25,6 +25,8 @@ import { useBehaviorStatus } from './useBehaviorStatus'
 
 export interface InspectorProps {
   runAction?: (nodeId: string, action: string) => void
+  /** Shown with nothing selected, in place of the editing help (the landing explains the architecture). */
+  empty?: ReactNode
 }
 
 interface FieldControlProps {
@@ -370,7 +372,7 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
   )
 }
 
-export function Inspector({ runAction }: InspectorProps) {
+export function Inspector({ runAction, empty }: InspectorProps) {
   const selection = useEditor((s) => s.selection)
   const t = useT()
   const reduce = useReducedMotion()
@@ -386,7 +388,7 @@ export function Inspector({ runAction }: InspectorProps) {
         transition={{ duration: 0.16, ease: 'easeOut' }}
       >
         {!selection ? (
-          <p className="inspector-help">{t('inspector.help')}</p>
+          (empty ?? <p className="inspector-help">{t('inspector.help')}</p>)
         ) : selection.kind === 'edge' ? (
           <EdgeInspector id={selection.id} />
         ) : (

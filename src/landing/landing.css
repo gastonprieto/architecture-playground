@@ -109,6 +109,9 @@
 .demo.mobile .toolbar-sep { display: none; }
 /* The playground runs at 14px (theme.css body); the landing body is larger. */
 .demo { font: 14px/1.4 var(--sans); }
+.demo-explain { display: grid; gap: 10px; font-size: 13px; }
+.demo-explain h2 { font-size: 15px; letter-spacing: -0.01em; }
+.demo-explain > p { color: var(--muted); }
 .demo-description { font-size: 14px; color: var(--muted); max-width: 80ch; }
 .l-demo-note { font: 12px/1.5 var(--mono); color: var(--dim); }
 
