@@ -5,6 +5,8 @@ import { rich } from './richText'
 import { useEditor } from './store/editor'
 import { useScenario } from './store/scenario'
 import type { SimApi } from './runtime/useSimulation'
+import { useIsland } from './useIsland'
+import { useIsMobile } from './useIsMobile'
 import { useLoadScenario } from './useLoadScenario'
 
 type Tab = 'how' | 'try'
@@ -22,6 +24,8 @@ export function ScenarioGuide({ api }: { api: SimApi }) {
   const open = useScenario((s) => s.guideOpen)
   const empty = useEditor((s) => s.graph.nodes.length === 0)
   const presets = useMemo(() => getPresets(lang), [lang])
+  const mobile = useIsMobile()
+  const { attach, style, className: islandClass, grip } = useIsland('guide', !mobile)
   const [tab, setTab] = useState<{ id: string | null; tab: Tab }>({ id: currentId, tab: 'how' })
   const preset = presets.find((p) => p.id === currentId)
   if (!preset || !open || empty) return null
@@ -32,7 +36,13 @@ export function ScenarioGuide({ api }: { api: SimApi }) {
   const compare = preset.compare.map((id) => presets.find((p) => p.id === id)).filter((p) => p !== undefined)
 
   return (
-    <aside className="scenario-guide" aria-label={t('scenarios.guide')} style={{ ['--topic-color' as string]: TOPIC_COLORS[preset.topic] }}>
+    <aside
+      ref={attach}
+      className={`scenario-guide${islandClass}`}
+      aria-label={t('scenarios.guide')}
+      style={{ ...style, ['--topic-color' as string]: TOPIC_COLORS[preset.topic] }}
+    >
+      {grip}
       <header className="scenario-guide-head">
         <span className="scenario-eyebrow">
           {t(`topics.${preset.topic}.name`)}

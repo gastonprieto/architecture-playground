@@ -9,13 +9,17 @@ import { Modal } from './Modal'
 import type { SimApi } from './runtime/useSimulation'
 import { useGraphText } from './store/graphText'
 import { useLoadGraph } from './useLoadGraph'
+import { fitViewOptions } from './fitView'
+
+/** The text editor is desktop-only: frame the graph clear of the islands. */
+const FIT = fitViewOptions(false, false, true)
 
 function TextPanel({ api, initial }: { api: SimApi; initial: string }) {
   const close = useGraphText((s) => s.close)
   const [opener] = useState(() => useGraphText.getState().opener)
   const lang = useLang((s) => s.lang)
   const t = useT()
-  const load = useLoadGraph(api)
+  const load = useLoadGraph(api, FIT)
   const titleId = useId()
   const errorsId = useId()
   const [text, setText] = useState(initial)

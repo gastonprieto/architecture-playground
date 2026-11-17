@@ -72,12 +72,24 @@ function applySelect(kind: 'node' | 'edge', changes: { type: string; id?: string
 
 /**
  * `guide`: the scenario guide floats over the canvas, so fitting the view leaves room for it.
+ * `floating`: the playground layout, with islands over a full-bleed canvas (fitting leaves room for them).
+ * `colorMode`: React Flow's own controls and defaults follow the page theme.
  */
-export function Canvas({ readOnly = false, guide = false }: { readOnly?: boolean; guide?: boolean }) {
+export function Canvas({
+  readOnly = false,
+  guide = false,
+  floating = false,
+  colorMode = 'dark',
+}: {
+  readOnly?: boolean
+  guide?: boolean
+  floating?: boolean
+  colorMode?: 'dark' | 'light'
+}) {
   const graph = useEditor((s) => s.graph)
   const selection = useEditor((s) => s.selection)
   const { screenToFlowPosition, fitView } = useReactFlow()
-  const fitOptions = useMemo(() => fitViewOptions(guide, readOnly), [guide, readOnly])
+  const fitOptions = useMemo(() => fitViewOptions(guide, readOnly, floating), [guide, readOnly, floating])
   const t = useT()
   const ariaLabelConfig = useMemo<Partial<AriaLabelConfig>>(
     () => ({
@@ -234,13 +246,13 @@ export function Canvas({ readOnly = false, guide = false }: { readOnly?: boolean
       nodesDraggable={!readOnly}
       nodesConnectable={!readOnly}
       elementsSelectable={!readOnly}
-      colorMode="dark"
+      colorMode={colorMode}
       ariaLabelConfig={ariaLabelConfig}
       minZoom={MIN_ZOOM}
       fitView
       fitViewOptions={fitOptions}
     >
-      <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} color="var(--line)" />
+      <Background variant={BackgroundVariant.Lines} gap={24} lineWidth={1} color="var(--grid)" />
       <Controls showInteractive={false} />
       <PacketLayer />
       <FloatingLabels />

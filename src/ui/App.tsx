@@ -16,6 +16,8 @@ import { Palette } from './Palette'
 import { SimContext, useSimulation } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 import './theme.css'
+import './playground.css'
+import { useTheme } from './store/theme'
 import { Toolbar } from './Toolbar'
 import { useBehaviorEditor } from './store/behaviorEditor'
 import { useGraphText } from './store/graphText'
@@ -23,6 +25,7 @@ import { useInfoPanel } from './store/infoPanel'
 import { useScenario } from './store/scenario'
 import { ScenarioGuide } from './ScenarioGuide'
 import { ScenarioPicker } from './ScenarioPicker'
+import { useIsland } from './useIsland'
 import { useIsMobile } from './useIsMobile'
 import { stripHash, track } from './analytics'
 
@@ -82,7 +85,9 @@ export default function App() {
   const behaviorOpen = useBehaviorEditor((s) => s.nodeId !== null)
   const textOpen = useGraphText((s) => s.text !== null)
   const pickerOpen = useScenario((s) => s.pickerOpen)
+  const theme = useTheme((s) => s.theme)
   const guideShown = useScenario((s) => s.currentId !== null && s.guideOpen)
+  const { attach: attachInspector, style: inspectorStyle, className: inspectorClass, grip: inspectorGrip } = useIsland('inspector', !mobile)
   return (
     <ReactFlowProvider>
       <SimContext.Provider value={api}>
@@ -93,11 +98,12 @@ export default function App() {
           </header>
           {!mobile && <Palette />}
           <main className="canvas">
-            <Canvas readOnly={mobile} guide={guideShown} />
+            <Canvas readOnly={mobile} guide={guideShown} floating colorMode={theme} />
             <ScenarioGuide api={api} />
           </main>
           {!mobile && (
-            <aside className="inspector" aria-label={t('inspector.label')}>
+            <aside ref={attachInspector} style={inspectorStyle} className={`inspector${inspectorClass}`} aria-label={t('inspector.label')}>
+              {inspectorGrip}
               <Inspector runAction={api.runAction} />
             </aside>
           )}
