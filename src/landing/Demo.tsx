@@ -8,6 +8,7 @@ import { getPresets, TOPICS } from '../presets'
 import { Canvas } from '../ui/canvas/Canvas'
 import { BehaviorEditorDialog } from '../ui/BehaviorEditor'
 import { prepareGraph } from '../ui/graphEntry'
+import { rich } from '../ui/richText'
 import { InfoDialog } from '../ui/InfoDialog'
 import { Inspector } from '../ui/Inspector'
 import { MetricsBar } from '../ui/MetricsBar'
@@ -23,14 +24,11 @@ import { PLAY_PATH } from './legacyLink'
 import { Logo } from '../ui/Logo'
 
 export const DEMO_PRESET = 'load-balancer'
-/** Selected at start, so the inspector shows what can be changed. */
-const DEMO_SELECTED = 'srv-2'
 
 /** The demo's graph is loaded before the simulation is created, so it starts with the preset. */
 function loadInitialPreset() {
   const preset = getPresets(useLang.getState().lang).find((p) => p.id === DEMO_PRESET)!
   useEditor.getState().loadGraph(prepareGraph(preset.graph))
-  useEditor.getState().select({ kind: 'node', id: DEMO_SELECTED })
 }
 
 /**
@@ -82,7 +80,7 @@ function DemoInner() {
     window.location.href = PLAY_PATH + encodeHash(useEditor.getState().graph)
   }
 
-  const description = presets.find((p) => p.id === presetId)?.description
+  const preset = presets.find((p) => p.id === presetId)
 
   return (
     <SimContext.Provider value={api}>
@@ -139,14 +137,29 @@ function DemoInner() {
         </main>
         {!mobile && (
           <aside className="inspector" aria-label={t('inspector.label')}>
-            <Inspector runAction={api.runAction} />
+            <Inspector
+              runAction={api.runAction}
+              empty={
+                preset && (
+                  <div className="demo-explain">
+                    <h2>{preset.name}</h2>
+                    <p>{preset.description}</p>
+                    <ol className="scenario-steps">
+                      {preset.steps.map((s, i) => (
+                        <li key={i}>{rich(s)}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )
+              }
+            />
           </aside>
         )}
         <footer className="metrics">
           <MetricsBar />
         </footer>
       </div>
-      {description && <p className="demo-description">{description}</p>}
+      {mobile && preset && <p className="demo-description">{preset.description}</p>}
       <InfoDialog />
       <BehaviorEditorDialog />
     </SimContext.Provider>
