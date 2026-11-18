@@ -17,6 +17,7 @@ import { useTheme } from './store/theme'
 import { track } from './analytics'
 import { Logo } from './Logo'
 import { ToolbarMenu } from './ToolbarMenu'
+import { Icon, type IconName } from './Icon'
 
 const TOAST_MS = 2500
 /** Some browsers start the download asynchronously; keep the blob URL alive a while. */
@@ -45,17 +46,17 @@ function Btn(props: ButtonHTMLAttributes<HTMLButtonElement>) {
 }
 
 /** An icon-only toolbar button; the label is its accessible name and tooltip. */
-function IconBtn({ icon, label, title, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { icon: string; label: string }) {
+function IconBtn({ icon, label, title, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { icon: IconName; label: string }) {
   return (
     <Btn className="icon-btn" aria-label={label} title={title ?? label} {...props}>
-      <span aria-hidden="true">{icon}</span>
+      <Icon name={icon} />
     </Btn>
   )
 }
 
 /** A row of the `⋯` menu: icon + label, closes the menu after running. */
 function MenuItem({ icon, label, onClick, close, ...props }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> & {
-  icon: string
+  icon: IconName
   label: string
   onClick: () => void
   close: () => void
@@ -69,9 +70,7 @@ function MenuItem({ icon, label, onClick, close, ...props }: Omit<ButtonHTMLAttr
       }}
       {...props}
     >
-      <span className="toolbar-menu-icon" aria-hidden="true">
-        {icon}
-      </span>
+      <Icon name={icon} className="toolbar-menu-icon" />
       {label}
     </Btn>
   )
@@ -251,7 +250,8 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
             disabled={isEmpty}
             onClick={(e) => useNewDiagram.getState().ask(e.currentTarget, newDiagram)}
           >
-            <span aria-hidden="true">＋</span> {t('toolbar.new')}
+            <Icon name="new" />
+            {t('toolbar.new')}
           </Btn>
         )}
         <Btn
@@ -261,17 +261,18 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
           title={scenario ? `${t('scenarios.title')} · ${scenario.name}` : t('scenarios.title')}
           onClick={(e) => useScenario.getState().openPicker(e.currentTarget)}
         >
-          <span aria-hidden="true">🧭</span>
+          <Icon name="scenarios" />
           {t('scenarios.button')}
-          <span className="caret" aria-hidden="true">▾</span>
+          <Icon name="caret" size={14} className="caret" />
         </Btn>
         {scenario && !guideOpen && (
-          <IconBtn icon="📖" label={t('scenarios.guide')} onClick={() => useScenario.getState().setGuideOpen(true)} />
+          <IconBtn icon="guide" label={t('scenarios.guide')} onClick={() => useScenario.getState().setGuideOpen(true)} />
         )}
       </div>
       <div className="toolbar-sep" aria-hidden="true" />
       <div className="toolbar-group">
         <Btn className="primary" onClick={toggle} aria-pressed={playing} title={t('toolbar.playTitle')}>
+          <Icon name={playing ? 'pause' : 'play'} size={14} />
           {playing ? t('toolbar.pause') : t('toolbar.play')}
         </Btn>
         {!mobile && (
@@ -305,14 +306,14 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
           <div className="toolbar-sep" aria-hidden="true" />
           <div className="toolbar-group">
             <IconBtn
-              icon="↶"
+              icon="undo"
               label={t('toolbar.undo')}
               onClick={() => useEditor.getState().undo()}
               disabled={!canUndo}
               title={`${t('toolbar.undo')} (Ctrl/Cmd+Z)`}
             />
             <IconBtn
-              icon="↷"
+              icon="redo"
               label={t('toolbar.redo')}
               onClick={() => useEditor.getState().redo()}
               disabled={!canRedo}
@@ -328,11 +329,11 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
             <>
               {!mobile && (
                 <>
-                  <MenuItem icon="🔗" label={t('toolbar.copyLink')} onClick={onCopyLink} close={close} />
-                  <MenuItem icon="⤓" label={t('toolbar.export')} onClick={onExport} close={close} />
-                  <MenuItem icon="⤒" label={t('toolbar.import')} onClick={() => fileRef.current?.click()} close={close} />
+                  <MenuItem icon="link" label={t('toolbar.copyLink')} onClick={onCopyLink} close={close} />
+                  <MenuItem icon="export" label={t('toolbar.export')} onClick={onExport} close={close} />
+                  <MenuItem icon="import" label={t('toolbar.import')} onClick={() => fileRef.current?.click()} close={close} />
                   <MenuItem
-                    icon="✎"
+                    icon="edit"
                     label={t('toolbar.text')}
                     onClick={() => {
                       track({ name: 'text_editor_opened' })

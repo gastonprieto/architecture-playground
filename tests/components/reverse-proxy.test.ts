@@ -52,7 +52,7 @@ const mixOf = (value: string) => ({ mix: [{ value, weight: 1 }] })
 describe('reverse proxy', () => {
   it('has catalog metadata and config', () => {
     const d = defaultRegistry.get('reverse-proxy')!
-    expect([d.label, d.icon, d.color]).toEqual(['Reverse Proxy', '🚪', 'req'])
+    expect([d.label, d.icon, d.color]).toEqual(['Reverse Proxy', 'shield', 'req'])
     expect(d.config.authFailRate).toBeUndefined()
     expect(d.config.auth).toMatchObject({
       type: 'select',

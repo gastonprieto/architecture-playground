@@ -5,7 +5,7 @@ import type { Graph, GraphEdge, GraphNode } from '../../src/engine/types'
 export const echo = defineComponent({
   type: 'echo',
   label: 'Echo',
-  icon: 'e',
+  icon: 'server',
   color: 'ok',
   config: {},
   initialState: () => ({}),
@@ -18,7 +18,7 @@ export const echo = defineComponent({
 export const fwd = defineComponent({
   type: 'fwd',
   label: 'Forward',
-  icon: 'f',
+  icon: 'server',
   color: 'req',
   config: {},
   initialState: () => ({}),
@@ -33,7 +33,7 @@ export const fwd = defineComponent({
 export const slow = defineComponent({
   type: 'slow',
   label: 'Slow',
-  icon: 's',
+  icon: 'server',
   color: 'slow',
   config: {
     processingTime: { type: 'number', label: 'Tiempo', default: 400, min: 0, max: 5000 },
@@ -48,7 +48,7 @@ export const slow = defineComponent({
 export const proc = defineComponent({
   type: 'proc',
   label: 'Proc',
-  icon: 'p',
+  icon: 'server',
   color: 'slow',
   config: { ...processingFields },
   initialState: () => ({}),
@@ -61,7 +61,7 @@ export const proc = defineComponent({
 export const reject = defineComponent({
   type: 'reject',
   label: 'Reject',
-  icon: 'r',
+  icon: 'server',
   color: 'err',
   config: {},
   initialState: () => ({}),
@@ -74,7 +74,7 @@ export const reject = defineComponent({
 export const gen = defineComponent({
   type: 'gen',
   label: 'Gen',
-  icon: 'g',
+  icon: 'server',
   color: 'req',
   config: {},
   initialState: () => ({ ticks: [] as number[], responses: [] as { at: number; createdAt: number; code?: number }[] }),
@@ -93,7 +93,7 @@ export const gen = defineComponent({
 export const origin = defineComponent({
   type: 'origin',
   label: 'Origin',
-  icon: 'o',
+  icon: 'server',
   color: 'req',
   config: {},
   initialState: () => ({}),
@@ -114,7 +114,7 @@ export const origin = defineComponent({
 export const counter = defineComponent({
   type: 'counter',
   label: 'Counter',
-  icon: 'c',
+  icon: 'server',
   color: 'hc',
   config: {},
   initialState: () => ({ count: 0 }),

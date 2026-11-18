@@ -6,6 +6,7 @@ import { ZERO_STATS, useRuntime } from './runtime/runtimeStore'
 import type { UiState } from './runtime/useSimulation'
 import { cookieCounter } from './sessions'
 import { useEditor } from './store/editor'
+import { Icon, type IconName } from './Icon'
 
 /** One label/value line of a component's own live state. */
 export interface StatusRow {
@@ -71,13 +72,14 @@ export function statusTiles(kind: string, stats: NodeStats, ui: UiState | undefi
   }
 }
 
-const TILE_ICON: Record<keyof NodeStats, string> = { inFlight: '⏳', queued: '☰', ok: '✔', errors: '✖', pending: '⇄' }
+const TILE_ICON: Record<keyof NodeStats, IconName> = { inFlight: 'in-flight', queued: 'queued', ok: 'ok', errors: 'error', pending: 'pending' }
 
-function Tile({ icon, label, value, tone }: { icon: string; label: string; value: number; tone?: 'ok' | 'err' }) {
+function Tile({ icon, label, value, tone }: { icon: IconName; label: string; value: number; tone?: 'ok' | 'err' }) {
   return (
     <div className={`status-tile${tone ? ` ${tone}` : ''}`}>
       <span className="status-tile-value">
-        <span aria-hidden>{icon}</span> {value}
+        <Icon name={icon} size={14} />
+        {value}
       </span>
       <span className="status-tile-label">{label}</span>
     </div>

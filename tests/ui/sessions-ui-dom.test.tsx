@@ -96,13 +96,13 @@ describe('inspector fields', () => {
 describe('database on the canvas', () => {
   it('shows the kind icon and "Base de datos · <tipo>"', () => {
     renderWith()
-    expect(nodeEl('db1').querySelector('.arch-node-icon')!.textContent).toBe('🛢️')
+    expect(nodeEl('db1').querySelector('.arch-node-icon [data-icon]')!.getAttribute('data-icon')).toBe('database')
     expect(nodeEl('db1').querySelector('.arch-node-type')!.textContent).toBe('Base de datos · relacional')
-    expect(nodeEl('db2').querySelector('.arch-node-icon')!.textContent).toBe('🗝️')
+    expect(nodeEl('db2').querySelector('.arch-node-icon [data-icon]')!.getAttribute('data-icon')).toBe('key-round')
     expect(nodeEl('db2').querySelector('.arch-node-type')!.textContent).toBe('Base de datos · clave-valor')
     expect(nodeEl('db3').querySelector('.arch-node-type')!.textContent).toBe('Base de datos · relacional')
     act(() => useEditor.getState().updateNodeConfig('db3', { kind: 'document' }))
-    expect(nodeEl('db3').querySelector('.arch-node-icon')!.textContent).toBe('📄')
+    expect(nodeEl('db3').querySelector('.arch-node-icon [data-icon]')!.getAttribute('data-icon')).toBe('file-json')
   })
 
   it('in English: "Database · key-value"', () => {
@@ -115,15 +115,17 @@ describe('database on the canvas', () => {
   it('the palette keeps the base icon', () => {
     renderWith()
     const nav = screen.getByRole('navigation', { name: 'Componentes' })
-    expect(within(nav).getByText('Base de datos').previousElementSibling!.textContent).toBe('🛢️')
+    expect(within(nav).getByText('Base de datos').previousElementSibling!.querySelector('[data-icon]')!.getAttribute('data-icon')).toBe('database')
   })
 })
 
-describe('🍪 counters', () => {
+describe('sessions counters', () => {
   it('client shows logged/N', () => {
     act(() => useRuntime.setState({ states: { c1: { cookies: 3 } } }))
     render(<NodeStatsSlot nodeId="c1" kind="client" config={{ users: 5, auth: 'login' }} />)
-    const el = screen.getByText('🍪 3/5')
+    const el = document.querySelector('.node-cookies')!
+    expect(el.textContent).toBe('3/5')
+    expect(el.querySelector('[data-icon="sessions"]')).toBeTruthy()
     expect(el.getAttribute('title')).toBe('Usuarios logueados')
   })
 
@@ -136,19 +138,19 @@ describe('🍪 counters', () => {
         <NodeStatsSlot nodeId="db2" kind="database" config={{}} />
       </>,
     )
-    expect(screen.getByText('🍪 4').getAttribute('title')).toBe('Sesiones guardadas')
-    expect(screen.getByText('🍪 2')).toBeTruthy()
-    expect(screen.queryByText('🍪 0')).toBeNull()
+    const counters = [...document.querySelectorAll('.node-cookies')]
+    expect(counters.map((el) => el.textContent)).toEqual(['4', '2'])
+    expect(counters[0].getAttribute('title')).toBe('Sesiones guardadas')
   })
 
   it('no counter for a single-user client with nobody logged in', () => {
     render(<NodeStatsSlot nodeId="cx" kind="client" config={{ users: 1, auth: 'login' }} />)
-    expect(screen.queryByText(/🍪/)).toBeNull()
+    expect(document.querySelector('.node-cookies')).toBeNull()
   })
 })
 
-describe('🔑 / hit % counters (cache-spec §2.3)', () => {
-  it('client, LB and proxy nodes show ⇄ pending requests; a service does not', () => {
+describe('keys / hit % counters (cache-spec §2.3)', () => {
+  it('client, LB and proxy nodes show pending requests; a service does not', () => {
     const st = { inFlight: 0, queued: 0, ok: 0, errors: 0, pending: 3 }
     act(() => useRuntime.setState({ stats: { c1: st, l1: st, s9: st } }))
     render(
@@ -158,7 +160,7 @@ describe('🔑 / hit % counters (cache-spec §2.3)', () => {
         <NodeStatsSlot nodeId="s9" kind="service" config={{}} />
       </>,
     )
-    expect(screen.getAllByText('⇄ 3')).toHaveLength(2)
+    expect([...document.querySelectorAll('.node-pending')].map((el) => el.textContent)).toEqual(['3', '3'])
     act(() => useRuntime.setState({ stats: {} }))
   })
 
@@ -175,9 +177,10 @@ describe('🔑 / hit % counters (cache-spec §2.3)', () => {
         <NodeStatsSlot nodeId="p2" kind="reverse-proxy" config={{ cache: 'random' }} />
       </>,
     )
-    expect(screen.getByText('🔑 4').getAttribute('title')).toBe('Claves guardadas')
+    const keys = [...document.querySelectorAll('.node-keys')]
+    expect(keys.map((el) => el.textContent)).toEqual(['4'])
+    expect(keys[0].getAttribute('title')).toBe('Claves guardadas')
     expect(screen.getByText('hit 25%').getAttribute('title')).toBe('Hit % real: HITs / (HITs + MISSes)')
-    expect(screen.queryByText('🔑 2')).toBeNull()
     expect(screen.queryByText('hit 50%')).toBeNull()
     expect(screen.queryByText('hit 100%')).toBeNull()
   })

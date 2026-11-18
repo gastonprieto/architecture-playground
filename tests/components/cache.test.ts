@@ -18,7 +18,7 @@ const edge = (source: string, target: string): GraphEdge => ({ id: `${source}-${
 const probe = defineComponent<Record<string, never>, { outbox: Message['meta'][]; responses: Message[] }>({
   type: 'probe',
   label: 'Probe',
-  icon: 'p',
+  icon: 'server',
   color: 'req',
   config: {},
   initialState: () => ({ outbox: [], responses: [] }),
@@ -75,7 +75,7 @@ const brief = (m: Message) => ({ status: m.status, code: m.code, hit: m.meta.cac
 describe('cache: catalog', () => {
   it('has catalog metadata and config with conditional fields', () => {
     const d = defaultRegistry.get('cache')!
-    expect([d.label, d.icon, d.color]).toEqual(['Cache', '⚡', 'redis'])
+    expect([d.label, d.icon, d.color]).toEqual(['Cache', 'zap', 'redis'])
     expect(d.config.mode).toMatchObject({ type: 'select', default: 'keys' })
     expect(d.config.mode.type === 'select' && d.config.mode.options.map((o) => o.value)).toEqual(['keys', 'random'])
     expect(d.config.capacity).toMatchObject({ type: 'number', default: 50, min: 1, max: 1000, showIf: { field: 'mode', equals: 'keys' } })

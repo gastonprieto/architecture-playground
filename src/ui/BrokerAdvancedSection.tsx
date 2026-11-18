@@ -4,6 +4,7 @@ import { useT } from '../i18n'
 import { useRuntime } from './runtime/runtimeStore'
 import type { UiState } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
+import { Icon } from './Icon'
 
 /** One output of the broker in the advanced view. Queues are fire-and-forget: no lane, slots or acks. */
 export interface BrokerRow {
@@ -63,13 +64,21 @@ export function BrokerAdvancedSection({ brokerId }: { brokerId: string }) {
             <p className="broker-adv-line">{t('inspector.brokerQueue')}</p>
           ) : (
             <p className="broker-adv-line">
-              <span title={t('inspector.brokerPending')}>☰ {r.pending}</span>
-              <span title={t('node.inFlight')}>⏳ {r.inFlight}</span>
+              <span title={t('inspector.brokerPending')}>
+                <Icon name="queued" size={12} />
+                {r.pending}
+              </span>
+              <span title={t('node.inFlight')}>
+                <Icon name="in-flight" size={12} />
+                {r.inFlight}
+              </span>
               <span title={t('inspector.brokerAcks')} className="node-ok">
-                ✔ {r.ok}
+                <Icon name="ok" size={12} />
+                {r.ok}
               </span>
               <span title={t('inspector.brokerNacks')} className={r.errors > 0 ? 'node-err' : undefined}>
-                ✖ {r.errors}
+                <Icon name="error" size={12} />
+                {r.errors}
               </span>
             </p>
           )}

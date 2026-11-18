@@ -278,7 +278,7 @@
   border-radius: 8px;
 }
 .toolbar a.toolbar-menu-item:hover, .toolbar a.toolbar-menu-item:focus-visible { background: rgb(var(--ink-rgb) / 0.06); }
-.toolbar-menu-icon { width: 16px; flex: none; text-align: center; color: var(--muted); }
+.toolbar-menu-icon { width: 16px; height: 16px; flex: none; color: var(--muted); }
 .toolbar-menu-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 4px 4px 10px; color: var(--muted); }
 .toolbar-menu-row .lang-toggle { margin-left: 0; }
 

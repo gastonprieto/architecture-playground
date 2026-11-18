@@ -5,7 +5,7 @@ const make = (type: string, label = type) =>
   defineComponent({
     type,
     label,
-    icon: 'x',
+    icon: 'server',
     color: 'ok',
     config: { ...processingFields },
     initialState: () => ({}),
@@ -52,7 +52,7 @@ describe('defaultConfig mix defaults', () => {
     const def = defineComponent({
       type: 'client',
       label: 'Client',
-      icon: 'c',
+      icon: 'server',
       color: 'req',
       config: { paths: { type: 'mix', label: 'Paths', default: [{ value: '/a', weight: 1 }] } },
       initialState: () => ({}),
@@ -71,7 +71,7 @@ describe('list fields and showIf', () => {
   const def = defineComponent({
     type: 'proxyish',
     label: 'P',
-    icon: 'p',
+    icon: 'server',
     color: 'req',
     config: {
       mode: { type: 'select', label: 'Modo', default: 'a', options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] },

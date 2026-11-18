@@ -41,9 +41,9 @@ describe('defaultRegistry', () => {
       return [d.type, d.label, d.icon, d.color]
     })
     expect(meta).toEqual([
-      ['client', 'Cliente', '💻', 'req'],
-      ['service', 'Servicio', '⚙️', 'ok'],
-      ['database', 'Base de datos', '🛢️', 'db'],
+      ['client', 'Cliente', 'monitor', 'req'],
+      ['service', 'Servicio', 'server', 'ok'],
+      ['database', 'Base de datos', 'database', 'db'],
     ])
     expect(defaultRegistry.get('client')!.recordsMetrics).toBe(true)
   })

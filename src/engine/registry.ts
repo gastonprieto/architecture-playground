@@ -104,10 +104,29 @@ export interface Ctx<C = any, S = any> {
   random(): number
 }
 
+/**
+ * Names of the icons a component can wear. The engine only names them; the UI maps each name to an SVG
+ * icon (ui/Icon.tsx), so the engine stays free of React.
+ */
+export type ComponentIcon =
+  | 'monitor'
+  | 'split'
+  | 'shield'
+  | 'server'
+  | 'cpu'
+  | 'zap'
+  | 'inbox'
+  | 'radio-tower'
+  | 'bell-ring'
+  | 'archive-x'
+  | 'database'
+  | 'key-round'
+  | 'file-json'
+
 export interface ComponentDef<C = any, S = any> {
   type: string
   label: string
-  icon: string
+  icon: ComponentIcon
   color: Tone
   /** Palette group this component belongs to (see ui/Palette). Missing = ungrouped (shown last). */
   group?: 'edge' | 'compute' | 'data' | 'messaging'
@@ -126,7 +145,7 @@ export interface ComponentDef<C = any, S = any> {
    */
   onConfig?(ctx: Ctx<C, S>, prev: C): void
   /** Icon derived from the config (e.g. the database kind); `icon` is the base one the palette uses. */
-  iconFor?(config: C): string
+  iconFor?(config: C): ComponentIcon
   /**
    * Things the user triggers on a running node. `param` names a number config field the inspector
    * shows next to the button (and not among the fields).

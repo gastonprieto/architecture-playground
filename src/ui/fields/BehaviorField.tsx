@@ -4,6 +4,7 @@ import { useLang, useT } from '../../i18n'
 import { behaviorSummary } from '../behaviorText'
 import { useBehaviorEditor } from '../store/behaviorEditor'
 import { useBehaviorStatus } from '../useBehaviorStatus'
+import { Icon } from '../Icon'
 
 /** Inspector field for the behavior DSL: a one-line summary and the button that opens the editor. */
 export function BehaviorField({ nodeId, label, value }: { nodeId: NodeId; label: string; value: string }) {
@@ -18,7 +19,10 @@ export function BehaviorField({ nodeId, label, value }: { nodeId: NodeId; label:
         {label}
       </span>
       <div className="behavior-row">
-        <span className={`behavior-summary ${status.kind}`}>{behaviorSummary(lang, status)}</span>
+        <span className={`behavior-summary ${status.kind}`}>
+          {status.kind === 'errors' && <Icon name="warning" size={13} />}
+          {behaviorSummary(lang, status)}
+        </span>
         <button type="button" onClick={(e) => open(nodeId, e.currentTarget)}>
           {t('behavior.edit')}
         </button>

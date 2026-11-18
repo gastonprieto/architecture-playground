@@ -317,14 +317,14 @@ describe('Inspector: Estado / Configuración tabs', () => {
     select({ kind: 'node', id: 's1' })
     expect(within(panel('Estado')).getByText('Todavía no pasó tráfico por este componente.')).toBeTruthy()
     act(() => useRuntime.setState({ playing: false }))
-    expect(within(panel('Estado')).getByText('Simulación en pausa: dale ▶ para ver tráfico.')).toBeTruthy()
+    expect(within(panel('Estado')).getByText('Simulación en pausa: dale Play para ver tráfico.')).toBeTruthy()
     act(() => useRuntime.setState({ playing: true }))
     act(() => useRuntime.setState({ stats: { s1: { inFlight: 2, queued: 1, ok: 40, errors: 3, pending: 0 } } }))
     const status = panel('Estado')
     expect(within(status).queryByText('Todavía no pasó tráfico por este componente.')).toBeNull()
-    expect(within(status).getByText('En proceso').previousSibling?.textContent).toBe('⏳ 2')
-    expect(within(status).getByText('OK').previousSibling?.textContent).toBe('✔ 40')
-    expect(within(status).getByText('Errores').previousSibling?.textContent).toBe('✖ 3')
+    expect(within(status).getByText('En proceso').previousSibling?.textContent).toBe('2')
+    expect(within(status).getByText('OK').previousSibling?.textContent).toBe('40')
+    expect(within(status).getByText('Errores').previousSibling?.textContent).toBe('3')
   })
 
   it('a load balancer shows its advanced view in Estado, not in Configuración', () => {
@@ -398,7 +398,7 @@ describe('statusRows', () => {
   })
 
   it('a client with several users shows its logged-in users; a plain service shows nothing', () => {
-    expect(rows('client', { users: 5, auth: 'login' }, { cookies: 2 }, t)).toEqual([['node.loggedIn', '🍪 2/5']])
+    expect(rows('client', { users: 5, auth: 'login' }, { cookies: 2 }, t)).toEqual([['node.loggedIn', '2/5']])
     expect(rows('service', {}, undefined, t)).toEqual([])
   })
 })
@@ -465,7 +465,7 @@ describe('brokerRows', () => {
     expect(within(status).getByText('16 entregados')).toBeTruthy()
     expect(within(status).getByText('Cola: recibe sin ack (fire-and-forget)')).toBeTruthy()
     // the En cola tile adds up the lanes
-    expect(within(status).getByText('En cola').previousSibling?.textContent).toBe('☰ 4')
+    expect(within(status).getByText('En cola').previousSibling?.textContent).toBe('4')
     act(() => useRuntime.setState({ states: {}, stats: {} }))
   })
 })

@@ -27,14 +27,14 @@ describe('cache counters in the UI state (counts only)', () => {
 describe('cacheCounters', () => {
   const ui = { cacheKeys: 3, cacheHits: 3, cacheMisses: 1 }
 
-  it('a Cache in keys mode (the default) shows 🔑 N and the real hit %', () => {
-    expect(cacheCounters('cache', { mode: 'keys' }, ui)).toEqual({ keys: '🔑 3', hit: 'hit 75%' })
-    expect(cacheCounters('cache', {}, ui)).toEqual({ keys: '🔑 3', hit: 'hit 75%' })
+  it('a Cache in keys mode (the default) shows N keys and the real hit %', () => {
+    expect(cacheCounters('cache', { mode: 'keys' }, ui)).toEqual({ keys: '3', hit: 'hit 75%' })
+    expect(cacheCounters('cache', {}, ui)).toEqual({ keys: '3', hit: 'hit 75%' })
   })
 
   it('no hit % before the first lookup', () => {
-    expect(cacheCounters('cache', { mode: 'keys' }, undefined)).toEqual({ keys: '🔑 0', hit: null })
-    expect(cacheCounters('cache', { mode: 'keys' }, { cacheKeys: 0, cacheHits: 0, cacheMisses: 0 })).toEqual({ keys: '🔑 0', hit: null })
+    expect(cacheCounters('cache', { mode: 'keys' }, undefined)).toEqual({ keys: '0', hit: null })
+    expect(cacheCounters('cache', { mode: 'keys' }, { cacheKeys: 0, cacheHits: 0, cacheMisses: 0 })).toEqual({ keys: '0', hit: null })
   })
 
   it('rounds the hit %', () => {

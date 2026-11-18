@@ -22,6 +22,7 @@ import { useEditor } from './store/editor'
 import { useInspectorTab, type InspectorTab } from './store/inspectorTab'
 import { databaseKindPatch } from './sessions'
 import { useBehaviorStatus } from './useBehaviorStatus'
+import { Icon } from './Icon'
 
 export interface InspectorProps {
   runAction?: (nodeId: string, action: string) => void
@@ -280,7 +281,7 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
     <div className="inspector-body">
       <div className="inspector-head">
         <h2 className="panel-title">
-          <span aria-hidden>{def.iconFor?.(node.config) ?? def.icon}</span> {componentLabel(lang, def.type, def)}
+          <Icon name={def.iconFor?.(node.config) ?? def.icon} size={16} /> {componentLabel(lang, def.type, def)}
         </h2>
         <InfoButton type={def.type} label={componentLabel(lang, def.type, def)} />
       </div>
@@ -294,7 +295,8 @@ function NodeInspector({ id, runAction }: { id: string; runAction?: InspectorPro
               title={t('inspector.upTitle')}
               onClick={() => updateNodeConfig(id, { up: down })}
             >
-              <span aria-hidden>⏻</span> {t(down ? 'inspector.turnOn' : 'inspector.turnOff')}
+              <Icon name="power" size={14} />
+              {t(down ? 'inspector.turnOn' : 'inspector.turnOff')}
             </button>
           )}
           {actions.map(([name, action]) => {

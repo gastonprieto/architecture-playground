@@ -1,4 +1,4 @@
-import { defineComponent, processingFields, waitingClientsField, type Ctx, type Field } from '../engine/registry'
+import { defineComponent, processingFields, waitingClientsField, type ComponentIcon, type Ctx, type Field } from '../engine/registry'
 
 export type DbKind = 'relational' | 'key-value' | 'document'
 
@@ -19,10 +19,10 @@ export interface DatabaseState {
 }
 
 /** Suggested processingTime and node icon per kind. Key-value is also volatile (see syncUp). */
-export const DB_KIND_DEFAULTS: Record<DbKind, { processingTime: number; icon: string }> = {
-  relational: { processingTime: 300, icon: '🛢️' },
-  'key-value': { processingTime: 20, icon: '🗝️' },
-  document: { processingTime: 80, icon: '📄' },
+export const DB_KIND_DEFAULTS: Record<DbKind, { processingTime: number; icon: ComponentIcon }> = {
+  relational: { processingTime: 300, icon: 'database' },
+  'key-value': { processingTime: 20, icon: 'key-round' },
+  document: { processingTime: 80, icon: 'file-json' },
 }
 
 /** The configured kind; graphs saved before the field existed behave as relational. */

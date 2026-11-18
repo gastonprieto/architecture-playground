@@ -8,6 +8,7 @@ import type { SimApi } from './runtime/useSimulation'
 import { useIsland } from './useIsland'
 import { useIsMobile } from './useIsMobile'
 import { useLoadScenario } from './useLoadScenario'
+import { Icon } from './Icon'
 
 type Tab = 'how' | 'try'
 
@@ -49,7 +50,7 @@ export function ScenarioGuide({ api }: { api: SimApi }) {
           {topic.presets.length > 1 && ` · ${t('scenarios.position', { i: position, n: topic.presets.length })}`}
         </span>
         <button type="button" className="scenario-guide-close" onClick={() => useScenario.getState().setGuideOpen(false)} aria-label={t('scenarios.hideGuide')} title={t('scenarios.hideGuide')}>
-          ✕
+          <Icon name="close" />
         </button>
         <h2>{preset.name}</h2>
         <p className="scenario-guide-description">{preset.description}</p>

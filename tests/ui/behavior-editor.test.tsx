@@ -88,11 +88,11 @@ describe('behavior field in the inspector', () => {
     setBehavior('s1', `${VALID}\non event:\n  reply 200\n`)
     expect(within(inspector()).getByText('2 handlers')).toBeTruthy()
     setBehavior('s1', INVALID)
-    expect(within(inspector()).getByText('⚠ 1 error')).toBeTruthy()
+    expect(within(inspector()).getByText('1 error')).toBeTruthy()
     // Renaming the target breaks a valid DSL (Review Focus 3).
     setBehavior('s1', VALID)
     act(() => useEditor.getState().updateNodeConfig('db1', { name: 'BD' }))
-    expect(within(inspector()).getByText('⚠ 1 error')).toBeTruthy()
+    expect(within(inspector()).getByText('1 error')).toBeTruthy()
   })
 })
 
@@ -236,7 +236,7 @@ describe('behavior editor popup', () => {
     const live = document.querySelector('.dsl-dialog [aria-live="polite"]')!
     expect(screen.getByRole('dialog').querySelector('[role="status"]')).toBeNull()
     fireEvent.change(textarea(), { target: { value: INVALID } })
-    expect(live.textContent).toBe('⚠ 1 error')
+    expect(live.textContent).toBe('1 error')
     fireEvent.change(textarea(), { target: { value: VALID } })
     expect(live.textContent).toBe('Sin errores')
   })
@@ -284,7 +284,7 @@ describe('behavior editor popup', () => {
     expect(within(dialog).getByText('DSL reference')).toBeTruthy()
     expect(within(dialog).getByRole('button', { name: 'Insert example' })).toBeTruthy()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }))
-    expect(within(inspector()).getByText('⚠ 1 error')).toBeTruthy()
+    expect(within(inspector()).getByText('1 error')).toBeTruthy()
   })
 })
 
@@ -353,21 +353,22 @@ describe('behavior editor: backdrop, hints, overridden fields', () => {
 })
 
 describe('DSL badge on the node', () => {
-  it('shows "DSL" for an active behavior, "⚠ DSL" with errors, nothing by default', () => {
+  it('shows "DSL" for an active behavior, a warning icon + "DSL" with errors, nothing by default', () => {
     renderWith()
     const badge = (id: string) => document.querySelector(`.react-flow__node[data-id="${id}"] .node-dsl`)
     expect(badge('s1')).toBeNull()
     expect(badge('w1')!.textContent).toBe('DSL')
     expect(badge('w1')!.classList.contains('error')).toBe(false)
-    expect(badge('w2')!.textContent).toBe('⚠ DSL')
+    expect(badge('w2')!.textContent).toBe('DSL')
+    expect(badge('w2')!.querySelector('[data-icon="warning"]')).toBeTruthy()
     expect(badge('w2')!.classList.contains('error')).toBe(true)
     setBehavior('s1', INVALID)
-    expect(badge('s1')!.textContent).toBe('⚠ DSL')
+    expect(badge('s1')!.classList.contains('error')).toBe(true)
     setBehavior('s1', VALID)
     expect(badge('s1')!.textContent).toBe('DSL')
     // Disconnecting the target flips it to an error.
     act(() => useEditor.getState().removeElements(['e2']))
-    expect(badge('s1')!.textContent).toBe('⚠ DSL')
+    expect(badge('s1')!.classList.contains('error')).toBe(true)
   })
 })
 

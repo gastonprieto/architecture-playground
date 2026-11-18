@@ -107,7 +107,7 @@ function forgetKeysIfDown(ctx: CacheCtx): void {
 export const cache = defineComponent<CacheConfig, CacheState>({
   type: 'cache',
   label: 'Cache',
-  icon: '⚡',
+  icon: 'zap',
   color: 'redis',
   group: 'data',
   config: {

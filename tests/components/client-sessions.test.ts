@@ -16,7 +16,7 @@ const graph = (nodes: GraphNode[], edges: GraphEdge[] = []): Graph => ({ nodes, 
 const sess = defineComponent<Record<string, never>, { valid: string[] }>({
   type: 'sess',
   label: 'Sess',
-  icon: 's',
+  icon: 'server',
   color: 'ok',
   config: {},
   initialState: () => ({ valid: [] }),

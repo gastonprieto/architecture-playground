@@ -8,7 +8,7 @@ import { edge, graph, makeRegistry, node } from './fixtures'
 const patcher = defineComponent({
   type: 'patcher',
   label: 'Patcher',
-  icon: 'p',
+  icon: 'server',
   color: 'ok',
   config: {},
   initialState: () => ({}),

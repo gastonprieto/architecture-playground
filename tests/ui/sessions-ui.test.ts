@@ -24,26 +24,26 @@ describe('usesSessionMemory', () => {
 
 describe('cookieCounter', () => {
   it('client: logged/N with more than one user, or when someone is logged in', () => {
-    expect(cookieCounter('client', { users: 5, auth: 'login' }, { cookies: 2 })).toBe('🍪 2/5')
-    expect(cookieCounter('client', { users: 5, auth: 'login' }, undefined)).toBe('🍪 0/5')
-    expect(cookieCounter('client', { users: 3, auth: 'none' }, { cookies: 0 })).toBe('🍪 0/3')
+    expect(cookieCounter('client', { users: 5, auth: 'login' }, { cookies: 2 })).toBe('2/5')
+    expect(cookieCounter('client', { users: 5, auth: 'login' }, undefined)).toBe('0/5')
+    expect(cookieCounter('client', { users: 3, auth: 'none' }, { cookies: 0 })).toBe('0/3')
     // A single user without a cookie (every preset client, the default) shows nothing.
     expect(cookieCounter('client', {}, undefined)).toBeNull()
     expect(cookieCounter('client', { users: 1, auth: 'login' }, { cookies: 0 })).toBeNull()
-    expect(cookieCounter('client', { users: 1, auth: 'login' }, { cookies: 1 })).toBe('🍪 1/1')
+    expect(cookieCounter('client', { users: 1, auth: 'login' }, { cookies: 1 })).toBe('1/1')
   })
   it('service: N when the DSL uses session memory or N > 0; never on workers or subscribers', () => {
     const mem = { behavior: 'on request:\n  session memory\n' }
-    expect(cookieCounter('service', mem, undefined)).toBe('🍪 0')
-    expect(cookieCounter('service', mem, { sessions: 4 })).toBe('🍪 4')
-    expect(cookieCounter('service', { behavior: '' }, { sessions: 2 })).toBe('🍪 2')
+    expect(cookieCounter('service', mem, undefined)).toBe('0')
+    expect(cookieCounter('service', mem, { sessions: 4 })).toBe('4')
+    expect(cookieCounter('service', { behavior: '' }, { sessions: 2 })).toBe('2')
     expect(cookieCounter('worker', mem, { sessions: 0 })).toBeNull()
     expect(cookieCounter('subscriber', mem, { sessions: 2 })).toBeNull()
     expect(cookieCounter('service', { behavior: 'on request:\n  session jwt\n' }, { sessions: 0 })).toBeNull()
   })
   it('database: only when it holds sessions', () => {
     expect(cookieCounter('database', {}, { sessions: 0 })).toBeNull()
-    expect(cookieCounter('database', {}, { sessions: 7 })).toBe('🍪 7')
+    expect(cookieCounter('database', {}, { sessions: 7 })).toBe('7')
   })
   it('other types: never', () => {
     expect(cookieCounter('load-balancer', {}, { sessions: 3 })).toBeNull()

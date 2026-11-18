@@ -7,6 +7,7 @@ import { rich } from './richText'
 import { toneColor } from './colors'
 import { Modal } from './Modal'
 import { useInfoPanel } from './store/infoPanel'
+import { Icon } from './Icon'
 
 function InfoPanel({ type }: { type: string }) {
   const lang = useLang((s) => s.lang)
@@ -31,11 +32,11 @@ function InfoPanel({ type }: { type: string }) {
     >
       <header className="info-head">
         <span className="info-icon" aria-hidden>
-          {def?.icon ?? '❓'}
+          <Icon name={def?.icon ?? 'unknown'} size={20} />
         </span>
         <h2 id={titleId}>{label}</h2>
         <button ref={closeRef} type="button" className="info-close" aria-label={t('info.close')} title={t('info.close')} onClick={close}>
-          ✕
+          <Icon name="close" />
         </button>
       </header>
       {info ? (
@@ -90,7 +91,7 @@ export function InfoButton({ type, label }: { type: string; label: string }) {
   const text = t('info.open', { label })
   return (
     <button type="button" className="info-btn" aria-label={text} title={text} onClick={(e) => open(type, e.currentTarget)}>
-      ⓘ
+      <Icon name="info" size={14} />
     </button>
   )
 }

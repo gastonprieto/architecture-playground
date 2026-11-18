@@ -63,9 +63,9 @@ describe('catalog', () => {
       return [d.label, d.icon, d.color]
     })
     expect(meta).toEqual([
-      ['Cola', '📬', 'req'],
-      ['Worker', '🛠️', 'ok'],
-      ['DLQ', '☠️', 'err'],
+      ['Cola', 'inbox', 'req'],
+      ['Worker', 'cpu', 'ok'],
+      ['DLQ', 'archive-x', 'err'],
     ])
     const q = defaultRegistry.get('queue')!
     expect(q.config.queueMax).toMatchObject({ type: 'number', label: 'Cola máx.', default: 50, min: 0, max: 500 })

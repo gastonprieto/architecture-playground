@@ -164,7 +164,7 @@
   border-radius: var(--radius);
   background: var(--panel-solid);
 }
-.l-comp-icon { font-size: 22px; line-height: 1.2; }
+.l-comp-icon { display: inline-flex; flex: none; padding-top: 2px; color: var(--node-color); }
 .l-comp b { display: block; font-size: 15px; }
 .l-comp small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.45; color: var(--muted); }
 

@@ -13,6 +13,7 @@ import { cookieCounter } from '../sessions'
 import { cacheCounters } from '../cacheCounters'
 import { useBehaviorStatus } from '../useBehaviorStatus'
 import { packetStyle } from './PacketLayer'
+import { Icon } from '../Icon'
 
 export type ArchNodeData = { kind: string; config: Record<string, unknown>; enterDelay?: number }
 export type ArchFlowNode = Node<ArchNodeData, 'arch'>
@@ -50,7 +51,7 @@ function Cells({ cells, kind }: { cells: CellsView; kind: string }) {
 
 const truncate = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
 
-/** "DSL" when the node runs a behavior, "⚠ DSL" when it has errors (and runs the default); nothing when blank. */
+/** "DSL" when the node runs a behavior, a warning icon + "DSL" when it has errors (and runs the default); nothing when blank. */
 function DslBadge({ nodeId, text }: { nodeId: NodeId; text: unknown }) {
   const t = useT()
   const status = useBehaviorStatus(nodeId, text)
@@ -58,7 +59,8 @@ function DslBadge({ nodeId, text }: { nodeId: NodeId; text: unknown }) {
   const error = status.kind === 'errors'
   return (
     <span className={`node-dsl${error ? ' error' : ''}`} title={t(error ? 'behavior.badgeErrorsTitle' : 'behavior.badgeTitle')}>
-      {t(error ? 'behavior.badgeErrors' : 'behavior.badge')}
+      {error && <Icon name="warning" size={11} />}
+      {t('behavior.badge')}
     </span>
   )
 }
@@ -81,7 +83,10 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
   return (
     <div className="node-stats">
       <div className="node-counters">
-        {config.up === false && <span className="node-down">⏻ {t('node.down')}</span>}
+        {config.up === false && <span className="node-down">
+            <Icon name="power" size={11} />
+            {t('node.down')}
+          </span>}
         {(kind === 'worker' || kind === 'subscriber') && (
           <span className="node-pull" title={t('node.pull')}>
             PULL
@@ -90,11 +95,13 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
         {hasBehavior && <DslBadge nodeId={nodeId} text={config.behavior} />}
         {cookies && (
           <span className="node-cookies" title={t(kind === 'client' ? 'node.loggedIn' : 'node.sessions')}>
+            <Icon name="sessions" size={11} />
             {cookies}
           </span>
         )}
         {cacheView.keys && (
           <span className="node-keys" title={t('node.cacheKeys')}>
+            <Icon name="keys" size={11} />
             {cacheView.keys}
           </span>
         )}
@@ -105,13 +112,30 @@ export function NodeStatsSlot({ nodeId, kind, config }: { nodeId: NodeId; kind: 
         )}
         {SHOWS_PENDING.has(kind) && stats.pending > 0 && (
           <span title={t('node.pendingHint')} className="node-pending">
-            ⇄ {compact(stats.pending)}
+            <Icon name="pending" size={11} />
+            {compact(stats.pending)}
           </span>
         )}
-        {stats.inFlight > 0 && <span title={t('node.inFlight')}>⏳ {compact(stats.inFlight)}</span>}
-        {stats.queued > 0 && <span title={t('node.queued')}>☰ {compact(stats.queued)}</span>}
-        <span title={t('node.ok')} className="node-ok">✔ {compact(stats.ok)}</span>
-        <span title={t('node.errors')} className={stats.errors > 0 ? 'node-err' : 'node-zero'}>✖ {compact(stats.errors)}</span>
+        {stats.inFlight > 0 && (
+          <span title={t('node.inFlight')}>
+            <Icon name="in-flight" size={11} />
+            {compact(stats.inFlight)}
+          </span>
+        )}
+        {stats.queued > 0 && (
+          <span title={t('node.queued')}>
+            <Icon name="queued" size={11} />
+            {compact(stats.queued)}
+          </span>
+        )}
+        <span title={t('node.ok')} className="node-ok">
+          <Icon name="ok" size={11} />
+          {compact(stats.ok)}
+        </span>
+        <span title={t('node.errors')} className={stats.errors > 0 ? 'node-err' : 'node-zero'}>
+          <Icon name="error" size={11} />
+          {compact(stats.errors)}
+        </span>
       </div>
       {ui?.items && (kind === 'queue' || kind === 'dlq') && <Cells cells={ui.items} kind={kind} />}
       {lanes.map(([id, cells]) => (
@@ -135,7 +159,7 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
     def && data.kind === 'database'
       ? `${typeLabel} · ${optionLabel(lang, def, 'kind', dbKind(data.config as { kind?: DbKind })).toLocaleLowerCase(lang)}`
       : typeLabel
-  const icon = def ? (def.iconFor?.(data.config) ?? def.icon) : '❓'
+  const icon = def ? (def.iconFor?.(data.config) ?? def.icon) : 'unknown'
   // A Cliente wears its own color (the one its packets carry).
   const own = data.kind === 'client' && typeof data.config.color === 'string' && data.config.color ? data.config.color : undefined
   const color = own ?? (def ? toneColor(def.color) : C.err)
@@ -161,7 +185,7 @@ export function ArchNode({ id, data, selected }: NodeProps<ArchFlowNode>) {
       )}
       <div className="arch-node-head">
         <span className="arch-node-icon" aria-hidden>
-          {icon}
+          <Icon name={icon} size={18} />
         </span>
         <div className="arch-node-text">
           <div className="arch-node-name">{name}</div>

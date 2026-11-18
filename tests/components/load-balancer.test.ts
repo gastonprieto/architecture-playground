@@ -72,7 +72,7 @@ describe('pending requests (sent, not answered yet)', () => {
 describe('load balancer', () => {
   it('has catalog metadata and config', () => {
     const d = defaultRegistry.get('load-balancer')!
-    expect([d.label, d.icon, d.color]).toEqual(['Load Balancer', '⚖️', 'hc'])
+    expect([d.label, d.icon, d.color]).toEqual(['Load Balancer', 'split', 'hc'])
     expect(d.config.algorithm).toMatchObject({
       type: 'select',
       label: 'Algoritmo',

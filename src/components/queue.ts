@@ -39,7 +39,7 @@ function deadLetter(ctx: QueueCtx, msg: Message): void {
 export const queue = defineComponent<QueueConfig, QueueState>({
   type: 'queue',
   label: 'Cola',
-  icon: '📬',
+  icon: 'inbox',
   color: 'req',
   group: 'messaging',
   config: {

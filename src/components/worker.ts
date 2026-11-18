@@ -25,7 +25,7 @@ type WorkerState = DependencyState & BehaviorState & PullState
 export const worker = defineComponent<WorkerConfig, WorkerState>({
   type: 'worker',
   label: 'Worker',
-  icon: '🛠️',
+  icon: 'cpu',
   color: 'ok',
   group: 'compute',
   config: {

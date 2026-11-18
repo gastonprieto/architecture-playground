@@ -11,7 +11,7 @@ const queue = defaultRegistry.get('queue')!
 const thirdParty = defineComponent({
   type: 'third-party',
   label: 'Tercero',
-  icon: '🧩',
+  icon: 'server',
   color: 'ok',
   config: {
     capacity: processingFields.capacity,

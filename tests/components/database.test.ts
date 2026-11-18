@@ -35,9 +35,9 @@ describe('database kind', () => {
 
   it('exports the suggested processing time and icon per kind', () => {
     expect(DB_KIND_DEFAULTS).toEqual({
-      relational: { processingTime: 300, icon: '🛢️' },
-      'key-value': { processingTime: 20, icon: '🗝️' },
-      document: { processingTime: 80, icon: '📄' },
+      relational: { processingTime: 300, icon: 'database' },
+      'key-value': { processingTime: 20, icon: 'key-round' },
+      document: { processingTime: 80, icon: 'file-json' },
     })
   })
 
@@ -50,11 +50,11 @@ describe('database kind', () => {
 
   it('iconFor returns the icon of the kind (relational when missing or unknown)', () => {
     expect(database.iconFor).toBeDefined()
-    expect(database.iconFor!({ ...defaultConfig(database), kind: 'key-value' } as never)).toBe('🗝️')
-    expect(database.iconFor!({ ...defaultConfig(database), kind: 'document' } as never)).toBe('📄')
-    expect(database.iconFor!({ ...defaultConfig(database), kind: 'relational' } as never)).toBe('🛢️')
-    expect(database.iconFor!({} as never)).toBe('🛢️')
-    expect(database.icon).toBe('🛢️')
+    expect(database.iconFor!({ ...defaultConfig(database), kind: 'key-value' } as never)).toBe('key-round')
+    expect(database.iconFor!({ ...defaultConfig(database), kind: 'document' } as never)).toBe('file-json')
+    expect(database.iconFor!({ ...defaultConfig(database), kind: 'relational' } as never)).toBe('database')
+    expect(database.iconFor!({} as never)).toBe('database')
+    expect(database.icon).toBe('database')
   })
 })
 

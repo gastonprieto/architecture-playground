@@ -10,6 +10,7 @@ import type { SimApi } from './runtime/useSimulation'
 import { useGraphText } from './store/graphText'
 import { useLoadGraph } from './useLoadGraph'
 import { fitViewOptions } from './fitView'
+import { Icon } from './Icon'
 
 /** The text editor is desktop-only: frame the graph clear of the islands. */
 const FIT = fitViewOptions(false, false, true)
@@ -92,7 +93,7 @@ function TextPanel({ api, initial }: { api: SimApi; initial: string }) {
       <header className="info-head">
         <h2 id={titleId}>{t('graphText.title')}</h2>
         <button type="button" className="info-close" aria-label={t('info.close')} title={t('info.close')} onClick={close}>
-          ✕
+          <Icon name="close" />
         </button>
       </header>
       <div className="dsl-main">

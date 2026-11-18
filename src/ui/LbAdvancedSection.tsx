@@ -6,6 +6,7 @@ import { ZERO_STATS, useRuntime } from './runtime/runtimeStore'
 import type { LbView, UiState } from './runtime/useSimulation'
 import { useEditor } from './store/editor'
 import { effectiveWeights } from '../engine/weights'
+import { Icon } from './Icon'
 
 /** One client's slice of a server's traffic. */
 export interface ClientSlice {
@@ -160,7 +161,10 @@ export function LbAdvancedSection({ lbId, algorithm }: { lbId: string; algorithm
         </div>
       ))}
       <p className="lb-adv-foot">{lbSummary(lb, adv, algorithm)}</p>
-      {stats.errors > 0 && <p className="lb-adv-foot">✖ {stats.errors}</p>}
+      {stats.errors > 0 && <p className="lb-adv-foot">
+          <Icon name="error" size={12} />
+          {stats.errors}
+        </p>}
     </section>
   )
 }
