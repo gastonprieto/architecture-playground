@@ -2,6 +2,7 @@ import { useId, useRef } from 'react'
 import { useT } from '../i18n'
 import { Modal } from './Modal'
 import { useNewDiagram } from './store/newDiagram'
+import { Icon } from './Icon'
 
 /** Asks before "Nuevo" deletes every component. Cancel has the initial focus, so Enter does not delete. */
 export function NewDiagramDialog() {
@@ -23,7 +24,7 @@ function NewDiagramPanel() {
     <Modal className="info-panel confirm-dialog" labelledBy={titleId} onClose={close} opener={opener} initialFocus={cancelRef}>
       <header className="info-head">
         <span className="info-icon" aria-hidden="true">
-          ⚠
+          <Icon name="warning" size={20} />
         </span>
         <h2 id={titleId}>{t('newDiagram.title')}</h2>
       </header>

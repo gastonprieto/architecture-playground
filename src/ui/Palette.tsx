@@ -6,6 +6,7 @@ import { componentLabel } from '../i18n/componentText'
 import { toneColor } from './colors'
 import { InfoButton } from './InfoDialog'
 import { useIsland } from './useIsland'
+import { Icon } from './Icon'
 
 /** dataTransfer type carrying the component type from a palette tile to the canvas. */
 export const ARCH_TYPE_MIME = 'application/x-arch-type'
@@ -62,7 +63,7 @@ export function Palette() {
           aria-label={t(collapsed ? 'palette.expand' : 'palette.collapse')}
           title={t(collapsed ? 'palette.expand' : 'palette.collapse')}
         >
-          {collapsed ? '»' : '«'}
+          <Icon name={collapsed ? 'expand' : 'collapse'} />
         </button>
       </div>
       {GROUP_ORDER.filter((g) => byGroup.has(g)).map((g) => (
@@ -76,7 +77,7 @@ export function Palette() {
                   {/* Only this part drags, so the ⓘ button next to it is a plain click. */}
                   <div className="palette-drag" draggable onDragStart={(e) => onDragStart(e, def.type)} title={t('palette.dragHint', { label })}>
                     <span className="palette-icon" aria-hidden>
-                      {def.icon}
+                      <Icon name={def.icon} size={18} />
                     </span>
                     <span className={collapsed ? 'sr-only' : undefined}>{label}</span>
                   </div>

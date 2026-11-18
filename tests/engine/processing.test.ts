@@ -127,7 +127,7 @@ describe('ctx.occupy', () => {
   const holder = defineComponent({
     type: 'holder',
     label: 'Holder',
-    icon: 'h',
+    icon: 'server',
     color: 'slow',
     config: { ...processingFields },
     initialState: () => ({}),

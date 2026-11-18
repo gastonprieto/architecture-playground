@@ -57,7 +57,7 @@ describe('component info content', () => {
   })
 
   it('a third-party type without info has none', () => {
-    const def = defineComponent({ type: 'x-custom', label: 'Custom', icon: '?', color: 'req', config: {}, initialState: () => ({}), onMessage() {} })
+    const def = defineComponent({ type: 'x-custom', label: 'Custom', icon: 'server', color: 'req', config: {}, initialState: () => ({}), onMessage() {} })
     expect(componentInfo('es', def)).toBeUndefined()
   })
 })

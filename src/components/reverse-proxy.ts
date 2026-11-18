@@ -89,7 +89,7 @@ const CACHE_KEYS = { field: 'cache', equals: 'keys' } as const
 export const reverseProxy = defineComponent<ReverseProxyConfig, ReverseProxyState>({
   type: 'reverse-proxy',
   label: 'Reverse Proxy',
-  icon: '🚪',
+  icon: 'shield',
   color: 'req',
   group: 'edge',
   config: {

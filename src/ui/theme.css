@@ -177,7 +177,7 @@ body {
 }
 .palette-drag:active { cursor: grabbing; }
 .palette-tile .info-btn { margin: 0 5px 0 2px; }
-.palette-icon { font-size: 18px; line-height: 1; }
+.palette-icon { display: inline-flex; flex: none; color: var(--node-color); }
 
 .palette-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .palette-header .panel-title { margin: 0; }
@@ -234,7 +234,16 @@ body {
   box-shadow: 0 0 0 2px var(--node-color), 0 12px 26px rgb(var(--shadow-rgb) / 0.45);
 }
 .arch-node-head { display: flex; align-items: center; gap: 10px; }
-.arch-node-icon { font-size: 22px; line-height: 1; }
+.arch-node-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--node-color);
+  background: color-mix(in srgb, var(--node-color) 14%, transparent);
+}
 .arch-node-name { font-weight: 700; font-size: 14px; white-space: nowrap; }
 .arch-node-type { font: 11px/1.2 var(--mono); color: var(--muted); }
 .arch-node.unknown .arch-node-type { color: var(--red); }
@@ -572,6 +581,12 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* Counters are an icon + a number; the icon sits on the text's baseline. */
+.node-counters > span, .broker-adv-line > span, .lb-adv-foot, .status-tile-value, .behavior-summary, .node-dsl {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
 .node-ok { color: var(--green); }
 .node-pending { color: var(--cyan); }
 .node-err { color: var(--red); }
@@ -692,7 +707,7 @@ body {
 .info-panel:focus { outline: none; }
 .info-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .info-head h2 { flex: 1; margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
-.info-icon { font-size: 22px; line-height: 1; }
+.info-icon { display: inline-flex; flex: none; color: var(--node-color, var(--orange)); }
 .info-close {
   flex: none;
   width: 28px;
@@ -1158,3 +1173,17 @@ body {
 }
 /* On a phone the guide sits at the bottom of the canvas and keeps the top of the graph visible. */
 .app.mobile .scenario-guide { top: auto; bottom: 12px; max-height: 50%; width: calc(100% - 24px); }
+
+/* ---------- icons (ui/Icon.tsx, Lucide) ---------- */
+
+.icon { flex: none; display: inline-block; vertical-align: -0.15em; }
+.status-tile-value { gap: 6px; }
+.status-tile-value .icon { color: var(--muted); }
+.status-tile.ok .status-tile-value .icon { color: var(--green); }
+.status-tile.err .status-tile-value .icon { color: var(--red); }
+.toolbar button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.toolbar button.primary .icon { fill: currentColor; }
+.toolbar .caret { color: var(--muted); }
+.info-btn, .info-close { display: inline-flex; align-items: center; justify-content: center; }
+.inspector button.power { display: inline-flex; align-items: center; gap: 6px; }
+.scenario-guide-close { display: inline-flex; align-items: center; justify-content: center; }

@@ -103,7 +103,7 @@ function sendOne(ctx: Ctx<ClientConfig, ClientState>): void {
 export const client = defineComponent<ClientConfig, ClientState>({
   type: 'client',
   label: 'Cliente',
-  icon: '💻',
+  icon: 'monitor',
   color: 'req',
   group: 'edge',
   recordsMetrics: true,

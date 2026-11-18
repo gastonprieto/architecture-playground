@@ -5,6 +5,7 @@ import { Modal } from './Modal'
 import { useScenario } from './store/scenario'
 import type { SimApi } from './runtime/useSimulation'
 import { useLoadScenario } from './useLoadScenario'
+import { Icon } from './Icon'
 
 /** Topics on the left (chips on a phone), the chosen topic's scenarios as cards on the right. */
 export function ScenarioPicker({ api }: { api: SimApi }) {
@@ -26,7 +27,7 @@ export function ScenarioPicker({ api }: { api: SimApi }) {
       <header className="scenario-picker-head">
         <h2 id={titleId}>{t('scenarios.title')}</h2>
         <button type="button" className="info-close" ref={closeRef} onClick={close} aria-label={t('scenarios.close')}>
-          ✕
+          <Icon name="close" />
         </button>
       </header>
       <div className="scenario-topics" role="tablist" aria-label={t('scenarios.topics')}>

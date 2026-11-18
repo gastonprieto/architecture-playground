@@ -11,6 +11,7 @@ import { Demo } from './Demo'
 import { PLAY_PATH } from './legacyLink'
 import { Logo } from '../ui/Logo'
 import './landing.css'
+import { Icon } from '../ui/Icon'
 
 const REPO_URL = 'https://github.com/gastonprieto/nodarium'
 
@@ -201,7 +202,7 @@ export function Landing() {
               {components.map((comp) => (
                 <li key={comp.type} className="l-comp" style={{ ['--node-color' as string]: comp.color }}>
                   <span className="l-comp-icon" aria-hidden="true">
-                    {comp.icon}
+                    <Icon name={comp.icon} size={22} />
                   </span>
                   <span>
                     <b>{comp.label}</b>

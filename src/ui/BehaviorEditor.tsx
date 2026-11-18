@@ -13,6 +13,7 @@ import { Modal } from './Modal'
 import { useBehaviorEditor } from './store/behaviorEditor'
 import { useEditor } from './store/editor'
 import { useBehaviorStatus } from './useBehaviorStatus'
+import { Icon } from './Icon'
 
 function EditorPanel({ nodeId }: { nodeId: NodeId }) {
   const node = useEditor((s) => s.graph.nodes.find((n) => n.id === nodeId))
@@ -125,11 +126,11 @@ function EditorPanel({ nodeId }: { nodeId: NodeId }) {
     >
       <header className="info-head">
         <span className="info-icon" aria-hidden>
-          {def?.icon ?? '❓'}
+          <Icon name={def?.icon ?? 'unknown'} size={20} />
         </span>
         <h2 id={titleId}>{t('behavior.title', { name })}</h2>
         <button type="button" className="info-close" aria-label={t('info.close')} title={t('info.close')} onClick={close}>
-          ✕
+          <Icon name="close" />
         </button>
       </header>
       <div className="dsl-main">

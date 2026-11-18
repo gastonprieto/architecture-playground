@@ -20,7 +20,7 @@ export function dslErrorText(lang: Lang, err: DslError): string {
 export const dslErrorLine = (lang: Lang, err: DslError): string =>
   translate(lang, 'behavior.line', { line: err.line, message: dslErrorText(lang, err) })
 
-/** Inspector summary: "Por defecto", "2 handlers" or "⚠ 1 error". */
+/** Inspector summary: "Por defecto", "2 handlers" or "1 error" (shown next to a warning icon). */
 export function behaviorSummary(lang: Lang, status: BehaviorStatus): string {
   if (status.kind === 'default') return translate(lang, 'behavior.summary.default')
   const n = status.kind === 'active' ? status.handlers : status.errors.length

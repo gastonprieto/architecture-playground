@@ -25,7 +25,7 @@ export interface ServiceConfig {
 export const service = defineComponent<ServiceConfig, DependencyState & BehaviorState & CacheAsideState & PullState>({
   type: 'service',
   label: 'Servicio',
-  icon: '⚙️',
+  icon: 'server',
   color: 'ok',
   group: 'compute',
   config: {

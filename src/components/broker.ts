@@ -49,7 +49,7 @@ function publish(ctx: BrokerCtx, ev: Message): void {
 export const broker = defineComponent<BrokerConfig, BrokerState>({
   type: 'broker',
   label: 'Broker',
-  icon: '📣',
+  icon: 'radio-tower',
   color: 'hc',
   group: 'messaging',
   config: {

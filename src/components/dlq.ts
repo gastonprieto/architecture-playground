@@ -14,7 +14,7 @@ export interface DlqState {
 export const dlq = defineComponent<DlqConfig, DlqState>({
   type: 'dlq',
   label: 'DLQ',
-  icon: '☠️',
+  icon: 'archive-x',
   color: 'err',
   group: 'messaging',
   config: {

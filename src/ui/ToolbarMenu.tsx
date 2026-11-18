@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { Icon } from './Icon'
 
 /**
  * The toolbar's `⋯` disclosure: a button that shows a floating panel with the occasional actions.
@@ -44,7 +45,7 @@ export function ToolbarMenu({ label, children }: { label: string; children: (clo
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen((o) => !o)}
       >
-        <span aria-hidden="true">⋯</span>
+        <Icon name="more" />
       </button>
       {open && (
         <div id={panelId} className="toolbar-menu">
