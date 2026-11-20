@@ -13,6 +13,8 @@ It comes with 12 scenarios in 6 topics. Each scenario shows a single architectur
 - **Edge**: a reverse proxy that routes by path prefix and stops the client with no credentials with a 401, and one that caches `/static` at the edge.
 - **Cache**: cache-aside; the service asks the Cache for each product and goes to the database on a MISS. With 10 products and room for 5, you see the evictions (LRU) and the database load.
 
+On a first visit (desktop), an interactive tutorial walks through the basics: each step dims the page except the part it explains and moves on when you do what it asks (add a component, connect it, change a value, press Play). The **Tutorial** item in the toolbar's `⋯` menu starts it again.
+
 A Client sends to its first output (the first edge connected from it).
 
 The UI is in Spanish and English: the `ES | EN` switch in the toolbar changes the language instantly (so does `?lang=es` / `?lang=en` in the URL). With no saved choice, the browser language is used. Presets load in the current language; node names in graphs you already built are not translated.

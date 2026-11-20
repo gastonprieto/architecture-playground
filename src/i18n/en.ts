@@ -37,6 +37,47 @@ export const en: Dict = {
     dark: 'Dark',
     linkCopied: 'Link copied',
     exportFilename: 'architecture.arch',
+    tour: 'Tutorial',
+  },
+  tour: {
+    progress: 'Step {i} of {n}',
+    start: 'Start',
+    next: 'Next',
+    finish: 'Finish',
+    skip: 'Skip tutorial',
+    skipStep: 'Skip step',
+    yourTurn: '👉 Your turn',
+    done: '✓ Done!',
+    steps: {
+      welcome: {
+        title: 'Welcome to Nodarium',
+        body: 'Here you build architectures and watch requests flow between the components. In a minute I will show you the basics, and you do each step yourself.',
+      },
+      add: {
+        title: 'Add a component',
+        body: 'Drag any component from the palette and drop it on the canvas.',
+      },
+      connect: {
+        title: 'Connect it',
+        body: 'Drag from the dot on the right of a component to another one. Connections show where the traffic goes.',
+      },
+      configure: {
+        title: 'Tune its behavior',
+        body: 'Click a component and change any value in the Inspector: its capacity, its processing time, a Client\'s `rate`…',
+      },
+      play: {
+        title: 'Press Play',
+        body: 'Start the simulation with Play (or the space bar) and watch the requests move across the canvas.',
+      },
+      metrics: {
+        title: 'Watch the numbers',
+        body: 'Here you see the live throughput, the p50 and p95 latencies and the error rate. Try raising the traffic until something saturates.',
+      },
+      scenarios: {
+        title: 'Explore scenarios',
+        body: 'Load balancers, queues, caches, pub/sub… Each scenario comes with a guide to how it works and experiments to try. Open them from here.',
+      },
+    },
   },
   newDiagram: {
     title: 'Start a new diagram?',

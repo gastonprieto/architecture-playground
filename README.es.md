@@ -13,6 +13,8 @@ Incluye 12 escenarios en 6 temas. Cada escenario muestra una sola arquitectura, 
 - **Borde**: un reverse proxy que enruta por prefijo de path y corta con 401 al cliente sin credenciales, y uno que cachea `/static` en el borde.
 - **Cache**: cache-aside; el servicio le pregunta a la Cache por cada producto y en un MISS va a la base. Con 10 productos y lugar para 5, se ven las expulsiones (LRU) y la carga de la base.
 
+En la primera visita (en desktop), un tutorial interactivo recorre lo básico: cada paso oscurece la página salvo la parte que explica y avanza solo cuando hacés lo que pide (agregar un componente, conectarlo, cambiar un valor, darle Play). El ítem **Tutorial** del menú `⋯` del toolbar lo vuelve a abrir.
+
 Un Cliente envía a su primera salida (la primera arista que se conectó desde él).
 
 La interfaz está en español e inglés: el selector `ES | EN` de la toolbar cambia el idioma al instante (también `?lang=es` / `?lang=en` en la URL). Sin elección guardada se usa el idioma del navegador. Los presets se cargan en el idioma actual; los nombres de los nodos que ya armaste no se traducen.

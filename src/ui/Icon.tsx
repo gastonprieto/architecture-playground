@@ -14,6 +14,7 @@ import {
   Download,
   Ellipsis,
   FileBraces,
+  GraduationCap,
   Hourglass,
   Info,
   Key,
@@ -55,6 +56,7 @@ export type UiIcon =
   | 'warning'
   | 'scenarios'
   | 'guide'
+  | 'tutorial'
   | 'link'
   | 'edit'
   | 'play'
@@ -103,6 +105,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   warning: TriangleAlert,
   scenarios: Compass,
   guide: BookOpen,
+  tutorial: GraduationCap,
   link: Link,
   edit: Pencil,
   play: Play,

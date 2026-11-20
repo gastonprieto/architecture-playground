@@ -38,6 +38,47 @@ export const es = {
     dark: 'Oscuro',
     linkCopied: 'Link copiado',
     exportFilename: 'arquitectura.arch',
+    tour: 'Tutorial',
+  },
+  tour: {
+    progress: 'Paso {i} de {n}',
+    start: 'Empezar',
+    next: 'Siguiente',
+    finish: 'Terminar',
+    skip: 'Saltar tutorial',
+    skipStep: 'Omitir paso',
+    yourTurn: '👉 Tu turno',
+    done: '✓ ¡Listo!',
+    steps: {
+      welcome: {
+        title: 'Bienvenido a Nodarium',
+        body: 'Acá armás arquitecturas y ves cómo fluyen los requests entre los componentes. En un minuto te muestro lo básico, y cada paso lo hacés vos.',
+      },
+      add: {
+        title: 'Agregá un componente',
+        body: 'Arrastrá cualquier componente de la paleta y soltalo en el canvas.',
+      },
+      connect: {
+        title: 'Conectalo',
+        body: 'Arrastrá desde el punto de la derecha de un componente hasta otro. Las conexiones marcan hacia dónde viaja el tráfico.',
+      },
+      configure: {
+        title: 'Ajustá su comportamiento',
+        body: 'Hacé clic en un componente y cambiá algún valor en el Inspector: la capacidad, el tiempo de procesamiento, el `rate` de un Cliente…',
+      },
+      play: {
+        title: 'Dale Play',
+        body: 'Arrancá la simulación con Play (o la barra espaciadora) y mirá los requests moverse por el canvas.',
+      },
+      metrics: {
+        title: 'Mirá los números',
+        body: 'Acá ves en vivo el throughput, las latencias p50 y p95 y la tasa de errores. Probá subir el tráfico hasta que algo se sature.',
+      },
+      scenarios: {
+        title: 'Explorá escenarios',
+        body: 'Load balancers, colas, caches, pub/sub… Cada escenario trae una guía de cómo funciona y experimentos para probar. Abrilos desde acá.',
+      },
+    },
   },
   newDiagram: {
     title: '¿Empezar un diagrama nuevo?',

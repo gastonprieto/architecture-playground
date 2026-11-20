@@ -11,6 +11,7 @@ import { useEditor } from './store/editor'
 import { useGraphText } from './store/graphText'
 import { useNewDiagram } from './store/newDiagram'
 import { useScenario } from './store/scenario'
+import { useTour } from './store/tour'
 import { useLoadGraph } from './useLoadGraph'
 import { fitViewOptions } from './fitView'
 import { useTheme } from './store/theme'
@@ -256,6 +257,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
         )}
         <Btn
           className="scenario-btn"
+          data-tour="scenarios"
           aria-haspopup="dialog"
           aria-label={scenario ? `${t('scenarios.button')}: ${scenario.name}` : t('scenarios.button')}
           title={scenario ? `${t('scenarios.title')} · ${scenario.name}` : t('scenarios.title')}
@@ -271,7 +273,7 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
       </div>
       <div className="toolbar-sep" aria-hidden="true" />
       <div className="toolbar-group">
-        <Btn className="primary" onClick={toggle} aria-pressed={playing} title={t('toolbar.playTitle')}>
+        <Btn className="primary" data-tour="play" onClick={toggle} aria-pressed={playing} title={t('toolbar.playTitle')}>
           <Icon name={playing ? 'pause' : 'play'} size={14} />
           {playing ? t('toolbar.pause') : t('toolbar.play')}
         </Btn>
@@ -338,6 +340,15 @@ export function Toolbar({ api, mobile }: { api: SimApi; mobile: boolean }) {
                     onClick={() => {
                       track({ name: 'text_editor_opened' })
                       useGraphText.getState().show(printGraphDsl(useEditor.getState().graph), trigger)
+                    }}
+                    close={close}
+                  />
+                  <MenuItem
+                    icon="tutorial"
+                    label={t('toolbar.tour')}
+                    onClick={() => {
+                      track({ name: 'tour_started' })
+                      useTour.getState().start()
                     }}
                     close={close}
                   />

@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { useLang } from '../../src/i18n'
 import App from '../../src/ui/App'
+import { useTour } from '../../src/ui/store/tour'
 import { useEditor } from '../../src/ui/store/editor'
 import { useInspectorTab } from '../../src/ui/store/inspectorTab'
 import { openToolbarMenu } from './toolbarMenu'
@@ -22,6 +23,8 @@ beforeAll(() => {
 
 // These tests edit configuration: start every inspector on the Configuración tab.
 beforeEach(() => useInspectorTab.getState().setTab('config'))
+// These tests cover the app itself: the first-visit tutorial stays closed (tests/ui/tour.test.tsx).
+beforeEach(() => useTour.setState({ step: null }))
 beforeEach(() => {
   localStorage.clear()
   act(() => useLang.getState().setLang('es'))
