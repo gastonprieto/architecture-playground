@@ -96,7 +96,7 @@ interface Message {
 defineComponent({
   type: 'cache',
   label: 'Cache',
-  icon: '⚡',
+  icon: 'database-zap',
   color: 'redis',
   config: {
     hitRate: { type: 'number', min: 0, max: 1, step: 0.05, default: 0.8, label: 'Hit rate' },

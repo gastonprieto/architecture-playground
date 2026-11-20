@@ -124,7 +124,7 @@ export interface RateLimiterState {
 export const rateLimiter = defineComponent<RateLimiterConfig, RateLimiterState>({
   type: 'rate-limiter',
   label: 'Rate limiter',
-  icon: '🚦',
+  icon: 'gauge',
   color: 'slow',
   config: {
     ...processingFields,
@@ -161,6 +161,8 @@ const builtins: ComponentDef[] = [/* ... */, rateLimiter]
 ```
 
 `defineComponent` agrega automáticamente el campo `name`. Los campos de `config` se muestran solos en el panel de propiedades.
+
+`icon` es el nombre de un ícono de [Lucide](https://lucide.dev/icons), no un emoji. Si el que querés todavía no se usa, agregá el nombre a `ComponentIcon` en `src/engine/registry.ts` y mapealo en `src/ui/Icon.tsx` (`gauge: Gauge`). El engine solo conoce el nombre; la UI lo dibuja.
 
 Los textos de la definición (`label`, labels de campos, opciones y acciones) son el fallback. Para traducirlos, agregá las claves en `src/i18n/es.ts` y `src/i18n/en.ts` (las dos con las mismas claves; el tipo `Dict` lo verifica):
 
