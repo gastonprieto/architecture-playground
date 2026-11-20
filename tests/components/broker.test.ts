@@ -70,7 +70,7 @@ describe('catalog', () => {
     const b = defaultRegistry.get('broker')!
     const sub = defaultRegistry.get('subscriber')!
     expect([b.label, b.icon, b.color]).toEqual(['Broker', 'radio-tower', 'hc'])
-    expect([sub.label, sub.icon, sub.color]).toEqual(['Suscriptor', 'bell-ring', 'ok'])
+    expect([sub.label, sub.icon, sub.color]).toEqual(['Suscriptor', 'rss', 'ok'])
     expect(sub.config.emits).toEqual({ type: 'text', label: 'Emite evento', default: '' })
     expect(Object.keys(sub.config)).toEqual(expect.arrayContaining(['up', 'processingTime', 'capacity', 'queueMax']))
   })

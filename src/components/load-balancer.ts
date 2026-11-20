@@ -119,7 +119,7 @@ function pick(msg: Message, ctx: Ctx<LoadBalancerConfig, LoadBalancerState>, tar
 export const loadBalancer = defineComponent<LoadBalancerConfig, LoadBalancerState>({
   type: 'load-balancer',
   label: 'Load Balancer',
-  icon: 'split',
+  icon: 'scale',
   color: 'hc',
   group: 'edge',
   config: {

@@ -110,14 +110,14 @@ export interface Ctx<C = any, S = any> {
  */
 export type ComponentIcon =
   | 'monitor'
+  | 'scale'
   | 'split'
-  | 'shield'
   | 'server'
   | 'cpu'
-  | 'zap'
-  | 'inbox'
+  | 'database-zap'
+  | 'list-end'
   | 'radio-tower'
-  | 'bell-ring'
+  | 'rss'
   | 'archive-x'
   | 'database'
   | 'key-round'
