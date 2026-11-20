@@ -9,6 +9,7 @@ import { useEditor } from './store/editor'
 import { useInspectorTab } from './store/inspectorTab'
 import { useScenario } from './store/scenario'
 import { useTour } from './store/tour'
+import { placeCard, type Side } from './tourPlacement'
 
 /**
  * Places the tutorial points at: `data-tour="<id>"` on the element (kept as attributes rather than
@@ -17,17 +18,20 @@ import { useTour } from './store/tour'
  */
 export type TourTarget = 'palette' | 'nodes' | 'inspector' | 'metrics' | 'play' | 'scenarios'
 
-/** Where the card sits: `position-area` around a target. */
+/** Measured on every step: the card never covers it. */
+type Measured = TourTarget | 'toolbar'
+
+/** Where the card would rather sit: on `side` of a target. */
 interface Placement {
   target: TourTarget
-  area: string
+  side: Side
 }
 
 interface Step {
   id: string
   /** Areas left lit by the spotlight; the rest of the page is dimmed. None: everything dimmed. */
   spotlight: readonly TourTarget[]
-  /** Card placements in order of preference (the first target on screen wins); none: centered. */
+  /** Card placements in order of preference (see placeCard); none: centered. */
   anchor?: readonly Placement[]
   /**
    * An action step: it advances by itself once this holds, compared with the graph at the moment the
@@ -47,13 +51,13 @@ const STEPS: readonly Step[] = [
   {
     id: 'add',
     spotlight: ['palette', 'nodes'],
-    anchor: [{ target: 'palette', area: 'right' }],
+    anchor: [{ target: 'palette', side: 'right' }],
     done: (base) => useEditor.getState().graph.nodes.length > base.nodes.length,
   },
   {
     id: 'connect',
     spotlight: ['nodes'],
-    anchor: [{ target: 'nodes', area: 'bottom' }],
+    anchor: [{ target: 'nodes', side: 'bottom' }],
     done: (base) => useEditor.getState().graph.edges.length > base.edges.length,
   },
   {
@@ -61,17 +65,17 @@ const STEPS: readonly Step[] = [
     spotlight: ['nodes', 'inspector'],
     // The inspector only shows with a selection: until then the card sits by the components.
     anchor: [
-      { target: 'inspector', area: 'bottom span-left' },
-      { target: 'nodes', area: 'bottom' },
+      { target: 'inspector', side: 'bottom' },
+      { target: 'nodes', side: 'bottom' },
     ],
     done: configEdited,
   },
-  { id: 'play', spotlight: ['play'], anchor: [{ target: 'play', area: 'bottom' }], done: () => useRuntime.getState().playing },
-  { id: 'metrics', spotlight: ['metrics'], anchor: [{ target: 'metrics', area: 'top' }] },
+  { id: 'play', spotlight: ['play'], anchor: [{ target: 'play', side: 'bottom' }], done: () => useRuntime.getState().playing },
+  { id: 'metrics', spotlight: ['metrics'], anchor: [{ target: 'metrics', side: 'top' }] },
   {
     id: 'scenarios',
     spotlight: ['scenarios'],
-    anchor: [{ target: 'scenarios', area: 'bottom' }],
+    anchor: [{ target: 'scenarios', side: 'bottom' }],
     done: () => useScenario.getState().pickerOpen,
   },
 ]
@@ -83,7 +87,7 @@ const PAD = 6
 const NODES_PAD = 18
 
 interface Hole {
-  id: TourTarget
+  id: Measured
   x: number
   y: number
   w: number
@@ -91,11 +95,9 @@ interface Hole {
 }
 
 /** The viewport box of a target, padded, or null when it is not on screen. */
-function measure(id: TourTarget): Hole | null {
-  const rects =
-    id === 'nodes'
-      ? [...document.querySelectorAll('.react-flow__node')].map((el) => el.getBoundingClientRect())
-      : [document.querySelector(`[data-tour="${id}"]`)?.getBoundingClientRect()].filter((r) => r !== undefined)
+function measure(id: Measured): Hole | null {
+  const selector = id === 'nodes' ? '.react-flow__node' : id === 'toolbar' ? '.toolbar' : `[data-tour="${id}"]`
+  const rects = [...document.querySelectorAll(selector)].map((el) => el.getBoundingClientRect())
   const visible = rects.filter((r) => r.width > 0 && r.height > 0)
   if (visible.length === 0) return null
   const pad = id === 'nodes' ? NODES_PAD : PAD
@@ -111,7 +113,7 @@ function measure(id: TourTarget): Hole | null {
  * movable islands, the inspector comes and goes with the selection, components are dragged and the
  * canvas is panned and zoomed.
  */
-function useBoxes(ids: readonly TourTarget[]): Hole[] {
+function useBoxes(ids: readonly Measured[]): Hole[] {
   const [boxes, setBoxes] = useState<Hole[]>([])
   const key = ids.join(' ')
   useEffect(() => {
@@ -119,7 +121,7 @@ function useBoxes(ids: readonly TourTarget[]): Hole[] {
     let raf = 0
     let last = ''
     const tick = () => {
-      const next = (key.split(' ') as TourTarget[]).map(measure).filter((b) => b !== null)
+      const next = (key.split(' ') as Measured[]).map(measure).filter((b) => b !== null)
       const sig = JSON.stringify(next)
       if (sig !== last) {
         last = sig
@@ -183,8 +185,8 @@ function Spotlight({ holes }: { holes: Hole[] }) {
 /**
  * Interactive first-visit tutorial: each step lights up one part of the app (spotlight) and asks the
  * user to do something there; action steps advance on their own when it is done. The card is a
- * manual popover tethered to its target with CSS anchor positioning (a bar at the bottom where that
- * is unsupported). `paused` hides it while a dialog is open; the step is kept.
+ * manual popover placed next to its target, clear of the toolbar and of what the step lights up
+ * (placeCard). `paused` hides it while a dialog is open; the step is kept.
  */
 export function Tour({ paused }: { paused: boolean }) {
   const t = useT()
@@ -192,12 +194,38 @@ export function Tour({ paused }: { paused: boolean }) {
   const step = index === null ? undefined : STEPS[index]
   const [doneId, setDoneId] = useState<string | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
-  const measured = step && !paused ? [...new Set([...step.spotlight, ...(step.anchor ?? []).map((a) => a.target)])] : []
+  const measured: Measured[] = step && !paused ? [...new Set([...step.spotlight, ...(step.anchor ?? []).map((a) => a.target), 'toolbar' as const])] : []
   const boxes = useBoxes(measured)
-  const holes = boxes.filter((b) => step?.spotlight.includes(b.id))
-  // The card hangs from an invisible box over the first placement target on screen.
-  const placement = step?.anchor?.find((a) => boxes.some((b) => b.id === a.target))
-  const anchorBox = placement && boxes.find((b) => b.id === placement.target)
+  const holes = boxes.filter((b) => step?.spotlight.includes(b.id as TourTarget))
+  // The card's size, measured once it is on screen (the copy changes its height).
+  const [cardSize, setCardSize] = useState({ w: 0, h: 0 })
+  useLayoutEffect(() => {
+    const el = cardRef.current
+    if (!el) return
+    const read = () =>
+      setCardSize((s) => (s.w === el.offsetWidth && s.h === el.offsetHeight ? s : { w: el.offsetWidth, h: el.offsetHeight }))
+    read()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(read)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [step, paused])
+  const box = (id: Measured) => boxes.find((b) => b.id === id)
+  const candidates = (step?.anchor ?? []).flatMap((a) => {
+    const anchor = box(a.target)
+    return anchor ? [{ anchor, side: a.side }] : []
+  })
+  const toolbar = box('toolbar')
+  const at =
+    cardSize.w > 0 && candidates.length > 0
+      ? placeCard({
+          candidates,
+          card: cardSize,
+          viewport: { w: window.innerWidth, h: window.innerHeight },
+          avoid: toolbar ? [toolbar] : [],
+          avoidIfPossible: holes,
+        })
+      : null
 
   const next = () => {
     const i = useTour.getState().step
@@ -263,14 +291,11 @@ export function Tour({ paused }: { paused: boolean }) {
   if (!step || paused || index === null) return null
   const isDone = doneId === step.id
   const last = index === STEPS.length - 1
-  const style = placement ? ({ positionArea: placement.area } as CSSProperties) : undefined
+  const style: CSSProperties | undefined = at ? { left: at.x, top: at.y, right: 'auto', bottom: 'auto', margin: 0 } : undefined
 
   return (
     <>
       <Spotlight holes={holes} />
-      {anchorBox && (
-        <div className="tour-anchor" aria-hidden="true" style={{ left: anchorBox.x, top: anchorBox.y, width: anchorBox.w, height: anchorBox.h }} />
-      )}
       <div
         ref={cardRef}
         // A manual popover stays open while the user clicks around the app to do what the step asks.
@@ -279,7 +304,7 @@ export function Tour({ paused }: { paused: boolean }) {
         aria-labelledby="tour-title"
         aria-describedby="tour-body"
         tabIndex={-1}
-        className={`tour-step${placement ? ' anchored' : ''}`}
+        className={`tour-step${at ? ' placed' : ''}`}
         data-step={step.id}
         style={style}
         // Esc closes the tutorial while the card has focus (the app's own Esc uses stay untouched).

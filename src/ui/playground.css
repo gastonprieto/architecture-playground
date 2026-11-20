@@ -342,7 +342,7 @@
   50% { stroke-opacity: 0.35; }
 }
 
-/* The step card: a manual popover in the top layer, tethered to its target with anchor positioning. */
+/* The step card: a manual popover in the top layer, centered unless placed next to its target. */
 :root[data-theme] .tour-step {
   width: min(340px, calc(100vw - 32px));
   padding: 16px 16px 12px;
@@ -354,22 +354,8 @@
   box-shadow: var(--island-shadow), 0 16px 48px rgb(var(--shadow-rgb) / 0.3);
   outline: none;
 }
-/* Invisible box over the step's target (or around the components) that the card hangs from. */
-.tour-anchor {
-  position: fixed;
-  pointer-events: none;
-  anchor-name: --tour-anchor;
-}
-.tour-step.anchored {
-  position-anchor: --tour-anchor;
-  inset: auto;
-  margin: 14px;
-  position-try-fallbacks: flip-block, flip-inline, left;
-}
-/* No anchor positioning: a centered card near the bottom of the window instead. */
-@supports not (anchor-name: --a) {
-  .tour-step.anchored { inset: auto 0 96px; margin: 0 auto; }
-}
+/* Placed next to its target by Tour.tsx (placeCard); it follows moving panels and components smoothly. */
+.tour-step.placed { transition: left 0.25s ease, top 0.25s ease; }
 .tour-step:popover-open { animation: tour-in 0.25s ease-out; }
 @keyframes tour-in {
   from { opacity: 0; transform: translateY(6px); }
@@ -415,4 +401,5 @@
 .tour-next.primary:hover { background: rgb(var(--accent-rgb) / 0.26); }
 @media (prefers-reduced-motion: reduce) {
   .tour-ring, .tour-step:popover-open { animation: none; }
+  .tour-step.placed { transition: none; }
 }
