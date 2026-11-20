@@ -22,7 +22,7 @@ type SubscriberState = BehaviorState & PullState
 export const subscriber = defineComponent<SubscriberConfig, SubscriberState>({
   type: 'subscriber',
   label: 'Suscriptor',
-  icon: 'bell-ring',
+  icon: 'rss',
   color: 'ok',
   group: 'compute',
   config: {

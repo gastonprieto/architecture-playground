@@ -63,7 +63,7 @@ describe('catalog', () => {
       return [d.label, d.icon, d.color]
     })
     expect(meta).toEqual([
-      ['Cola', 'inbox', 'req'],
+      ['Cola', 'list-end', 'req'],
       ['Worker', 'cpu', 'ok'],
       ['DLQ', 'archive-x', 'err'],
     ])
