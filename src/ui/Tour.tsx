@@ -6,6 +6,7 @@ import { track } from './analytics'
 import { rich } from './richText'
 import { useRuntime } from './runtime/runtimeStore'
 import { useEditor } from './store/editor'
+import { useInspectorTab } from './store/inspectorTab'
 import { useScenario } from './store/scenario'
 import { useTour } from './store/tour'
 
@@ -217,6 +218,11 @@ export function Tour({ paused }: { paused: boolean }) {
   useLayoutEffect(() => {
     nextRef.current = next
   })
+
+  // The values to change are on the inspector's Configuración tab: open it there for that step.
+  useEffect(() => {
+    if (step?.id === 'configure') useInspectorTab.getState().setTab('config')
+  }, [step])
 
   // Action steps: watch the stores until the step's goal holds, show ✓, then move on.
   useEffect(() => {

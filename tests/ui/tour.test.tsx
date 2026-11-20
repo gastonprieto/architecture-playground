@@ -5,6 +5,7 @@ import { useLang } from '../../src/i18n'
 import App from '../../src/ui/App'
 import { useRuntime } from '../../src/ui/runtime/runtimeStore'
 import { useEditor } from '../../src/ui/store/editor'
+import { useInspectorTab } from '../../src/ui/store/inspectorTab'
 import { useScenario } from '../../src/ui/store/scenario'
 import { TOUR_STORAGE_KEY, useTour } from '../../src/ui/store/tour'
 import { openToolbarMenu } from './toolbarMenu'
@@ -27,6 +28,7 @@ beforeEach(() => {
   useLang.getState().setLang('es')
   useRuntime.setState({ playing: false })
   useScenario.setState({ pickerOpen: false, opener: null })
+  useInspectorTab.getState().setTab('status')
   // A first visit: the tutorial opens on its first step.
   useTour.setState({ step: 0 })
 })
@@ -79,6 +81,8 @@ describe('tutorial', () => {
     act(() => void useEditor.getState().connect(other, id))
     await afterCheck()
     expect(title()).toBe('Ajustá su comportamiento')
+    // The values to change are on the inspector's Configuración tab: the step opens it there.
+    expect(useInspectorTab.getState().tab).toBe('config')
 
     act(() => useEditor.getState().updateNodeConfig(id, { capacity: 3 }))
     await afterCheck()
