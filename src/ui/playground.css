@@ -316,3 +316,90 @@
 :root[data-theme] .app .dragging { box-shadow: 0 2px 6px rgb(var(--shadow-rgb) / 0.2), 0 16px 40px rgb(var(--shadow-rgb) / 0.25); }
 .palette.collapsed .island-grip { margin: -12px -6px 4px; }
 .scenario-guide .island-grip { top: -14px; margin: -14px -16px -8px; }
+
+/* ---------- Tutorial (Tour.tsx) ---------- */
+:root[data-theme='dark'] { --tour-dim: rgb(0 0 0 / 0.62); }
+:root[data-theme='light'] { --tour-dim: rgb(20 20 30 / 0.5); }
+
+/* The dim layer with holes over the lit targets; clicks go through to the app. */
+.tour-spotlight {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 900;
+  pointer-events: none;
+}
+.tour-dim { fill: var(--tour-dim); }
+.tour-ring {
+  fill: none;
+  stroke: rgb(var(--accent-rgb));
+  stroke-width: 2;
+  animation: tour-pulse 1.8s ease-in-out infinite;
+}
+@keyframes tour-pulse {
+  0%, 100% { stroke-opacity: 1; }
+  50% { stroke-opacity: 0.35; }
+}
+
+/* The step card: a manual popover in the top layer, centered unless placed next to its target. */
+:root[data-theme] .tour-step {
+  width: min(340px, calc(100vw - 32px));
+  padding: 16px 16px 12px;
+  color: var(--text);
+  background: var(--panel-solid);
+  border: var(--island-border);
+  border-top: 3px solid rgb(var(--accent-rgb));
+  border-radius: var(--radius);
+  box-shadow: var(--island-shadow), 0 16px 48px rgb(var(--shadow-rgb) / 0.3);
+  outline: none;
+}
+.tour-step:popover-open { animation: tour-in 0.25s ease-out; }
+@keyframes tour-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.tour-step h2 { margin: 6px 0 6px; font-size: 16px; color: var(--text-strong); }
+.tour-step p { margin: 0 0 10px; line-height: 1.5; }
+.tour-progress { display: flex; gap: 4px; }
+.tour-progress span {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgb(var(--ink-rgb) / 0.12);
+  transition: background 0.2s;
+}
+.tour-progress span.past { background: rgb(var(--accent-rgb) / 0.45); }
+.tour-progress span.current { background: rgb(var(--accent-rgb)); }
+.tour-task {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--cyan);
+}
+.tour-task.done { color: var(--green); }
+.tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tour-actions .tour-next { margin-left: auto; }
+.tour-skip, .tour-next.subtle {
+  background: none;
+  border: none;
+  padding: 6px 4px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+}
+.tour-skip:hover, .tour-next.subtle:hover { color: var(--text); }
+.tour-next.primary {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgb(var(--accent-rgb));
+  background: rgb(var(--accent-rgb) / 0.16);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tour-next.primary:hover { background: rgb(var(--accent-rgb) / 0.26); }
+@media (prefers-reduced-motion: reduce) {
+  .tour-ring, .tour-step:popover-open { animation: none; }
+}

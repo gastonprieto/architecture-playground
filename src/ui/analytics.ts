@@ -14,6 +14,9 @@ export type UsageEvent =
   | { name: 'link_copied' }
   | { name: 'shared_link_opened' }
   | { name: 'graph_cleared' }
+  | { name: 'tour_started' }
+  | { name: 'tour_finished'; props: { step: string } }
+  | { name: 'tour_skipped'; props: { step: string } }
 
 /** Never lets analytics break the app (blocked script, non-browser environment). */
 export function track(e: UsageEvent): void {

@@ -5,6 +5,7 @@ import { Simulation } from '../../src/engine/simulation'
 import { useLang } from '../../src/i18n'
 import { STORAGE_KEY } from '../../src/persistence/storage'
 import App from '../../src/ui/App'
+import { useTour } from '../../src/ui/store/tour'
 import { useRuntime } from '../../src/ui/runtime/runtimeStore'
 import { useEditor } from '../../src/ui/store/editor'
 import { openToolbarMenu } from './toolbarMenu'
@@ -25,6 +26,8 @@ beforeAll(() => {
 
 // jsdom reports navigator.language 'en-US': these tests check the Spanish copy.
 beforeEach(() => useLang.getState().setLang('es'))
+// These tests cover the app itself: the first-visit tutorial stays closed (tests/ui/tour.test.tsx).
+beforeEach(() => useTour.setState({ step: null }))
 afterEach(cleanup)
 
 describe('App', () => {

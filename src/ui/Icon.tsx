@@ -14,6 +14,7 @@ import {
   Download,
   Ellipsis,
   FileBraces,
+  GraduationCap,
   Hourglass,
   Info,
   Key,
@@ -22,6 +23,7 @@ import {
   ListEnd,
   ListOrdered,
   Monitor,
+  MousePointerClick,
   Scale,
   PanelLeftClose,
   PanelLeftOpen,
@@ -55,6 +57,8 @@ export type UiIcon =
   | 'warning'
   | 'scenarios'
   | 'guide'
+  | 'tutorial'
+  | 'your-turn'
   | 'link'
   | 'edit'
   | 'play'
@@ -103,6 +107,8 @@ const ICONS: Record<IconName, LucideIcon> = {
   warning: TriangleAlert,
   scenarios: Compass,
   guide: BookOpen,
+  tutorial: GraduationCap,
+  'your-turn': MousePointerClick,
   link: Link,
   edit: Pencil,
   play: Play,

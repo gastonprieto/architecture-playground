@@ -51,7 +51,7 @@ export function Palette() {
     ;(byGroup.get(g) ?? byGroup.set(g, []).get(g)!).push(def)
   }
   return (
-    <nav ref={attach} style={style} className={`palette${collapsed ? ' collapsed' : ''}${islandClass}`} aria-label={t('palette.title')}>
+    <nav ref={attach} style={style} className={`palette${collapsed ? ' collapsed' : ''}${islandClass}`} data-tour="palette" aria-label={t('palette.title')}>
       {grip}
       <div className="palette-header">
         {!collapsed && <h2 className="panel-title">{t('palette.title')}</h2>}

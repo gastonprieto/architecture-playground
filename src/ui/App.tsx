@@ -27,6 +27,8 @@ import { useNewDiagram } from './store/newDiagram'
 import { useScenario } from './store/scenario'
 import { ScenarioGuide } from './ScenarioGuide'
 import { ScenarioPicker } from './ScenarioPicker'
+import { useTour } from './store/tour'
+import { Tour } from './Tour'
 import { useIsland } from './useIsland'
 import { useIsMobile } from './useIsMobile'
 import { stripHash, track } from './analytics'
@@ -89,28 +91,31 @@ export default function App() {
   const pickerOpen = useScenario((s) => s.pickerOpen)
   const newOpen = useNewDiagram((s) => s.open)
   const theme = useTheme((s) => s.theme)
+  // The tutorial needs the editor, so it only runs on desktop; the scenario guide waits until it ends.
+  const tourShown = useTour((s) => s.step !== null) && !mobile
   const guideShown = useScenario((s) => s.currentId !== null && s.guideOpen)
+  const dialogOpen = infoOpen || behaviorOpen || textOpen || pickerOpen || newOpen
   const { attach: attachInspector, style: inspectorStyle, className: inspectorClass, grip: inspectorGrip } = useIsland('inspector', !mobile)
   return (
     <ReactFlowProvider>
       <SimContext.Provider value={api}>
         {/* Inert behind a dialog: no clicks, focus or keys reach the editor while it is open. */}
-        <div className={`app${mobile ? ' mobile' : ''}`} inert={infoOpen || behaviorOpen || textOpen || pickerOpen || newOpen}>
+        <div className={`app${mobile ? ' mobile' : ''}`} inert={dialogOpen}>
           <header className="toolbar">
             <Toolbar api={api} mobile={mobile} />
           </header>
           {!mobile && <Palette />}
-          <main className="canvas">
+          <main className="canvas" data-tour="canvas">
             <Canvas readOnly={mobile} guide={guideShown} floating colorMode={theme} />
-            <ScenarioGuide api={api} />
+            {!tourShown && <ScenarioGuide api={api} />}
           </main>
           {!mobile && (
-            <aside ref={attachInspector} style={inspectorStyle} className={`inspector${inspectorClass}`} aria-label={t('inspector.label')}>
+            <aside ref={attachInspector} style={inspectorStyle} className={`inspector${inspectorClass}`} data-tour="inspector" aria-label={t('inspector.label')}>
               {inspectorGrip}
               <Inspector runAction={api.runAction} />
             </aside>
           )}
-          <footer className="metrics">
+          <footer className="metrics" data-tour="metrics">
             <MetricsBar />
           </footer>
         </div>
@@ -119,6 +124,7 @@ export default function App() {
         <GraphTextDialog api={api} />
         <NewDiagramDialog />
         {pickerOpen && <ScenarioPicker api={api} />}
+        {tourShown && <Tour paused={dialogOpen} />}
         <Analytics beforeSend={stripHash} />
       </SimContext.Provider>
     </ReactFlowProvider>
