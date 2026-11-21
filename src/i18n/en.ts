@@ -71,7 +71,7 @@ export const en: Dict = {
       },
       metrics: {
         title: 'Watch the numbers',
-        body: 'Here you see the live throughput, the p50 and p95 latencies and the error rate. Try raising the traffic until something saturates.',
+        body: 'Here you see the live throughput, the p50 and p95 latencies and the error rate. They count the requests that make it back to the Client, so they take a few seconds to show up. Then try raising the traffic until something saturates.',
       },
       scenarios: {
         title: 'Explore scenarios',

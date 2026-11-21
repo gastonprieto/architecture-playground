@@ -72,7 +72,7 @@ export const es = {
       },
       metrics: {
         title: 'Mirá los números',
-        body: 'Acá ves en vivo el throughput, las latencias p50 y p95 y la tasa de errores. Probá subir el tráfico hasta que algo se sature.',
+        body: 'Acá ves en vivo el throughput, las latencias p50 y p95 y la tasa de errores. Cuentan los requests que vuelven al Cliente, así que tardan unos segundos en aparecer. Después, probá subir el tráfico hasta que algo se sature.',
       },
       scenarios: {
         title: 'Explorá escenarios',
