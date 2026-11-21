@@ -216,7 +216,7 @@ export function Tour({ paused }: { paused: boolean }) {
     return anchor ? [{ anchor, side: a.side }] : []
   })
   const toolbar = box('toolbar')
-  const at =
+  const placed =
     cardSize.w > 0 && candidates.length > 0
       ? placeCard({
           candidates,
@@ -226,6 +226,18 @@ export function Tour({ paused }: { paused: boolean }) {
           avoidIfPossible: holes,
         })
       : null
+  // The card stays where it first lands in each step: dragging components, panning or the inspector
+  // showing up do not move it. It moves again on the next step, or when the window is resized.
+  const [lock, setLock] = useState<{ step: number; x: number; y: number } | null>(null)
+  const locked = lock !== null && lock.step === index ? lock : null
+  // Adjusting state while rendering (React's pattern for derived state): runs once per step.
+  if (!locked && placed && index !== null) setLock({ step: index, x: placed.x, y: placed.y })
+  useEffect(() => {
+    const reset = () => setLock(null)
+    window.addEventListener('resize', reset)
+    return () => window.removeEventListener('resize', reset)
+  }, [])
+  const at = locked ?? placed
 
   const next = () => {
     const i = useTour.getState().step
