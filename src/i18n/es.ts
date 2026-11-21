@@ -47,8 +47,8 @@ export const es = {
     finish: 'Terminar',
     skip: 'Saltar tutorial',
     skipStep: 'Omitir paso',
-    yourTurn: '👉 Tu turno',
-    done: '✓ ¡Listo!',
+    yourTurn: 'Tu turno',
+    done: '¡Listo!',
     steps: {
       welcome: {
         title: 'Bienvenido a Nodarium',

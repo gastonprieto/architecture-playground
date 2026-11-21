@@ -46,8 +46,8 @@ export const en: Dict = {
     finish: 'Finish',
     skip: 'Skip tutorial',
     skipStep: 'Skip step',
-    yourTurn: '👉 Your turn',
-    done: '✓ Done!',
+    yourTurn: 'Your turn',
+    done: 'Done!',
     steps: {
       welcome: {
         title: 'Welcome to Nodarium',

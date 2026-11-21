@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import type { Graph } from '../engine/types'
 import { useT } from '../i18n'
 import { track } from './analytics'
+import { Icon } from './Icon'
 import { rich } from './richText'
 import { useRuntime } from './runtime/runtimeStore'
 import { useEditor } from './store/editor'
@@ -264,7 +265,7 @@ export function Tour({ paused }: { paused: boolean }) {
     if (step?.id === 'configure') useInspectorTab.getState().setTab('config')
   }, [step])
 
-  // Action steps: watch the stores until the step's goal holds, show ✓, then move on.
+  // Action steps: watch the stores until the step's goal holds, show the check mark, then move on.
   useEffect(() => {
     if (!step?.done) return
     const done = step.done
@@ -335,6 +336,7 @@ export function Tour({ paused }: { paused: boolean }) {
         <p id="tour-body">{rich(t(`tour.steps.${step.id}.body`))}</p>
         {step.done && (
           <p className={`tour-task${isDone ? ' done' : ''}`} role="status">
+            <Icon name={isDone ? 'ok' : 'your-turn'} size={15} />
             {isDone ? t('tour.done') : t('tour.yourTurn')}
           </p>
         )}

@@ -23,6 +23,7 @@ import {
   ListEnd,
   ListOrdered,
   Monitor,
+  MousePointerClick,
   Scale,
   PanelLeftClose,
   PanelLeftOpen,
@@ -57,6 +58,7 @@ export type UiIcon =
   | 'scenarios'
   | 'guide'
   | 'tutorial'
+  | 'your-turn'
   | 'link'
   | 'edit'
   | 'play'
@@ -106,6 +108,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   scenarios: Compass,
   guide: BookOpen,
   tutorial: GraduationCap,
+  'your-turn': MousePointerClick,
   link: Link,
   edit: Pencil,
   play: Play,

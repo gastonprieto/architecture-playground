@@ -371,6 +371,9 @@
 .tour-progress span.past { background: rgb(var(--accent-rgb) / 0.45); }
 .tour-progress span.current { background: rgb(var(--accent-rgb)); }
 .tour-task {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
   color: var(--cyan);
 }

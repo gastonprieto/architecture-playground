@@ -69,11 +69,11 @@ describe('tutorial', () => {
   it('action steps advance by themselves once the user does what they ask', async () => {
     render(<App />)
     fireEvent.click(tourButton('Empezar'))
-    expect(screen.getByText('👉 Tu turno')).toBeTruthy()
+    expect(screen.getByText('Tu turno')).toBeTruthy()
 
     let id = ''
     act(() => void (id = useEditor.getState().addNode('service', { x: 0, y: 0 })))
-    expect(screen.getByText('✓ ¡Listo!')).toBeTruthy()
+    expect(screen.getByText('¡Listo!')).toBeTruthy()
     await afterCheck()
     expect(title()).toBe('Conectalo')
 
