@@ -2,6 +2,8 @@ import type { MetricsSnapshot } from './types'
 
 /** Width of the rolling window, in sim-ms. */
 export const METRICS_WINDOW_MS = 5000
+/** Lead-in counted before the first completion, so the rate does not spike or overshoot at first. */
+export const METRICS_MIN_SPAN_MS = 1000
 
 interface Completion {
   at: number
@@ -14,7 +16,15 @@ export class RollingMetrics {
   /** Ordered by `at` (sim time only moves forward). */
   private entries: Completion[] = []
 
+  /**
+   * Sim time of the first completion ever recorded. Until a whole window has passed since, throughput
+   * is over that time instead of the full window: responses take a round trip to start coming back,
+   * and dividing by the full window would make the rate creep up for 5 sim-s before reading true.
+   */
+  private firstAt: number | null = null
+
   record(at: number, latency: number, ok: boolean): void {
+    this.firstAt ??= at
     this.entries.push({ at, latency, ok })
   }
 
@@ -26,7 +36,7 @@ export class RollingMetrics {
     const sorted = this.entries.map((e) => e.latency).sort((a, b) => a - b)
     const errors = this.entries.reduce((k, e) => k + (e.ok ? 0 : 1), 0)
     return {
-      throughput: n / (METRICS_WINDOW_MS / 1000),
+      throughput: n / (Math.min(now - (this.firstAt ?? now) + METRICS_MIN_SPAN_MS, METRICS_WINDOW_MS) / 1000),
       p50: nearestRank(sorted, 50),
       p95: nearestRank(sorted, 95),
       errorRate: errors / n,

@@ -220,6 +220,7 @@ export const en: Dict = {
     label: 'Metrics',
     throughput: 'Throughput',
     errors: 'Errors',
+    waiting: 'waiting for responses…',
     mode: 'Simulation mode',
     full: 'Real load',
     fullTitle: 'Simulates load: capacity, queues, rate limit and random failures. Counters start over',

@@ -543,6 +543,7 @@ body {
 .metrics-bar b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 .metrics-bar .sep { color: var(--dim); }
 .metrics-bar .metrics-err b { color: var(--red); }
+.metrics-bar .metrics-wait { color: var(--muted); font-style: italic; }
 /* Carga real | Solo flujo, first item of the metrics bar (same look as the ES | EN switch) */
 .mode-toggle {
   display: flex;

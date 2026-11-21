@@ -222,6 +222,7 @@ export const es = {
     label: 'Métricas',
     throughput: 'Throughput',
     errors: 'Errores',
+    waiting: 'esperando respuestas…',
     mode: 'Modo de simulación',
     full: 'Carga real',
     fullTitle: 'Simula la carga: capacidad, colas, rate limit y fallos al azar. Los contadores arrancan de cero',
